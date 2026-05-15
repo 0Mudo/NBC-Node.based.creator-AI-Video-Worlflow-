@@ -48,8 +48,8 @@ export default function SetupWizard({ onComplete }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="w-full max-w-lg bg-bg-secondary rounded-xl border border-node-border shadow-2xl overflow-hidden">
+    <div className="settings-overlay">
+      <div className="w-full max-w-lg bg-bg-secondary rounded-xl border border-node-border shadow-2xl overflow-hidden animate-fade-in">
         {/* Progress */}
         <div className="flex items-center gap-1 px-6 pt-5">
           {STEPS.map((s, i) => (
@@ -81,8 +81,8 @@ export default function SetupWizard({ onComplete }: Props) {
           {step === 1 && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                  <Sparkles size={20} className="text-blue-400" />
+                <div className="w-10 h-10 rounded-lg bg-info/20 flex items-center justify-center">
+                  <Sparkles size={20} className="text-info" />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold">GPT Image 2</h3>
@@ -110,8 +110,8 @@ export default function SetupWizard({ onComplete }: Props) {
           {step === 2 && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                  <Film size={20} className="text-purple-400" />
+                <div className="w-10 h-10 rounded-lg bg-info/20 flex items-center justify-center">
+                  <Film size={20} className="text-info" />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold">Seedance 2.0</h3>
@@ -139,8 +139,8 @@ export default function SetupWizard({ onComplete }: Props) {
           {step === 3 && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-                  <Workflow size={20} className="text-yellow-400" />
+                <div className="w-10 h-10 rounded-lg bg-warning/20 flex items-center justify-center">
+                  <Workflow size={20} className="text-warning" />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold">AI 提示词优化</h3>
@@ -177,8 +177,8 @@ export default function SetupWizard({ onComplete }: Props) {
           {/* Done */}
           {step === 4 && (
             <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-green-500/20 flex items-center justify-center">
-                <Check size={32} className="text-green-400" />
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-success/20 flex items-center justify-center">
+                  <Check size={32} className="text-success" />
               </div>
               <h2 className="text-lg font-bold">配置完成</h2>
               <div className="text-sm text-text-secondary space-y-1">

@@ -4,6 +4,7 @@ import { useFlowStore } from '@/store/useFlowStore'
 import { Plus, Pencil, Trash2, Library, Check, X, Download, Upload } from 'lucide-react'
 import type { Workflow } from '@/types/workflow'
 import type { NbcFile } from '@/types/project'
+import EmptyState from '@/components/shared/EmptyState'
 
 export default function WorkflowPanel() {
   const { workflows, activeWorkflowId, saveWorkflow, deleteWorkflow, renameWorkflow, setActiveWorkflow, importWorkflow } = useWorkflowStore()
@@ -53,8 +54,8 @@ export default function WorkflowPanel() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-node-border">
+    <div className="flex flex-col h-full panel">
+      <div className="panel-header">
         <div className="flex items-center gap-1.5">
           <Library size={14} className="text-accent" />
           <span className="text-xs font-semibold">工作流库</span>
@@ -88,11 +89,7 @@ export default function WorkflowPanel() {
 
       <div className="flex-1 overflow-y-auto">
         {workflows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-text-secondary">
-            <Library size={24} className="mb-2 opacity-30" />
-            <p className="text-[11px]">没有保存的工作流</p>
-            <p className="text-[10px] opacity-60">点击 + 保存当前画布</p>
-          </div>
+          <EmptyState icon={Library} title="没有保存的工作流" subtitle="点击 + 保存当前画布" />
         ) : (
           <div className="p-1.5 space-y-0.5">
             {workflows.map((wf) => {

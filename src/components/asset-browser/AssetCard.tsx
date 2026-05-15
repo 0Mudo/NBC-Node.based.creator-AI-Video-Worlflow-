@@ -8,6 +8,17 @@ interface AssetCardProps {
   onDragStart?: (e: React.DragEvent) => void
 }
 
+const TAG_CLASS: Record<string, string> = {
+  'Character': 'tag-red',
+  'Scene': 'tag-yellow',
+  'GPT Image': 'tag-purple',
+  'Seedance': 'tag-green',
+  'ComfyUI': 'tag-blue',
+  'Item': 'tag-orange',
+  'Output': 'tag-blue',
+  'ZzzMap': 'tag-green',
+}
+
 export default function AssetCard({ asset, selected, onClick, onDragStart }: AssetCardProps) {
   const handleDragStart = (e: React.DragEvent) => {
     // Determine the type for drop processing
@@ -74,7 +85,7 @@ export default function AssetCard({ asset, selected, onClick, onDragStart }: Ass
         </div>
         <div className="asset-card-tags">
           {asset.tags.slice(0, 2).map((tag) => (
-            <span key={tag} className="tag tag-blue">{tag}</span>
+            <span key={tag} className={`tag ${TAG_CLASS[tag] || 'tag-blue'}`}>{tag}</span>
           ))}
         </div>
       </div>

@@ -122,7 +122,7 @@ export default function TemplateMarket({ open, onClose }: Props) {
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div
-        className="settings-dialog max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+        className="settings-dialog animate-slide-up max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">

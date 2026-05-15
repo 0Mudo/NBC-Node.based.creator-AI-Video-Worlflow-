@@ -94,7 +94,7 @@ export default function PromptOptimizer({ node }: Props) {
     <div className="mt-2 space-y-2">
       <div className="flex gap-1.5">
         <button
-          className="btn btn-secondary text-[11px] flex items-center gap-1 flex-1"
+          className="btn btn-secondary disabled:opacity-50 text-[11px] flex items-center gap-1 flex-1"
           onClick={handleOptimize}
           disabled={optimizing || !(node.data.promptText as string)?.trim()}
         >
@@ -108,7 +108,7 @@ export default function PromptOptimizer({ node }: Props) {
       </div>
 
       {error && (
-        <div className="text-[11px] text-red-400 bg-red-400/10 rounded px-2 py-1.5">
+        <div className="text-[11px] text-danger bg-danger/10 rounded px-2 py-1.5">
           {error}
         </div>
       )}

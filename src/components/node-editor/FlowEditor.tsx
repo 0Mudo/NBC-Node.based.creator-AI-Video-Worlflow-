@@ -3,7 +3,7 @@ import ReactFlow, { Background, Controls, MiniMap, ReactFlowProvider, useReactFl
 import 'reactflow/dist/style.css'
 import { useFlowStore } from '@/store/useFlowStore'
 import { useProjectStore } from '@/store/useProjectStore'
-import { nodeTypes } from '@/nodes'
+import { nodeTypes, nodeTypeColors } from '@/nodes'
 import type { NbcFile } from '@/types/project'
 import type { Asset } from '@/types/asset'
 import { Zap, Upload, Download, Trash2, Circle } from 'lucide-react'
@@ -165,7 +165,7 @@ function FlowEditorInner() {
         <div className="flex items-center gap-2">
           {activeProject && (
             <div className="flex items-center gap-1.5 mr-2">
-              <Circle size={8} className={dirty ? 'fill-orange-400 text-orange-400' : 'fill-green-400 text-green-400'} />
+              <Circle size={8} className={dirty ? 'text-warning' : 'text-success'} />
               <span className="text-xs font-semibold text-text-primary">{activeProject.name}</span>
               {lastSavedAt && (
                 <span className="text-[10px] text-text-secondary ml-1 hidden sm:inline">
@@ -185,7 +185,7 @@ function FlowEditorInner() {
           {(selectedNodes.length > 0 || selectedEdges.length > 0) && (
             <>
               <div className="w-px h-4 bg-node-border mx-1" />
-              <button className="btn btn-ghost text-xs flex items-center gap-1 text-red-400 hover:text-red-300" onClick={() => deleteElements({ nodes: selectedNodes, edges: selectedEdges })}><Trash2 size={12} /> 删除</button>
+              <button className="btn btn-ghost text-xs flex items-center gap-1 text-danger hover:text-danger" onClick={() => deleteElements({ nodes: selectedNodes, edges: selectedEdges })}><Trash2 size={12} /> 删除</button>
             </>
           )}
         </div>
@@ -200,7 +200,7 @@ function FlowEditorInner() {
           <Background color="#3a3a5c" gap={20} size={1} />
           <Controls className="!bg-bg-secondary !border-node-border" />
           <MiniMap className="!bg-bg-secondary !border-node-border"
-            nodeColor={(n) => ({ assetInput:'#4ecdc4',characterCard:'#ff6b6b',sceneCard:'#f9ca24',script:'#00cec9',prompt:'#a29bfe',gptImage2:'#fd79a8',seedance:'#6c5ce7',comfyUI:'#00b894',output:'#e17055' }[n.type||''] || '#3a3a5c')} />
+            nodeColor={(n) => nodeTypeColors[n.type as keyof typeof nodeTypeColors] || '#3a3a5c'} />
         </ReactFlow>
       </div>
     </div>

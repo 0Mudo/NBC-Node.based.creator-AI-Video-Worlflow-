@@ -3,10 +3,10 @@ import { Bell, CheckCheck, Trash2, AlertCircle, CheckCircle, AlertTriangle, Info
 import EmptyState from '@/components/shared/EmptyState'
 
 const typeConfig: Record<NotificationType, { icon: typeof Bell; color: string; bg: string }> = {
-  success: { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-400/10' },
-  warning: { icon: AlertTriangle, color: 'text-yellow-400', bg: 'bg-yellow-400/10' },
-  error: { icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-400/10' },
-  info: { icon: Info, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+  success: { icon: CheckCircle, color: 'text-success', bg: 'bg-success/10' },
+  warning: { icon: AlertTriangle, color: 'text-warning', bg: 'bg-warning/10' },
+  error: { icon: AlertCircle, color: 'text-danger', bg: 'bg-danger/10' },
+  info: { icon: Info, color: 'text-info', bg: 'bg-info/10' },
 }
 
 function formatTime(ts: number): string {
@@ -65,7 +65,9 @@ export default function ChatPanel() {
           return (
             <div
               key={n.id}
-              className={`flex items-start gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-colors ${
+              role="button"
+              tabIndex={0}
+              className={`animate-fade-in flex items-start gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-colors ${
                 n.read ? 'opacity-60' : cfg.bg
               } hover:bg-node-border/50`}
               onClick={() => markRead(n.id)}

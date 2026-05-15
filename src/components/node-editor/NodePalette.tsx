@@ -44,7 +44,7 @@ export default function NodePalette({ collapsed: externalCollapsed, onToggleColl
         {nodeCategories.map((cat) => (
           <div key={cat.label} className="mb-0.5">
             <button
-              className="flex items-center justify-between w-full text-[11px] text-text-secondary px-1 py-0.5 hover:bg-node-border rounded"
+              className="flex items-center justify-between w-full text-[11px] text-text-secondary px-1 py-0.5 hover:bg-node-border rounded transition-colors"
               onClick={() => setCatCollapsed((prev) => ({ ...prev, [cat.label]: !prev[cat.label] }))}
             >
               <span>{cat.label}</span>
@@ -55,6 +55,11 @@ export default function NodePalette({ collapsed: externalCollapsed, onToggleColl
                 {cat.types.map((type) => (
                   <button key={type}
                     className="flex items-center gap-2 w-full text-left px-2 py-1 rounded text-xs hover:bg-node-border transition-colors"
+                    draggable
+                    onDragStart={(event) => {
+                      event.dataTransfer.setData('application/reactflow', JSON.stringify({ type }))
+                      event.dataTransfer.effectAllowed = 'move'
+                    }}
                     onClick={() => handleAdd(type)}
                   >
                     <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: nodeTypeColors[type] }} />

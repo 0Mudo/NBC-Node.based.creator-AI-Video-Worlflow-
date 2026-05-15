@@ -1,5 +1,5 @@
 import { useCallback, useRef, useEffect, useMemo, useState } from 'react'
-import { Search, Grid3X3, List, FolderOpen, Upload, LayoutGrid, Folders, Loader2 } from 'lucide-react'
+import { Search, Grid3X3, List, FolderOpen, Upload, LayoutGrid, Folders, Loader2, Image, Film, FileText, Globe } from 'lucide-react'
 import { useAssetStore } from '@/store/useAssetStore'
 import { useProjectStore } from '@/store/useProjectStore'
 import type { Asset, AssetTag } from '@/types/asset'
@@ -304,7 +304,7 @@ export default function AssetBrowser() {
 
       {/* Action buttons */}
       <div className="px-3 pb-3 mt-1 space-y-2 border-b border-node-border/50">
-        <button className="btn btn-secondary text-[11px] font-medium w-full py-2 bg-bg-secondary hover:bg-bg-tertiary border-dashed" onClick={handleLocalScan}>
+        <button className="btn btn-secondary text-[11px] font-medium w-full py-2 border-dashed" onClick={handleLocalScan}>
           <Upload size={14} className="mr-1.5 inline" /> 扫描本地文件夹
         </button>
         <div className="flex gap-2">
@@ -352,7 +352,7 @@ export default function AssetBrowser() {
                   e.dataTransfer.effectAllowed = 'move'
                 }}
               >
-                <span>{asset.type === 'image' ? '🖼' : asset.type === 'video' ? '🎬' : asset.type === 'text' ? '📝' : '🌐'}</span>
+                <span className="text-text-secondary">{asset.type === 'image' ? <Image size={14} /> : asset.type === 'video' ? <Film size={14} /> : asset.type === 'text' ? <FileText size={14} /> : <Globe size={14} />}</span>
                 <span className="flex-1 truncate">{asset.name}</span>
                 <span className="text-text-secondary text-[10px]">{asset.tags[0]}</span>
               </div>

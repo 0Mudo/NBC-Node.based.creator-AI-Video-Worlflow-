@@ -30,9 +30,9 @@ export default function GenerationQueue() {
         ) : (
           <div className="space-y-1.5">
             {tasks.map((task) => (
-              <div key={task.id} className="queue-item flex items-start gap-2 relative group">
-                {task.status === 'completed' ? <CheckCircle2 size={14} className="text-green-400 mt-0.5" />
-                 : task.status === 'failed' ? <XCircle size={14} className="text-red-400 mt-0.5" />
+              <div key={task.id} className="queue-item flex items-start gap-2 relative group animate-fade-in">
+                {task.status === 'completed' ? <CheckCircle2 size={14} className="text-success mt-0.5" />
+                 : task.status === 'failed' ? <XCircle size={14} className="text-danger mt-0.5" />
                  : task.status === 'running' ? <Loader2 size={14} className="text-accent animate-spin mt-0.5" />
                  : <Clock size={14} className="text-text-secondary mt-0.5" />}
                 <div className="flex-1 min-w-0">
@@ -44,7 +44,7 @@ export default function GenerationQueue() {
                     <div className="queue-progress mt-1"><div className="queue-progress-bar" style={{ width: `${task.progress}%` }} /></div>
                   )}
                   {task.resultUrl && <img src={task.resultUrl} alt="生成结果" className="rounded max-h-12 object-cover mt-1" />}
-                  {task.error && <div className="text-[10px] text-red-400 mt-0.5 truncate" title={task.error}>{task.error}</div>}
+                  {task.error && <div className="text-[10px] text-danger mt-0.5 truncate" title={task.error}>{task.error}</div>}
                 </div>
                 {task.status === 'running' && (
                   <button 

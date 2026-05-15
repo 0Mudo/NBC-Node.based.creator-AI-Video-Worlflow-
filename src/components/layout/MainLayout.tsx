@@ -208,9 +208,9 @@ export default function MainLayout() {
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-bg-primary nbc-dock-theme">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-bg-secondary border-b border-node-border flex-shrink-0 z-10">
+      <div className="flex items-center justify-between px-3 py-2 backdrop-blur-sm bg-bg-secondary/90 border-b border-node-border flex-shrink-0 z-10">
         <div className="flex items-center gap-1">
-          <span className="text-xs font-semibold tracking-wide ml-2">NBC · 节点式素材创作器</span>
+          <span className="text-xs font-semibold tracking-wide ml-2 animate-fade-in">NBC · 节点式素材创作器</span>
         </div>
         <div className="flex items-center gap-2">
           <button className="btn btn-ghost p-1.5" onClick={() => setTemplateOpen(true)} title="模板市场"><Workflow size={14} /></button>

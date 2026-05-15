@@ -144,7 +144,7 @@ export default function ProjectPanel() {
               return (
                 <div
                   key={project.id}
-                  className={`group flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-colors ${
+                  className={`group flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-200 ${
                     isActive
                       ? 'bg-accent/15 border-l-2 border-accent'
                       : 'hover:bg-node-border border-l-2 border-transparent'
@@ -189,7 +189,7 @@ export default function ProjectPanel() {
                       </button>
                       {!isActive && (
                         <button
-                          className="btn btn-ghost p-0.5 text-text-secondary hover:text-red-400"
+                          className="btn btn-ghost p-0.5 text-text-secondary hover:text-danger"
                           onClick={(e) => handleDelete(project.id, e)}
                           title="删除"
                         >

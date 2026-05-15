@@ -44,7 +44,7 @@ export const nodeTypeColors: Record<NodeType, string> = {
   characterCard: '#ff6b6b',
   sceneCard: '#f9ca24',
   itemCard: '#e67e22',
-  script: '#00cec9',
+  script: '#55e6c1',
   prompt: '#a29bfe',
   gptImage2: '#fd79a8',
   seedance: '#6c5ce7',

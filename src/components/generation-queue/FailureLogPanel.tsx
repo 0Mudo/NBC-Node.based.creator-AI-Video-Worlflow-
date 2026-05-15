@@ -28,20 +28,20 @@ export default function FailureLogPanel() {
     navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
   }
 
-  const typeColors: Record<string, string> = { 'GPT图像生成': '#fd79a8', 'Seedance视频生成': '#6c5ce7', 'ComfyUI': '#00b894' }
+  const typeColors: Record<string, string> = { 'GPT图像生成': 'bg-node-gpt', 'Seedance视频生成': 'bg-node-seedance', 'ComfyUI': 'bg-node-comfy' }
 
   return (
     <div className="flex flex-col h-full panel">
       <div className="panel-header">
         <span className="flex items-center gap-1.5">
-          <AlertTriangle size={14} className="text-red-400" /> 失败日志
+          <AlertTriangle size={14} className="text-danger" /> 失败日志
           {allFailures.length > 0 && <span className="text-[10px] bg-accent px-1.5 py-0.5 rounded-full">{allFailures.length}</span>}
         </span>
         <div className="flex items-center gap-1">
           {allFailures.length > 0 && (
             <>
               <button className="btn btn-ghost p-0.5 text-text-secondary hover:text-accent" onClick={() => { navigator.clipboard.writeText(exportLogs()); setCopied(true); setTimeout(() => setCopied(false), 2000) }} title="导出日志">
-                {copied ? <Copy size={12} className="text-green-400" /> : <ClipboardList size={12} />}
+                {copied ? <Copy size={12} className="text-success" /> : <ClipboardList size={12} />}
               </button>
               <button className="btn btn-ghost p-0.5 text-text-secondary hover:text-accent" onClick={() => { if (confirm('清除所有失败日志？')) clearAll() }}>
                 <Trash2 size={12} />
@@ -61,11 +61,11 @@ export default function FailureLogPanel() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: typeColors[r.nodeType] || '#e94560' }} />
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${typeColors[r.nodeType] || 'bg-danger'}`} />
                       <span className="text-xs font-medium">{r.nodeType}</span>
                       <span className="text-[10px] text-text-secondary">{new Date(r.timestamp).toLocaleString()}</span>
                     </div>
-                    <div className="text-red-400 text-[11px] cursor-pointer hover:underline" onClick={() => setExpanded(expanded === r.id ? null : r.id)}>
+                    <div className="text-danger text-[11px] cursor-pointer hover:underline" onClick={() => setExpanded(expanded === r.id ? null : r.id)}>
                       {r.error.length > 80 ? r.error.slice(0, 80) + '...' : r.error}
                     </div>
                     {expanded === r.id && (
