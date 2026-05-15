@@ -230,7 +230,7 @@ export async function executeNode(nodeId: string) {
         summary: `${label} 生成完成: ${nodeLabel}`, nodeType: type, nodeLabel,
         generationType: type, generationParams: genParams, resultFile: url, success: true,
       })
-      useTimelineStore.getState().addClip({ nodeId, nodeLabel, type: type === 'seedance' ? 'video' : 'image', url })
+      useTimelineStore.getState().addLegacyClip({ nodeId, nodeLabel, type: type === 'seedance' ? 'video' : 'image', url })
     }
 
     useNotificationStore.getState().addNotification({
@@ -283,11 +283,13 @@ export async function executeAll() {
     }
   }
 
-  const unfilled = useTimelineStore.getState().getUnfilledSlots()
+  const tracks = useTimelineStore.getState().tracks
+  const videoTrack = tracks.find(t => t.type === 'video')
+  const unfilled = videoTrack ? videoTrack.clips.filter(c => c.status === 'empty') : []
   if (unfilled.length > 0) {
     useNotificationStore.getState().addNotification({
-      type: 'warning', title: '时间线有未填充坑位',
-      message: `还有 ${unfilled.length} 个分镜坑位未填充，请检查时间线`,
+      type: 'warning', title: '时间线有未生成片段',
+      message: `还有 ${unfilled.length} 个片段未生成，请检查时间线`,
     })
   }
 }

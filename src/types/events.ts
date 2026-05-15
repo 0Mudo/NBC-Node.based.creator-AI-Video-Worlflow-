@@ -23,6 +23,7 @@ export type NBCEventAction =
   | 'timeline:shot:create'
   | 'timeline:shot:fill'
   | 'timeline:shot:delete'
+  | 'timeline:import'
 
 export interface NBCEventDetails {
   /** 人类可读摘要 */

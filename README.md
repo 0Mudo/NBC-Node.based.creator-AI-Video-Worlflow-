@@ -1,6 +1,3 @@
-<div align="center">
-
-<img src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=A%20minimalist%20flat%20design%20illustration%20of%20a%20node-based%20creative%20workflow%20editor%2C%20featuring%20interconnected%20nodes%20on%20a%20dark%20canvas%2C%20with%20flowing%20connections%20linking%20cards%20labeled%20Character%2C%20Scene%2C%20Script%2C%20and%20AI%20Generation%2C%20cyan%20and%20pink%20accent%20colors%20on%20a%20dark%20background%2C%20clean%20professional%20UI%20aesthetic&image_size=landscape_16_9" alt="NBC Banner" width="100%" />
 
 # 🎬 NBC · 节点式素材创作器
 

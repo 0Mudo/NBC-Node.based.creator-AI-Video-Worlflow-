@@ -1,19 +1,20 @@
 import { useState, useCallback, useEffect, memo } from 'react'
-import { useTimelineStore, type TimelineSlot, type GeneratedClip } from '@/store/useTimelineStore'
+import { useTimelineStore, type TrackClip } from '@/store/useTimelineStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
 import { useFlowStore } from '@/store/useFlowStore'
 import { useInspirationStore } from '@/store/useInspirationStore'
 import { executeNode } from '@/store/useExecutionEngine'
 import {
   Film, Plus, Trash2, GripVertical, X, Import, Check, Clock,
-  Scissors, Play, RotateCcw,
+  Play, RotateCcw, ChevronDown, ChevronRight, Eye, EyeOff,
+  Volume2, VolumeX, Lock, Unlock,
 } from 'lucide-react'
 import EmptyState from '@/components/shared/EmptyState'
 
 const SHOT_OPTIONS = ['', '全景', '中景', '近景', '特写', '远景', '大远景', '中近景', '大特写']
 const TRANSITION_OPTIONS = ['硬切', '淡入淡出', '叠化', '擦除', '滑入', '缩放']
-const MIN_SLOT_PX = 160
-const PX_PER_SEC = 8
+const PX_PER_SEC = 20
+const MIN_CLIP_PX = 80
 
 function formatDuration(sec: number): string {
   const m = Math.floor(sec / 60)
@@ -21,293 +22,144 @@ function formatDuration(sec: number): string {
   return m > 0 ? `${m}m${s}s` : `${s}s`
 }
 
-function TransitionMarker({ transition, onClick }: { transition: string; onClick?: () => void }) {
+function formatTime(sec: number): string {
+  const m = Math.floor(sec / 60)
+  const s = Math.floor(sec % 60)
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+}
+
+function ClipBlock({
+  clip, pxPerSec, onUpdate, onDelete, onTriggerGenerate,
+}: {
+  clip: TrackClip
+  pxPerSec: number
+  onUpdate: (updates: Partial<TrackClip>) => void
+  onDelete: () => void
+  onTriggerGenerate: () => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const widthPx = Math.max(MIN_CLIP_PX, clip.duration * pxPerSec)
+
+  const statusColor =
+    clip.status === 'done' ? 'border-green-500/50 bg-green-500/10' :
+    clip.status === 'generating' ? 'border-yellow-500/50 bg-yellow-500/10 animate-pulse' :
+    clip.status === 'failed' ? 'border-red-500/50 bg-red-500/10' :
+    'border-blue-400/30 bg-blue-400/5 border-dashed'
+
   return (
     <div
-      className="flex flex-col items-center justify-center flex-shrink-0 w-6 cursor-pointer group"
-      onClick={onClick}
-      title={`转场: ${transition} (点击切换)`}
+      className={`absolute top-1 bottom-1 rounded-lg border-2 ${statusColor} overflow-hidden cursor-grab active:cursor-grabbing group transition-colors`}
+      style={{ left: clip.startTime * pxPerSec, width: widthPx }}
+      title={`${clip.label} (${formatDuration(clip.duration)})`}
     >
-      <div className="w-px h-8 bg-node-border group-hover:bg-accent transition-colors" />
-      <span className="text-[8px] text-text-secondary mt-0.5 group-hover:text-accent transition-colors leading-none">
-        {transition === '硬切' ? '|' : transition === '淡入淡出' ? '⊘' : transition === '叠化' ? '≈' : '◆'}
-      </span>
+      {clip.status === 'empty' ? (
+        <div className="flex items-center justify-center h-full" onClick={onTriggerGenerate}>
+          <div className="flex flex-col items-center gap-0.5 text-[9px] text-text-secondary hover:text-accent">
+            <Play size={12} />
+            <span className="truncate max-w-full px-2">{clip.label.slice(0, 12)}</span>
+            <span className="text-[8px] opacity-50">{clip.spec.shotType || '未指定'}</span>
+          </div>
+        </div>
+      ) : clip.status === 'generating' ? (
+        <div className="flex items-center justify-center h-full text-[9px] text-yellow-400">
+          <span className="animate-pulse">生成中...</span>
+        </div>
+      ) : clip.status === 'failed' ? (
+        <div className="flex items-center justify-center h-full text-[9px] text-red-400 gap-1">
+          <span>失败</span>
+          <button className="underline hover:text-red-300" onClick={onTriggerGenerate}>重试</button>
+        </div>
+      ) : clip.sourceType === 'video' ? (
+        <video src={clip.sourceUrl} className="w-full h-full object-cover" muted />
+      ) : clip.sourceType === 'image' ? (
+        <img src={clip.sourceUrl} alt="" className="w-full h-full object-cover" />
+      ) : (
+        <div className="flex items-center justify-center h-full text-[9px] text-text-secondary px-2 truncate">
+          {clip.label}
+        </div>
+      )}
+
+      <button
+        className="absolute top-0.5 right-0.5 p-0.5 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity"
+        onClick={(e) => { e.stopPropagation(); onDelete() }}
+      >
+        <X size={10} />
+      </button>
+
+      {clip.status === 'done' && (
+        <button
+          className="absolute bottom-0.5 right-0.5 p-0.5 rounded bg-black/50 text-text-secondary opacity-0 group-hover:opacity-100 hover:text-accent transition-opacity"
+          onClick={(e) => { e.stopPropagation(); setExpanded(!expanded) }}
+        >
+          {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+        </button>
+      )}
+
+      {expanded && clip.status === 'done' && (
+        <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 text-[9px] text-text-secondary space-y-0.5">
+          <div className="flex justify-between">
+            <span>{clip.label.slice(0, 20)}</span>
+            <span>{clip.spec.shotType || '未指定'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>{formatDuration(clip.duration)}</span>
+            <span>{clip.spec.transition}</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function shallowEqual(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
-  const aKeys = Object.keys(a)
-  const bKeys = Object.keys(b)
-  if (aKeys.length !== bKeys.length) return false
-  return aKeys.every((k) => (a as Record<string, unknown>)[k] === (b as Record<string, unknown>)[k])
-}
-
-const SlotCard = memo(function SlotCard({
-  slot, clip, widthPx, onDrop, onReorder, index, dragIndex, onDragStart, onDragEnd,
-  onTriggerGenerate,
-}: {
-  slot: TimelineSlot
-  clip: GeneratedClip | undefined
-  widthPx: number
-  onDrop: (slotId: string, clipId: string) => void
-  onReorder: (from: number, to: number) => void
-  index: number
-  dragIndex: number | null
-  onDragStart: (index: number) => void
-  onDragEnd: () => void
-  onTriggerGenerate: (slot: TimelineSlot) => void
+function TrackHeader({ track, onToggleMute, onToggleLock, onToggleVisible }: {
+  track: import('@/store/useTimelineStore').Track
+  onToggleMute: () => void
+  onToggleLock: () => void
+  onToggleVisible: () => void
 }) {
-  const { clearSlot, removeSlot, updateSlot } = useTimelineStore()
-  const [dragOver, setDragOver] = useState(false)
-  const [reorderOver, setReorderOver] = useState(false)
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const types = e.dataTransfer.types
-    if (types.includes('application/nbc-clip')) {
-      e.dataTransfer.dropEffect = 'copy'
-      setDragOver(true)
-    } else if (types.includes('application/nbc-slot-reorder')) {
-      e.dataTransfer.dropEffect = 'move'
-      setReorderOver(true)
-    }
-  }, [])
-
-  const handleDragLeave = useCallback(() => {
-    setDragOver(false)
-    setReorderOver(false)
-  }, [])
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragOver(false)
-    setReorderOver(false)
-    const clipId = e.dataTransfer.getData('application/nbc-clip')
-    if (clipId) {
-      onDrop(slot.id, clipId)
-      return
-    }
-    const fromIdx = parseInt(e.dataTransfer.getData('application/nbc-slot-reorder'), 10)
-    if (!isNaN(fromIdx) && fromIdx !== index) {
-      onReorder(fromIdx, index)
-    }
-  }, [slot.id, index, onDrop, onReorder])
-
-  const handleSlotDragStart = useCallback((e: React.DragEvent) => {
-    e.dataTransfer.setData('application/nbc-slot-reorder', String(index))
-    e.dataTransfer.effectAllowed = 'move'
-    onDragStart(index)
-  }, [index, onDragStart])
-
-  const borderColor = dragOver
-    ? 'border-accent bg-accent/10'
-    : reorderOver
-    ? 'border-blue-400 bg-blue-400/10'
-    : clip
-    ? 'border-green-500/40 bg-green-500/5'
-    : 'border-red-400/40 bg-red-400/5'
-
-  const isDragging = dragIndex === index
-
+  const color = track.color || '#6c5ce7'
   return (
-    <div
-      className={`flex-shrink-0 rounded-lg border-2 transition-all ${borderColor} ${isDragging ? 'opacity-40' : ''}`}
-      style={{ width: widthPx }}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      <div className="flex items-center gap-1 px-2 py-1 border-b border-node-border/30">
-        <div
-          draggable
-          onDragStart={handleSlotDragStart}
-          onDragEnd={onDragEnd}
-          className="cursor-grab active:cursor-grabbing flex-shrink-0"
-        >
-          <GripVertical size={10} className="text-text-secondary" />
-        </div>
-        <span className="text-[10px] font-semibold flex-1 truncate">{slot.label}</span>
-        <span className="text-[9px] text-text-secondary flex-shrink-0">#{slot.order}</span>
-        <button
-          className="btn btn-ghost p-0.5 text-text-secondary hover:text-red-400 flex-shrink-0"
-          onClick={() => removeSlot(slot.id)}
-        >
-          <Trash2 size={9} />
+    <div className="flex items-center gap-1 px-2 flex-shrink-0 border-r border-node-border/50" style={{ width: 80 }}>
+      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+      <span className="text-[10px] font-medium truncate flex-1">{track.name}</span>
+      <div className="flex gap-0.5">
+        <button className="p-0.5 text-text-secondary hover:text-accent" onClick={onToggleMute} title={track.muted ? '取消静音' : '静音'}>
+          {track.muted ? <VolumeX size={10} /> : <Volume2 size={10} />}
+        </button>
+        <button className="p-0.5 text-text-secondary hover:text-accent" onClick={onToggleLock} title={track.locked ? '解锁' : '锁定'}>
+          {track.locked ? <Lock size={10} /> : <Unlock size={10} />}
+        </button>
+        <button className="p-0.5 text-text-secondary hover:text-accent" onClick={onToggleVisible} title={track.visible ? '隐藏' : '显示'}>
+          {track.visible ? <Eye size={10} /> : <EyeOff size={10} />}
         </button>
       </div>
-
-      <div className="p-1.5 min-h-[96px] flex flex-col justify-center">
-        {clip ? (
-          <div className="space-y-1">
-            {clip.type === 'video' ? (
-              <video
-                src={clip.url}
-                className="w-full h-24 object-cover rounded bg-black/30"
-                muted
-                onMouseEnter={(e) => (e.target as HTMLVideoElement).play()}
-                onMouseLeave={(e) => {
-                  const v = e.target as HTMLVideoElement
-                  v.pause(); v.currentTime = 0
-                }}
-              />
-            ) : (
-              <img src={clip.url} alt="" className="w-full h-24 object-cover rounded bg-black/30" />
-            )}
-            <div className="flex items-center gap-1">
-              <Check size={9} className="text-green-400 flex-shrink-0" />
-              <span className="text-[9px] text-green-400 truncate flex-1">{clip.nodeLabel}</span>
-              <button
-                className="btn btn-ghost p-0.5 text-text-secondary hover:text-red-400"
-                onClick={() => clearSlot(slot.id)}
-                title="移除素材"
-              >
-                <X size={9} />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            className="w-full h-24 flex flex-col items-center justify-center text-text-secondary hover:text-accent hover:bg-accent/5 rounded transition-colors border border-dashed border-node-border hover:border-accent"
-            onClick={() => onTriggerGenerate(slot)}
-            title="点击触发节点生成"
-          >
-            <Play size={16} className="mb-1 opacity-50" />
-            <span className="text-[10px]">点击补生成</span>
-          </button>
-        )}
-      </div>
-
-      <div className="px-1.5 py-1 border-t border-node-border/30 space-y-1">
-        <div className="flex items-center gap-1">
-          <select
-            className="input text-[9px] py-0 px-1 flex-1 min-w-0"
-            value={slot.spec.shotType}
-            onChange={(e) => updateSlot(slot.id, { spec: { ...slot.spec, shotType: e.target.value } })}
-          >
-            {SHOT_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s || '镜头...'}</option>
-            ))}
-          </select>
-          <div className="flex items-center gap-0.5 flex-shrink-0">
-            <Clock size={8} className="text-text-secondary" />
-            <input
-              className="input text-[10px] py-0 text-center px-1"
-              style={{ width: '48px' }}
-              type="number"
-              min={1}
-              max={60}
-              value={slot.spec.duration}
-              onChange={(e) => updateSlot(slot.id, { spec: { ...slot.spec, duration: Math.max(1, Math.min(60, parseInt(e.target.value) || 5)) } })}
-            />
-            <span className="text-[8px] text-text-secondary">s</span>
-          </div>
-        </div>
-        <select
-          className="input text-[9px] py-0 w-full"
-          value={slot.spec.transition}
-          onChange={(e) => updateSlot(slot.id, { spec: { ...slot.spec, transition: e.target.value } })}
-        >
-          {TRANSITION_OPTIONS.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
-      </div>
-    </div>
-  )
-}, (prev, next) => {
-  return (
-    shallowEqual(prev.slot as unknown as Record<string, unknown>, next.slot as unknown as Record<string, unknown>) &&
-    prev.clip === next.clip &&
-    prev.widthPx === next.widthPx &&
-    prev.index === next.index &&
-    prev.dragIndex === next.dragIndex
-  )
-})
-
-function ClipItem({ clip }: { clip: GeneratedClip }) {
-  const { removeClip } = useTimelineStore()
-  const [hovering, setHovering] = useState(false)
-
-  const handleDragStart = useCallback((e: React.DragEvent) => {
-    e.dataTransfer.setData('application/nbc-clip', clip.id)
-    e.dataTransfer.effectAllowed = 'copy'
-  }, [clip.id])
-
-  return (
-    <div
-      draggable
-      onDragStart={handleDragStart}
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
-      className="flex-shrink-0 w-24 cursor-grab active:cursor-grabbing relative group"
-    >
-      <div className="rounded-md overflow-hidden border border-node-border hover:border-accent transition-colors">
-        <div className="relative">
-          {clip.type === 'video' ? (
-            <video
-              src={clip.url}
-              className="w-full h-14 object-cover bg-black/30"
-              muted
-              onMouseEnter={(e) => hovering && (e.target as HTMLVideoElement).play()}
-              onMouseLeave={(e) => { (e.target as HTMLVideoElement).pause(); (e.target as HTMLVideoElement).currentTime = 0 }}
-            />
-          ) : (
-            <img src={clip.url} alt="" className="w-full h-14 object-cover bg-black/30" />
-          )}
-          <button
-            className="absolute top-0.5 right-0.5 p-0.5 rounded bg-black/60 text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-500/30 transition-opacity"
-            onClick={(e) => { e.stopPropagation(); removeClip(clip.id) }}
-            title="从素材池删除"
-          >
-            <X size={10} />
-          </button>
-        </div>
-        <div className="px-1 py-0.5">
-          <p className="text-[9px] truncate">{clip.nodeLabel}</p>
-        </div>
-      </div>
     </div>
   )
 }
 
-function ImportPanel({ onClose }: { onClose: () => void }) {
-  const { importSlotsFromScript } = useTimelineStore()
+function ImportPanel({ onClose, videoTrackId }: { onClose: () => void; videoTrackId?: string }) {
+  const { importClipsFromScript } = useTimelineStore()
   const [text, setText] = useState('')
 
   const handleImport = () => {
     if (!text.trim()) return
-    const count = text.split('\n').filter((l) => l.trim()).length
-    importSlotsFromScript(text)
+    importClipsFromScript(text, videoTrackId)
     setText('')
     onClose()
-    useNotificationStore.getState().addNotification({
-      type: 'info',
-      title: '分镜已导入',
-      message: `已导入 ${count} 个分镜（自动解析了镜头类型、时长、角色和场景）`,
-    })
+    onClose()
   }
 
   const handleFromInspiration = () => {
     const storyboardText = useInspirationStore.getState().getActiveData('storyboard').content || ''
     if (!storyboardText.trim()) {
       useNotificationStore.getState().addNotification({
-        type: 'warning',
-        title: '未找到分镜内容',
+        type: 'warning', title: '未找到分镜内容',
         message: '请先在灵感编辑器的「第2步：分镜」中编写分镜',
       })
       return
     }
-    const count = storyboardText.split('\n').filter((l) => l.trim()).length
-    importSlotsFromScript(storyboardText)
+    importClipsFromScript(storyboardText, videoTrackId)
     onClose()
-    useNotificationStore.getState().addNotification({
-      type: 'info',
-      title: '分镜已从灵感编辑器导入',
-      message: `已导入 ${count} 个分镜，并自动关联了角色/场景/物品卡`,
-    })
   }
 
   return (
@@ -317,114 +169,88 @@ function ImportPanel({ onClose }: { onClose: () => void }) {
         rows={3}
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder={"每行一个分镜，自动解析结构化信息，例如：\n全景·蜂医从巴别塔高处跃下 8秒 淡入淡出\n特写·疾风从侧面突入 5秒 硬切"}
+        placeholder={"每行一个分镜，支持「对白」解析，例如：\n全景·蜂医从巴别塔高处跃下 8秒 淡入淡出\n特写·疾风「快跟上!」从侧面突入 5秒 硬切"}
       />
       <div className="flex gap-1.5">
-        <button className="btn btn-accent text-[11px]" onClick={handleImport}>导入文本</button>
-        <button className="btn btn-ghost text-[11px] border border-node-border" onClick={handleFromInspiration}>从灵感编辑器(分镜当前版)导入</button>
+        <button className="btn btn-accent text-[11px]" onClick={handleImport}>导入到轨道</button>
+        <button className="btn btn-ghost text-[11px] border border-node-border" onClick={handleFromInspiration}>从灵感编辑器导入</button>
         <button className="btn btn-ghost text-[11px]" onClick={onClose}>取消</button>
       </div>
     </div>
   )
 }
 
-import { useProjectStore } from '@/store/useProjectStore'
-
-function loadSaved(): { slots: TimelineSlot[]; clips: GeneratedClip[] } {
-  try {
-    const projectId = useProjectStore.getState().activeProjectId
-    if (projectId) {
-      const raw = localStorage.getItem(`nbc_timeline_${projectId}`)
-      if (raw) return JSON.parse(raw)
-    }
-  } catch {}
-  return { slots: [], clips: [] }
-}
-
 export default function TimelineView() {
-  const slots = useTimelineStore((s) => s.slots)
-  const clips = useTimelineStore((s) => s.clips)
-  const addSlot = useTimelineStore((s) => s.addSlot)
-  const fillSlot = useTimelineStore((s) => s.fillSlot)
-  const reorderSlots = useTimelineStore((s) => s.reorderSlots)
-  const getUnfilledSlots = useTimelineStore((s) => s.getUnfilledSlots)
+  const tracks = useTimelineStore((s) => s.tracks)
+  const playheadTime = useTimelineStore((s) => s.playheadTime)
+  const zoomLevel = useTimelineStore((s) => s.zoomLevel)
+  const addTrack = useTimelineStore((s) => s.addTrack)
+  const updateTrack = useTimelineStore((s) => s.updateTrack)
+  const removeClip = useTimelineStore((s) => s.removeClip)
+  const updateClip = useTimelineStore((s) => s.updateClip)
+  const addClip = useTimelineStore((s) => s.addClip)
   const getTotalDuration = useTimelineStore((s) => s.getTotalDuration)
+  const setPlayheadTime = useTimelineStore((s) => s.setPlayheadTime)
+  const setZoomLevel = useTimelineStore((s) => s.setZoomLevel)
   const nodes = useFlowStore((s) => s.nodes)
   const [showImport, setShowImport] = useState(false)
   const [newLabel, setNewLabel] = useState('')
   const [newDuration, setNewDuration] = useState(5)
-  const [dragIndex, setDragIndex] = useState<number | null>(null)
 
-  useEffect(() => {
-    // Reload timeline when project switches
-    const handleSwitch = () => {
-      const saved = loadSaved()
-      useTimelineStore.setState({ slots: saved.slots, clips: saved.clips })
-    }
-    handleSwitch() // Initial load
-    
-    // Listen for custom import event
-    const handleImport = () => {
-      const saved = loadSaved()
-      useTimelineStore.setState({ slots: saved.slots, clips: saved.clips })
-    }
-    window.addEventListener('timeline-imported', handleImport)
-    return () => window.removeEventListener('timeline-imported', handleImport)
-  }, [useProjectStore.getState().activeProjectId])
-
-  const unfilledSlots = getUnfilledSlots()
-  const unfilledCount = unfilledSlots.length
+  const videoTrack = tracks.find(t => t.type === 'video')
+  const videoClips = videoTrack?.clips || []
   const totalDuration = getTotalDuration()
+  const emptyCount = videoClips.filter(c => c.status === 'empty').length
+  const pxPerSec = zoomLevel
 
-  const handleAddSlot = () => {
-    if (!newLabel.trim()) return
+  const handleAddClip = () => {
+    if (!newLabel.trim() || !videoTrack) return
     const duration = Math.max(1, Math.min(60, newDuration))
-    addSlot({
-      order: slots.length + 1,
+    const lastClip = videoClips.length > 0 ? videoClips[videoClips.length - 1] : null
+    const startTime = lastClip ? lastClip.startTime + lastClip.duration : 0
+    addClip(videoTrack.id, {
+      trackId: videoTrack.id,
       label: newLabel.trim(),
-      spec: { characterIds: [], sceneId: '', duration, shotType: '', transition: '硬切' },
+      startTime,
+      duration,
+      sourceUrl: '',
+      sourceType: 'text',
+      status: 'empty',
+      spec: { characterIds: [], sceneId: '', shotType: '', transition: '硬切' },
+      opacity: 1,
+      volume: 1,
     })
     setNewLabel('')
     setNewDuration(5)
   }
 
-  const handleDrop = useCallback((slotId: string, clipId: string) => {
-    fillSlot(slotId, clipId)
-  }, [fillSlot])
-
-  const handleReorder = useCallback((from: number, to: number) => {
-    reorderSlots(from, to)
-  }, [reorderSlots])
-
-  const handleDragStart = useCallback((index: number) => setDragIndex(index), [])
-  const handleDragEnd = useCallback(() => setDragIndex(null), [])
-
-  const handleTriggerGenerate = useCallback((slot: TimelineSlot) => {
+  const handleTriggerGenerate = useCallback((clip: TrackClip) => {
     const genNodes = nodes.filter((n) =>
       n.type === 'gptImage2' || n.type === 'seedance' || n.type === 'comfyUI'
     )
     if (genNodes.length === 0) {
       useNotificationStore.getState().addNotification({
-        type: 'warning',
-        title: '无生成节点',
+        type: 'warning', title: '无生成节点',
         message: '请先在画布中添加 GPT Image / Seedance / ComfyUI 节点',
       })
       return
     }
     const targetNode = genNodes[0]
+    updateClip(clip.id, { status: 'generating' })
     useNotificationStore.getState().addNotification({
-      type: 'info',
-      title: '触发补生成',
-      message: `正在为坑位「${slot.label}」执行节点「${targetNode.data.label || targetNode.type}」`,
+      type: 'info', title: '触发生成',
+      message: `正在为片段「${clip.label}」执行节点「${targetNode.data.label || targetNode.type}」`,
     })
     executeNode(targetNode.id)
-  }, [nodes])
+  }, [nodes, updateClip])
 
   const handleClearAll = useCallback(() => {
-    useTimelineStore.setState({ slots: [], clips: [] })
-    const projectId = useProjectStoreId()
-    if (projectId) localStorage.removeItem(`nbc_timeline_${projectId}`)
-  }, [])
+    if (!videoTrack) return
+    videoTrack.clips.forEach(c => removeClip(c.id))
+  }, [videoTrack, removeClip])
+
+  const tickCount = Math.max(10, Math.ceil(totalDuration / 5) + 2)
+  const totalWidth = Math.max(500, totalDuration * pxPerSec + 100)
 
   return (
     <div className="flex flex-col h-full">
@@ -432,131 +258,153 @@ export default function TimelineView() {
         <div className="flex items-center gap-2">
           <Film size={13} className="text-accent" />
           <span className="text-[11px] font-semibold">时间线</span>
-          {slots.length > 0 && (
-            <span className="flex items-center gap-0.5 text-[10px] text-text-secondary">
-              <Clock size={10} />
-              {formatDuration(totalDuration)}
-              <span className="text-[9px] opacity-60">({slots.length} 镜)</span>
-            </span>
-          )}
-          {unfilledCount > 0 ? (
+          <span className="flex items-center gap-0.5 text-[10px] text-text-secondary">
+            <Clock size={10} />
+            {formatDuration(totalDuration)}
+            <span className="text-[9px] opacity-60">({videoClips.length} 片段)</span>
+          </span>
+          {emptyCount > 0 ? (
             <span className="px-1.5 py-0.5 text-[9px] font-bold bg-red-500/20 text-red-400 rounded-full">
-              {unfilledCount} 未填充
+              {emptyCount} 待生成
             </span>
-          ) : slots.length > 0 ? (
+          ) : videoClips.length > 0 ? (
             <span className="px-1.5 py-0.5 text-[9px] font-bold bg-green-500/20 text-green-400 rounded-full">
-              全部已填充
+              全部已生成
             </span>
           ) : null}
         </div>
-        <div className="flex items-center gap-0.5">
-          <button
-            className="btn btn-ghost p-1 text-text-secondary hover:text-accent"
-            onClick={() => setShowImport(!showImport)}
-            title="导入分镜"
-          >
+        <div className="flex items-center gap-1">
+          <button className="btn btn-ghost p-1 text-text-secondary hover:text-accent" onClick={() => setZoomLevel(zoomLevel - 5)} title="缩小">−</button>
+          <span className="text-[9px] text-text-secondary w-8 text-center">{zoomLevel}px/s</span>
+          <button className="btn btn-ghost p-1 text-text-secondary hover:text-accent" onClick={() => setZoomLevel(zoomLevel + 5)} title="放大">+</button>
+          <button className="btn btn-ghost p-1 text-text-secondary hover:text-accent" onClick={() => setShowImport(!showImport)} title="导入分镜">
             <Import size={11} />
           </button>
-          {slots.length > 0 && (
-            <button
-              className="btn btn-ghost p-1 text-text-secondary hover:text-red-400"
-              onClick={handleClearAll}
-              title="清空全部"
-            >
+          {videoClips.length > 0 && (
+            <button className="btn btn-ghost p-1 text-text-secondary hover:text-red-400" onClick={handleClearAll} title="清空">
               <RotateCcw size={11} />
             </button>
           )}
         </div>
       </div>
 
-      {showImport && <ImportPanel onClose={() => setShowImport(false)} />}
+      {showImport && <ImportPanel onClose={() => setShowImport(false)} videoTrackId={videoTrack?.id} />}
 
       <div className="px-3 py-1 border-b border-node-border/50 bg-bg-secondary/30 flex items-center gap-1.5 flex-shrink-0">
         <input
           className="input text-[10px] py-0.5 flex-1 min-w-0"
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
-          placeholder="快速添加：输入镜头描述回车"
-          onKeyDown={(e) => e.key === 'Enter' && handleAddSlot()}
+          placeholder="快速添加片段... (Enter 确认)"
+          onKeyDown={(e) => e.key === 'Enter' && handleAddClip()}
         />
         <input
           className="input text-[10px] py-0.5 text-center"
           style={{ width: '48px', flexShrink: 0 }}
-          type="number"
-          min={1}
-          max={60}
+          type="number" min={1} max={60}
           value={newDuration}
           onChange={(e) => setNewDuration(parseInt(e.target.value) || 5)}
-          placeholder="秒"
         />
         <span className="text-[9px] text-text-secondary flex-shrink-0">s</span>
-        <button className="btn btn-ghost p-1 text-text-secondary hover:text-accent flex-shrink-0" onClick={handleAddSlot} title="添加坑位">
+        <button className="btn btn-ghost p-1 text-text-secondary hover:text-accent flex-shrink-0" onClick={handleAddClip}>
           <Plus size={12} />
         </button>
       </div>
 
-      <div className="flex-1 overflow-x-auto overflow-y-hidden min-h-0">
-        {slots.length === 0 ? (
-          <EmptyState icon={Film} title="暂无分镜" subtitle="在上方输入描述并回车添加，或点击导入按钮导入分镜" />
-        ) : (
-          <div className="flex items-stretch p-2 gap-0 min-h-full w-max">
-            {slots.map((slot, i) => {
-              const clip = clips.find((c) => c.id === slot.filledClipId)
-              const widthPx = Math.max(MIN_SLOT_PX, slot.spec.duration * PX_PER_SEC)
-              return (
-                <div key={slot.id} className="flex items-stretch flex-shrink-0">
-                  {i > 0 && (
-                    <TransitionMarker
-                      transition={slot.spec.transition}
-                      onClick={() => {
-                        const idx = TRANSITION_OPTIONS.indexOf(slot.spec.transition)
-                        const next = TRANSITION_OPTIONS[(idx + 1) % TRANSITION_OPTIONS.length]
-                        useTimelineStore.getState().updateSlot(slot.id, { spec: { ...slot.spec, transition: next } })
-                      }}
-                    />
-                  )}
-                  <SlotCard
-                    slot={slot}
-                    clip={clip}
-                    widthPx={widthPx}
-                    onDrop={handleDrop}
-                    onReorder={handleReorder}
-                    index={i}
-                    dragIndex={dragIndex}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                    onTriggerGenerate={handleTriggerGenerate}
-                  />
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {clips.length > 0 && (
-        <div className="border-t border-node-border flex-shrink-0">
-          <div className="flex items-center gap-1.5 px-3 py-0.5 bg-bg-secondary">
-            <Scissors size={10} className="text-text-secondary" />
-            <span className="text-[10px] text-text-secondary uppercase tracking-wider">素材池</span>
-            <span className="text-[9px] text-text-secondary">({clips.length})</span>
-          </div>
-          <div className="flex gap-1.5 px-3 py-1.5 overflow-x-auto">
-            {clips.map((clip) => (
-              <ClipItem key={clip.id} clip={clip} />
+      <div className="flex-1 flex flex-col overflow-auto min-h-0">
+        <div className="flex" style={{ minWidth: totalWidth }}>
+          {/* Track headers column */}
+          <div className="flex flex-col flex-shrink-0 border-r border-node-border" style={{ width: 80 }}>
+            {tracks.map(track => (
+              <div key={track.id} className="flex items-center px-2 border-b border-node-border/30 bg-bg-tertiary" style={{ height: track.height + 8 }}>
+                <TrackHeader
+                  track={track}
+                  onToggleMute={() => updateTrack(track.id, { muted: !track.muted })}
+                  onToggleLock={() => updateTrack(track.id, { locked: !track.locked })}
+                  onToggleVisible={() => updateTrack(track.id, { visible: !track.visible })}
+                />
+              </div>
             ))}
           </div>
+
+          {/* Timeline ruler + track rows */}
+          <div className="flex-1 flex flex-col">
+            {/* Time ruler */}
+            <div className="flex-shrink-0 h-5 border-b border-node-border bg-bg-secondary/50 overflow-hidden relative">
+              {Array.from({ length: tickCount }, (_, i) => (
+                <div
+                  key={i}
+                  className="absolute top-0 bottom-0 border-l border-node-border/50"
+                  style={{ left: i * 5 * pxPerSec }}
+                >
+                  <span className="text-[8px] text-text-secondary ml-0.5">
+                    {formatTime(i * 5)}
+                  </span>
+                </div>
+              ))}
+              {/* Playhead */}
+              <div
+                className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 pointer-events-none"
+                style={{ left: playheadTime * pxPerSec }}
+              />
+            </div>
+
+            {/* Track rows */}
+            {tracks.filter(t => t.visible).map(track => (
+              <div
+                key={track.id}
+                className="flex-shrink-0 border-b border-node-border/20 relative bg-bg-primary/50"
+                style={{ height: track.height + 8 }}
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const x = e.clientX - rect.left
+                  const time = x / pxPerSec
+                  setPlayheadTime(time)
+                }}
+              >
+                {/* Grid lines */}
+                {Array.from({ length: tickCount }, (_, i) => (
+                  <div
+                    key={i}
+                    className="absolute top-0 bottom-0 border-l border-node-border/20"
+                    style={{ left: i * 5 * pxPerSec }}
+                  />
+                ))}
+                {/* Clips */}
+                {track.clips.sort((a, b) => a.startTime - b.startTime).map(clip => (
+                  <ClipBlock
+                    key={clip.id}
+                    clip={clip}
+                    pxPerSec={pxPerSec}
+                    onUpdate={(u) => updateClip(clip.id, u)}
+                    onDelete={() => removeClip(clip.id)}
+                    onTriggerGenerate={() => handleTriggerGenerate(clip)}
+                  />
+                ))}
+              </div>
+            ))}
+
+            {tracks.length === 0 && (
+              <div className="flex-1 flex items-center justify-center">
+                <EmptyState icon={Film} title="暂无轨道" subtitle="点击下方按钮添加轨道" />
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
+
+      <div className="border-t border-node-border p-1.5 flex items-center gap-2 bg-bg-secondary flex-shrink-0">
+        <button
+          className="btn btn-ghost text-[10px] py-0.5 px-2 flex items-center gap-1 border border-node-border"
+          onClick={() => addTrack('新轨道', 'custom')}
+        >
+          <Plus size={10} /> 添加轨道
+        </button>
+        <div className="flex-1" />
+        <span className="text-[9px] text-text-secondary">
+          {tracks.length} 轨道 · {videoClips.length} 片段 · {formatDuration(totalDuration)}
+        </span>
+      </div>
     </div>
   )
-}
-
-function useProjectStoreId(): string | null {
-  try {
-    const raw = localStorage.getItem('nbc_active_project')
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
 }
