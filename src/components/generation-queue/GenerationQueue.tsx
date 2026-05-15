@@ -1,5 +1,6 @@
 import { useGenerationStore } from '@/store/useGenerationStore'
 import { Clock, CheckCircle2, XCircle, Loader2, Play, Trash2 } from 'lucide-react'
+import EmptyState from '@/components/shared/EmptyState'
 
 const TYPE_LABELS: Record<string, string> = { gptImage2: 'GPT图像生成', seedance: 'Seedance视频生成', comfyUI: 'ComfyUI', banana: 'Banana图像生成' }
 const STATUS_LABELS: Record<string, string> = { queued: '排队中', running: '运行中', completed: '已完成', failed: '失败' }
@@ -25,13 +26,7 @@ export default function GenerationQueue() {
 
       <div className="flex-1 overflow-y-auto p-2">
         {tasks.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-text-secondary text-xs">
-            <div className="text-center">
-              <Play size={20} className="mx-auto mb-1 opacity-40" />
-              <p>暂无生成任务</p>
-              <p className="opacity-70 mt-0.5">运行生成节点后将在此显示</p>
-            </div>
-          </div>
+          <EmptyState icon={Play} title="暂无生成任务" subtitle="运行生成节点后将在此显示" />
         ) : (
           <div className="space-y-1.5">
             {tasks.map((task) => (

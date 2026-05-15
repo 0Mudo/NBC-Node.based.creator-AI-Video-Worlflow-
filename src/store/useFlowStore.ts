@@ -11,8 +11,14 @@ import { useInspirationStore } from './useInspirationStore'
 
 const APP_VERSION = '1.0.0'
 
-function autoSave(nodes: AppNode[], edges: AppEdge[]) {
-  useProjectStore.getState().saveCurrentData(nodes, edges)
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
+const AUTO_SAVE_DEBOUNCE = 400
+
+function debouncedAutoSave(nodes: AppNode[], edges: AppEdge[]) {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer)
+  autoSaveTimer = setTimeout(() => {
+    useProjectStore.getState().saveCurrentData(nodes, edges)
+  }, AUTO_SAVE_DEBOUNCE)
 }
 
 interface FlowStore {
@@ -43,22 +49,22 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   onNodesChange: (changes) => {
     const nodes = applyNodeChanges(changes, get().nodes) as AppNode[]
     set({ nodes })
-    autoSave(nodes, get().edges)
+    debouncedAutoSave(nodes, get().edges)
   },
   onEdgesChange: (changes) => {
     const edges = applyEdgeChanges(changes, get().edges) as AppEdge[]
     set({ edges })
-    autoSave(get().nodes, edges)
+    debouncedAutoSave(get().nodes, edges)
   },
   onConnect: (connection: Connection) => {
     const edges = addEdge(connection, get().edges) as AppEdge[]
     set({ edges })
-    autoSave(get().nodes, edges)
+    debouncedAutoSave(get().nodes, edges)
   },
   addNode: (node) => {
     const nodes = [...get().nodes, node]
     set({ nodes })
-    autoSave(nodes, get().edges)
+    debouncedAutoSave(nodes, get().edges)
     const pId = useProjectStore.getState().activeProjectId
     const nodeLabel = (node.data?.label as string) || node.type
     emitNBCEvent('workflow:node:add', pId || undefined, {
@@ -72,7 +78,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     const nodes = get().nodes.filter((n) => n.id !== id)
     const edges = get().edges.filter((e) => e.source !== id && e.target !== id)
     set({ nodes, edges })
-    autoSave(nodes, edges)
+    debouncedAutoSave(nodes, edges)
     if (oldNode) {
       const pId = useProjectStore.getState().activeProjectId
       const nodeLabel = (oldNode.data?.label as string) || oldNode.type
@@ -86,16 +92,16 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   updateNodeData: (id, data) => {
     const nodes = get().nodes.map((n) => n.id === id ? { ...n, data: { ...n.data, ...data } } : n)
     set({ nodes })
-    autoSave(nodes, get().edges)
+    debouncedAutoSave(nodes, get().edges)
   },
   selectNode: (id) => set({ selectedNodeId: id }),
   setNodes: (nodes) => {
     set({ nodes })
-    autoSave(nodes, get().edges)
+    debouncedAutoSave(nodes, get().edges)
   },
   setEdges: (edges) => {
     set({ edges })
-    autoSave(get().nodes, edges)
+    debouncedAutoSave(get().nodes, edges)
   },
 
   loadFromProject: (nodes, edges) => {

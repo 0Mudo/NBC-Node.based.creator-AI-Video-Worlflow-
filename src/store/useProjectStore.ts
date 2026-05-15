@@ -2,34 +2,35 @@ import { create } from 'zustand'
 import type { Project, ProjectData } from '@/types/project'
 import type { AppNode, AppEdge } from '@/types/flow'
 import { emitNBCEvent } from '@/utils/nbcEvents'
+import { safeGetItem, safeSetItem, safeRemoveItem } from '@/utils/safeStorage'
 
 const PROJECTS_KEY = 'nbc_projects'
 const ACTIVE_KEY = 'nbc_active_project'
 const projectDataKey = (id: string) => `nbc_project_${id}`
 
 function loadProjects(): Project[] {
-  try { return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '[]') } catch { return [] }
+  try { return JSON.parse(safeGetItem(PROJECTS_KEY) || '[]') } catch { return [] }
 }
 function saveProjects(projects: Project[]) {
-  try { localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects)) } catch {}
+  safeSetItem(PROJECTS_KEY, JSON.stringify(projects))
 }
 function loadActiveId(): string | null {
-  try { return localStorage.getItem(ACTIVE_KEY) } catch { return null }
+  return safeGetItem(ACTIVE_KEY)
 }
 function saveActiveId(id: string | null) {
-  try { if (id) localStorage.setItem(ACTIVE_KEY, id); else localStorage.removeItem(ACTIVE_KEY) } catch {}
+  if (id) safeSetItem(ACTIVE_KEY, id); else safeRemoveItem(ACTIVE_KEY)
 }
 function loadProjectData(id: string): ProjectData | null {
   try {
-    const raw = localStorage.getItem(projectDataKey(id))
+    const raw = safeGetItem(projectDataKey(id))
     return raw ? JSON.parse(raw) : null
   } catch { return null }
 }
 function saveProjectData(id: string, data: ProjectData) {
-  try { localStorage.setItem(projectDataKey(id), JSON.stringify(data)) } catch {}
+  safeSetItem(projectDataKey(id), JSON.stringify(data))
 }
 function removeProjectData(id: string) {
-  try { localStorage.removeItem(projectDataKey(id)) } catch {}
+  safeRemoveItem(projectDataKey(id))
 }
 
 interface ProjectStore {
@@ -138,7 +139,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   },
 
   setAutoSaveInterval: (minutes) => {
-    localStorage.setItem('nbc_project_autosave_interval', minutes.toString())
+    safeSetItem('nbc_project_autosave_interval', minutes.toString())
     set({ autoSaveInterval: minutes })
   }
 }))

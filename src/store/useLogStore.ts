@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { safeGetItem, safeSetItem, safeRemoveItem } from '@/utils/safeStorage'
 
 export interface FailureReport {
   id: string
@@ -20,10 +21,10 @@ interface LogStore {
 const STORAGE_KEY = 'nbc_failure_reports'
 
 function loadStored(): FailureReport[] {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
+  try { return JSON.parse(safeGetItem(STORAGE_KEY) || '[]') } catch { return [] }
 }
 function saveStored(reports: FailureReport[]) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(reports.slice(-50))) } catch {}
+  safeSetItem(STORAGE_KEY, JSON.stringify(reports.slice(-50)))
 }
 
 export const useLogStore = create<LogStore>((set, get) => ({
@@ -40,7 +41,7 @@ export const useLogStore = create<LogStore>((set, get) => ({
     saveStored(reports)
   },
 
-  clearAll: () => { set({ reports: [] }); localStorage.removeItem(STORAGE_KEY) },
+  clearAll: () => { set({ reports: [] }); safeRemoveItem(STORAGE_KEY) },
 
   exportLogs: () => {
     const reports = get().reports

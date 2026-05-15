@@ -1,0 +1,16 @@
+export const ASPECT_RATIO_OPTIONS = [
+  { value: '1:1', label: '1:1 (正方形)' },
+  { value: '2:3', label: '2:3 (竖版)' },
+  { value: '3:2', label: '3:2 (横版)' },
+  { value: '3:4', label: '3:4 (竖版)' },
+  { value: '4:3', label: '4:3 (横版)' },
+  { value: '4:5', label: '4:5 (竖版)' },
+  { value: '5:4', label: '5:4 (横版)' },
+  { value: '9:16', label: '9:16 (手机竖版)' },
+  { value: '16:9', label: '16:9 (宽屏)' },
+  { value: '1:2', label: '1:2 (竖版)' },
+  { value: '2:1', label: '2:1 (宽幅)' },
+  { value: '3:1', label: '3:1 (超宽)' },
+  { value: '1:3', label: '1:3 (超长)' },
+  { value: '21:9', label: '21:9 (电影宽屏)' },
+]

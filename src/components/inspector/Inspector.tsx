@@ -4,8 +4,10 @@ import { useAssetStore } from '@/store/useAssetStore'
 import { useProjectStore } from '@/store/useProjectStore'
 
 import { Info, Settings, Trash2, Sparkles } from 'lucide-react'
+import EmptyState from '@/components/shared/EmptyState'
 import { nodeTypeLabels } from '@/nodes'
 import type { Asset, AssetTag } from '@/types/asset'
+import { ASPECT_RATIO_OPTIONS } from '@/utils/constants'
 import PromptOptimizer from './PromptOptimizer'
 
 function buildAssetOptions(
@@ -77,6 +79,70 @@ function buildAssetOptions(
   return nodes
 }
 
+interface CardFieldsConfig {
+  assetIdField: string
+  nameField: string
+  nameLabel: string
+  descField: string
+  descLabel: string
+  refImageField: string
+  refImagePlaceholder: string
+}
+
+function CardAssetFields({
+  tag,
+  config,
+  nodeData,
+  handleChange,
+  extra,
+  assets,
+  activeProjectId,
+  projectNameMap,
+}: {
+  tag: AssetTag
+  config: CardFieldsConfig
+  nodeData: Record<string, unknown>
+  handleChange: (field: string, value: unknown) => void
+  extra?: ReactNode
+  assets: Asset[]
+  activeProjectId: string | null
+  projectNameMap: Map<string, string>
+}) {
+  return (
+    <>
+      <div>
+        <label className="text-[10px] text-text-secondary uppercase tracking-wider">
+          <Sparkles size={10} className="inline mr-1 text-accent" />灵感库 <span className="opacity-50 font-normal">(从素材库选择)</span>
+        </label>
+        <select className="input mt-0.5"
+          value={(nodeData[config.assetIdField] as string) || ''}
+          onChange={(e) => {
+            const assetId = e.target.value
+            if (!assetId) {
+              handleChange(config.assetIdField, '')
+              return
+            }
+            const asset = assets.find((a) => a.id === assetId)
+            if (asset) {
+              handleChange(config.assetIdField, asset.id)
+              handleChange(config.nameField, asset.name)
+              handleChange(config.descField, asset.prompt || '')
+              handleChange(config.refImageField, asset.thumbnailPath || '')
+            }
+          }}
+        >
+          <option value="">未选择...</option>
+          {buildAssetOptions(assets, tag, activeProjectId, projectNameMap)}
+        </select>
+      </div>
+      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">{config.nameLabel}</label><input className="input mt-0.5" value={(nodeData[config.nameField] as string) || ''} onChange={(e) => handleChange(config.nameField, e.target.value)} /></div>
+      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">{config.descLabel}</label><textarea className="input mt-0.5" rows={4} value={(nodeData[config.descField] as string) || ''} onChange={(e) => handleChange(config.descField, e.target.value)} /></div>
+      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">参考图片路径</label><input className="input mt-0.5" value={(nodeData[config.refImageField] as string) || ''} onChange={(e) => handleChange(config.refImageField, e.target.value)} placeholder={config.refImagePlaceholder} /></div>
+      {extra}
+    </>
+  )
+}
+
 export default function Inspector() {
   const { nodes, selectedNodeId, updateNodeData, removeNode, selectNode } = useFlowStore()
   const assets = useAssetStore((s) => s.assets)
@@ -87,10 +153,8 @@ export default function Inspector() {
 
   if (!node) {
     return (
-      <div className="flex flex-col items-center justify-center h-full panel text-text-secondary text-xs p-4 text-center">
-        <Info size={24} className="mb-2 opacity-40" />
-        <p>选择节点查看属性</p>
-        <p className="mt-1 opacity-70">属性将在此显示</p>
+      <div className="h-full panel">
+        <EmptyState icon={Info} title="选择节点查看属性" subtitle="属性将在此显示" />
       </div>
     )
   }
@@ -119,105 +183,68 @@ export default function Inspector() {
 
         {/* --- Character Card --- */}
         {node.type === 'characterCard' && (
-          <>
-            <div>
-              <label className="text-[10px] text-text-secondary uppercase tracking-wider">
-                <Sparkles size={10} className="inline mr-1 text-accent" />灵感库 <span className="opacity-50 font-normal">(从素材库选择)</span>
-              </label>
-              <select className="input mt-0.5"
-                value={(node.data.characterAssetId as string) || ''}
-                onChange={(e) => {
-                  const assetId = e.target.value
-                  if (!assetId) {
-                    handleChange('characterAssetId', '')
-                    return
-                  }
-                  const asset = assets.find((a) => a.id === assetId)
-                  if (asset) {
-                    handleChange('characterAssetId', asset.id)
-                    handleChange('characterName', asset.name)
-                    handleChange('characterAppearance', asset.prompt || '')
-                    handleChange('characterRefImage', asset.thumbnailPath || '')
-                  }
-                }}
-              >
-                <option value="">未选择...</option>
-                {buildAssetOptions(assets, 'Character', activeProjectId, projectNameMap)}
-              </select>
-            </div>
-            <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">名称</label><input className="input mt-0.5" value={(node.data.characterName as string) || ''} onChange={(e) => handleChange('characterName', e.target.value)} /></div>
-            <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">外观描述</label><textarea className="input mt-0.5" rows={4} value={(node.data.characterAppearance as string) || ''} onChange={(e) => handleChange('characterAppearance', e.target.value)} /></div>
-            <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">参考图片路径</label><input className="input mt-0.5" value={(node.data.characterRefImage as string) || ''} onChange={(e) => handleChange('characterRefImage', e.target.value)} placeholder="本地路径或URL..." /></div>
-            <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">多角色（逗号分隔ID）</label><textarea className="input mt-0.5" rows={2} value={(node.data.characterCards as string) || ''} onChange={(e) => handleChange('characterCards', e.target.value)} placeholder="fade, luna, rush" /></div>
-            </>
+          <CardAssetFields
+            tag="Character"
+            config={{
+              assetIdField: 'characterAssetId',
+              nameField: 'characterName',
+              nameLabel: '名称',
+              descField: 'characterAppearance',
+              descLabel: '外观描述',
+              refImageField: 'characterRefImage',
+              refImagePlaceholder: '本地路径或URL...',
+            }}
+            nodeData={node.data}
+            handleChange={handleChange}
+            assets={assets}
+            activeProjectId={activeProjectId}
+            projectNameMap={projectNameMap}
+            extra={
+              <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">多角色（逗号分隔ID）</label><textarea className="input mt-0.5" rows={2} value={(node.data.characterCards as string) || ''} onChange={(e) => handleChange('characterCards', e.target.value)} placeholder="fade, luna, rush" /></div>
+            }
+          />
         )}
 
         {/* --- Scene Card --- */}
         {node.type === 'sceneCard' && (
-          <>
-            <div>
-              <label className="text-[10px] text-text-secondary uppercase tracking-wider">
-                <Sparkles size={10} className="inline mr-1 text-accent" />灵感库 <span className="opacity-50 font-normal">(从素材库选择)</span>
-              </label>
-              <select className="input mt-0.5"
-                value={(node.data.sceneAssetId as string) || ''}
-                onChange={(e) => {
-                  const assetId = e.target.value
-                  if (!assetId) {
-                    handleChange('sceneAssetId', '')
-                    return
-                  }
-                  const asset = assets.find((a) => a.id === assetId)
-                  if (asset) {
-                    handleChange('sceneAssetId', asset.id)
-                    handleChange('sceneName', asset.name)
-                    handleChange('sceneDescription', asset.prompt || '')
-                    handleChange('sceneRefImage', asset.thumbnailPath || '')
-                  }
-                }}
-              >
-                <option value="">未选择...</option>
-                {buildAssetOptions(assets, 'Scene', activeProjectId, projectNameMap)}
-              </select>
-            </div>
-            <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">名称</label><input className="input mt-0.5" value={(node.data.sceneName as string) || ''} onChange={(e) => handleChange('sceneName', e.target.value)} /></div>
-            <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">场景描述</label><textarea className="input mt-0.5" rows={4} value={(node.data.sceneDescription as string) || ''} onChange={(e) => handleChange('sceneDescription', e.target.value)} /></div>
-            <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">参考图片路径</label><input className="input mt-0.5" value={(node.data.sceneRefImage as string) || ''} onChange={(e) => handleChange('sceneRefImage', e.target.value)} placeholder="本地全景图路径或URL..." /></div>
-          </>
+          <CardAssetFields
+            tag="Scene"
+            config={{
+              assetIdField: 'sceneAssetId',
+              nameField: 'sceneName',
+              nameLabel: '名称',
+              descField: 'sceneDescription',
+              descLabel: '场景描述',
+              refImageField: 'sceneRefImage',
+              refImagePlaceholder: '本地全景图路径或URL...',
+            }}
+            nodeData={node.data}
+            handleChange={handleChange}
+            assets={assets}
+            activeProjectId={activeProjectId}
+            projectNameMap={projectNameMap}
+          />
         )}
 
         {/* --- Item Card --- */}
         {node.type === 'itemCard' && (
-          <>
-            <div>
-              <label className="text-[10px] text-text-secondary uppercase tracking-wider">
-                <Sparkles size={10} className="inline mr-1 text-accent" />灵感库 <span className="opacity-50 font-normal">(从素材库选择)</span>
-              </label>
-              <select className="input mt-0.5"
-                value={(node.data.itemAssetId as string) || ''}
-                onChange={(e) => {
-                  const assetId = e.target.value
-                  if (!assetId) {
-                    handleChange('itemAssetId', '')
-                    return
-                  }
-                  const asset = assets.find((a) => a.id === assetId)
-                  if (asset) {
-                    handleChange('itemAssetId', asset.id)
-                    handleChange('itemName', asset.name)
-                    handleChange('itemDescription', asset.prompt || '')
-                    handleChange('itemRefImage', asset.thumbnailPath || '')
-                  }
-                }}
-              >
-                <option value="">未选择...</option>
-                {buildAssetOptions(assets, 'Item', activeProjectId, projectNameMap)}
-              </select>
-            </div>
-            <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">名称</label><input className="input mt-0.5" value={(node.data.itemName as string) || ''} onChange={(e) => handleChange('itemName', e.target.value)} /></div>
-            <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">物品描述</label><textarea className="input mt-0.5" rows={4} value={(node.data.itemDescription as string) || ''} onChange={(e) => handleChange('itemDescription', e.target.value)} /></div>
-            <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">参考图片路径</label><input className="input mt-0.5" value={(node.data.itemRefImage as string) || ''} onChange={(e) => handleChange('itemRefImage', e.target.value)} placeholder="本地图片路径或URL..." /></div>
-          </>
+          <CardAssetFields
+            tag="Item"
+            config={{
+              assetIdField: 'itemAssetId',
+              nameField: 'itemName',
+              nameLabel: '名称',
+              descField: 'itemDescription',
+              descLabel: '物品描述',
+              refImageField: 'itemRefImage',
+              refImagePlaceholder: '本地图片路径或URL...',
+            }}
+            nodeData={node.data}
+            handleChange={handleChange}
+            assets={assets}
+            activeProjectId={activeProjectId}
+            projectNameMap={projectNameMap}
+          />
         )}
 
         {/* --- Script --- */}
@@ -247,10 +274,9 @@ export default function Inspector() {
             <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">画面比例 / 分辨率</label>
               <select className="input mt-0.5" value={(node.data.gptImageAspectRatio as string) || '1:1'} onChange={(e) => handleChange('gptImageAspectRatio', e.target.value)}>
                 <optgroup label="预设比例">
-                  <option value="1:1">1:1 方形</option><option value="16:9">16:9 宽屏</option><option value="9:16">9:16 竖屏</option><option value="4:3">4:3 标准</option><option value="3:4">3:4 竖版</option>
-                  <option value="21:9">21:9 超宽</option><option value="9:21">9:21 超竖</option><option value="3:2">3:2</option><option value="2:3">2:3</option>
-                  <option value="5:4">5:4</option><option value="4:5">4:5</option><option value="2:1">2:1</option><option value="1:2">1:2</option>
-                  <option value="3:1">3:1</option><option value="1:3">1:3</option>
+                  {ASPECT_RATIO_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
                 </optgroup>
                 <optgroup label="分辨率 (VIP)">
                   <option value="1024x1024">1k (1024x1024)</option>
@@ -281,10 +307,9 @@ export default function Inspector() {
             <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">画面比例 / 分辨率</label>
               <select className="input mt-0.5" value={(node.data.bananaAspectRatio as string) || '1024x1024'} onChange={(e) => handleChange('bananaAspectRatio', e.target.value)}>
                 <optgroup label="预设比例">
-                  <option value="1:1">1:1 方形</option><option value="16:9">16:9 宽屏</option><option value="9:16">9:16 竖屏</option><option value="4:3">4:3 标准</option><option value="3:4">3:4 竖版</option>
-                  <option value="21:9">21:9 超宽</option><option value="9:21">9:21 超竖</option><option value="3:2">3:2</option><option value="2:3">2:3</option>
-                  <option value="5:4">5:4</option><option value="4:5">4:5</option><option value="2:1">2:1</option><option value="1:2">1:2</option>
-                  <option value="3:1">3:1</option><option value="1:3">1:3</option>
+                  {ASPECT_RATIO_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
                 </optgroup>
                 <optgroup label="分辨率 (像素)">
                   <option value="1024x1024">1024x1024</option>

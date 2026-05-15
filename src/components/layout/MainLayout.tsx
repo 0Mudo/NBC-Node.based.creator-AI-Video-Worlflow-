@@ -20,6 +20,7 @@ import { useFlowStore } from '@/store/useFlowStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
 import { Settings, Workflow, Sun, Moon } from 'lucide-react'
 import { useThemeStore } from '@/store/useThemeStore'
+import ErrorBoundary from '@/components/shared/ErrorBoundary'
 
 const tabComponents: Record<string, React.ReactNode> = {
   project: <ProjectPanel />,
@@ -185,6 +186,7 @@ export default function MainLayout() {
   };
 
   const loadTab = (tab: TabData) => {
+    const tabIdStr = tab.id as string
     return {
       id: tab.id,
       title: (
@@ -195,7 +197,9 @@ export default function MainLayout() {
       closable: tab.closable ?? true,
       content: (
         <div className="h-full w-full overflow-hidden flex flex-col bg-bg-primary text-text-primary rounded-b-lg">
-          {tabComponents[tab.id as string]}
+          <ErrorBoundary panelName={tabIdStr}>
+            {tabComponents[tabIdStr]}
+          </ErrorBoundary>
         </div>
       ),
     };

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLogStore } from '@/store/useLogStore'
 import { useGenerationStore } from '@/store/useGenerationStore'
 import { AlertTriangle, Trash2, ClipboardList, Copy, X } from 'lucide-react'
+import EmptyState from '@/components/shared/EmptyState'
 
 export default function FailureLogPanel() {
   const { reports, clearAll, exportLogs } = useLogStore()
@@ -52,11 +53,7 @@ export default function FailureLogPanel() {
 
       <div className="flex-1 overflow-y-auto p-2">
         {allFailures.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-text-secondary text-xs">
-            <AlertTriangle size={20} className="mb-1 opacity-30" />
-            <p>暂无失败记录</p>
-            <p className="opacity-70 mt-0.5">生成失败时自动记录</p>
-          </div>
+          <EmptyState icon={AlertTriangle} title="暂无失败记录" subtitle="生成失败时自动记录" />
         ) : (
           <div className="space-y-2">
             {allFailures.map((r) => (

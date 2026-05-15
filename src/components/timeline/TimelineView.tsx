@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, memo } from 'react'
 import { useTimelineStore, type TimelineSlot, type GeneratedClip } from '@/store/useTimelineStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
 import { useFlowStore } from '@/store/useFlowStore'
@@ -8,6 +8,7 @@ import {
   Film, Plus, Trash2, GripVertical, X, Import, Check, Clock,
   Scissors, Play, RotateCcw,
 } from 'lucide-react'
+import EmptyState from '@/components/shared/EmptyState'
 
 const SHOT_OPTIONS = ['', '全景', '中景', '近景', '特写', '远景', '大远景', '中近景', '大特写']
 const TRANSITION_OPTIONS = ['硬切', '淡入淡出', '叠化', '擦除', '滑入', '缩放']
@@ -35,7 +36,14 @@ function TransitionMarker({ transition, onClick }: { transition: string; onClick
   )
 }
 
-function SlotCard({
+function shallowEqual(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+  const aKeys = Object.keys(a)
+  const bKeys = Object.keys(b)
+  if (aKeys.length !== bKeys.length) return false
+  return aKeys.every((k) => (a as Record<string, unknown>)[k] === (b as Record<string, unknown>)[k])
+}
+
+const SlotCard = memo(function SlotCard({
   slot, clip, widthPx, onDrop, onReorder, index, dragIndex, onDragStart, onDragEnd,
   onTriggerGenerate,
 }: {
@@ -209,7 +217,15 @@ function SlotCard({
       </div>
     </div>
   )
-}
+}, (prev, next) => {
+  return (
+    shallowEqual(prev.slot as unknown as Record<string, unknown>, next.slot as unknown as Record<string, unknown>) &&
+    prev.clip === next.clip &&
+    prev.widthPx === next.widthPx &&
+    prev.index === next.index &&
+    prev.dragIndex === next.dragIndex
+  )
+})
 
 function ClipItem({ clip }: { clip: GeneratedClip }) {
   const { removeClip } = useTimelineStore()
@@ -326,8 +342,14 @@ function loadSaved(): { slots: TimelineSlot[]; clips: GeneratedClip[] } {
 }
 
 export default function TimelineView() {
-  const { slots, clips, addSlot, fillSlot, reorderSlots, getUnfilledSlots, getTotalDuration } = useTimelineStore()
-  const { nodes } = useFlowStore()
+  const slots = useTimelineStore((s) => s.slots)
+  const clips = useTimelineStore((s) => s.clips)
+  const addSlot = useTimelineStore((s) => s.addSlot)
+  const fillSlot = useTimelineStore((s) => s.fillSlot)
+  const reorderSlots = useTimelineStore((s) => s.reorderSlots)
+  const getUnfilledSlots = useTimelineStore((s) => s.getUnfilledSlots)
+  const getTotalDuration = useTimelineStore((s) => s.getTotalDuration)
+  const nodes = useFlowStore((s) => s.nodes)
   const [showImport, setShowImport] = useState(false)
   const [newLabel, setNewLabel] = useState('')
   const [newDuration, setNewDuration] = useState(5)
@@ -373,6 +395,9 @@ export default function TimelineView() {
   const handleReorder = useCallback((from: number, to: number) => {
     reorderSlots(from, to)
   }, [reorderSlots])
+
+  const handleDragStart = useCallback((index: number) => setDragIndex(index), [])
+  const handleDragEnd = useCallback(() => setDragIndex(null), [])
 
   const handleTriggerGenerate = useCallback((slot: TimelineSlot) => {
     const genNodes = nodes.filter((n) =>
@@ -472,11 +497,7 @@ export default function TimelineView() {
 
       <div className="flex-1 overflow-x-auto overflow-y-hidden min-h-0">
         {slots.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-text-secondary text-xs">
-            <Film size={20} className="mb-2 opacity-30" />
-            <p className="text-[11px]">暂无分镜</p>
-            <p className="text-[10px] opacity-60 mt-0.5">在上方输入添加，或点击 <Import size={10} className="inline" /> 导入</p>
-          </div>
+          <EmptyState icon={Film} title="暂无分镜" subtitle="在上方输入描述并回车添加，或点击导入按钮导入分镜" />
         ) : (
           <div className="flex items-stretch p-2 gap-0 min-h-full w-max">
             {slots.map((slot, i) => {
@@ -502,8 +523,8 @@ export default function TimelineView() {
                     onReorder={handleReorder}
                     index={i}
                     dragIndex={dragIndex}
-                    onDragStart={setDragIndex}
-                    onDragEnd={() => setDragIndex(null)}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
                     onTriggerGenerate={handleTriggerGenerate}
                   />
                 </div>

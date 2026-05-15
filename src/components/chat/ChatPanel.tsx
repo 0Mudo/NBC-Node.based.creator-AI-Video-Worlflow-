@@ -1,5 +1,6 @@
 import { useNotificationStore, type NotificationType } from '@/store/useNotificationStore'
 import { Bell, CheckCheck, Trash2, AlertCircle, CheckCircle, AlertTriangle, Info } from 'lucide-react'
+import EmptyState from '@/components/shared/EmptyState'
 
 const typeConfig: Record<NotificationType, { icon: typeof Bell; color: string; bg: string }> = {
   success: { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-400/10' },
@@ -56,11 +57,7 @@ export default function ChatPanel() {
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {notifications.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-text-secondary text-xs text-center px-4">
-            <Bell size={28} className="mb-2 opacity-30" />
-            <p>暂无通知</p>
-            <p className="mt-1 opacity-70">工作流运行时，Agent 会在这里汇报进度</p>
-          </div>
+          <EmptyState icon={Bell} title="暂无通知" subtitle="工作流运行时，Agent 会在这里汇报进度" />
         )}
         {notifications.map((n) => {
           const cfg = typeConfig[n.type]

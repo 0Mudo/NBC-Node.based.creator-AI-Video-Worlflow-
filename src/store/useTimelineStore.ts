@@ -4,6 +4,7 @@ import { characters } from '@/data/characters'
 import { scenes } from '@/data/scenes'
 import { emitNBCEvent } from '@/utils/nbcEvents'
 import { useAssetStore } from './useAssetStore'
+import { safeGetItem, safeSetItem } from '@/utils/safeStorage'
 
 export interface TimelineSlot {
   id: string
@@ -98,22 +99,20 @@ function parseLine(text: string): { label: string; shotType: string; duration: n
 }
 
 function autoSave(slots: TimelineSlot[], clips: GeneratedClip[]) {
-  try {
-    const projectId = useProjectStore.getState().activeProjectId
-    if (projectId) {
-      localStorage.setItem(`nbc_timeline_${projectId}`, JSON.stringify({ slots, clips }))
-    }
-  } catch {}
+  const projectId = useProjectStore.getState().activeProjectId
+  if (projectId) {
+    safeSetItem(`nbc_timeline_${projectId}`, JSON.stringify({ slots, clips }))
+  }
 }
 
 function loadSaved(): { slots: TimelineSlot[]; clips: GeneratedClip[] } {
-  try {
-    const projectId = useProjectStore.getState().activeProjectId
-    if (projectId) {
-      const raw = localStorage.getItem(`nbc_timeline_${projectId}`)
-      if (raw) return JSON.parse(raw)
+  const projectId = useProjectStore.getState().activeProjectId
+  if (projectId) {
+    const raw = safeGetItem(`nbc_timeline_${projectId}`)
+    if (raw) {
+      try { return JSON.parse(raw) } catch {}
     }
-  } catch {}
+  }
   return { slots: [], clips: [] }
 }
 

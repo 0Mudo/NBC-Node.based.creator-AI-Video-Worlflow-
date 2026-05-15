@@ -5,6 +5,7 @@ import { useProjectStore } from '@/store/useProjectStore'
 import type { Asset, AssetTag } from '@/types/asset'
 import AssetCard from './AssetCard'
 import AssetDetail from './AssetDetail'
+import EmptyState from '@/components/shared/EmptyState'
 
 import { useProviderStore } from '@/store/useProviderStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
@@ -320,11 +321,7 @@ export default function AssetBrowser() {
 
       <div className="flex-1 overflow-y-auto p-2 pt-3">
         {assets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-text-secondary text-xs px-4 text-center">
-            <FolderOpen size={32} className="mb-2 opacity-30" />
-            <p>暂无素材</p>
-            <p className="mt-1 opacity-70">点击「扫描本地文件夹」或「加载 OSS 素材」</p>
-          </div>
+          <EmptyState icon={FolderOpen} title="暂无素材" subtitle="点击「扫描本地文件夹」或「加载 OSS 素材」" />
         ) : filtered.length === 0 ? (
           <div className="flex items-center justify-center h-full text-text-secondary text-xs">没有匹配的素材</div>
         ) : viewMode === 'grid' ? (

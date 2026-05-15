@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { ProviderConfig, ProviderRegistry } from '@/types/provider'
+import { apiFetch } from '@/api/client'
 
 const STORAGE_KEY = 'nbc_providers'
 
@@ -183,12 +184,24 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
     const defaultEndpoint = provider.endpoints.find((e) => e.isDefault) || provider.endpoints[0]
     if (!defaultEndpoint) return false
     try {
+      await apiFetch(defaultEndpoint.url, {
+        method: 'GET',
+        timeoutMs: 10000,
+      })
       const updated = { ...provider, connected: true, lastTested: new Date().toISOString() }
       const providers = { ...get().providers, [id]: updated }
       set({ providers })
       saveProviders(providers)
       return true
-    } catch {
+    } catch (err) {
+      const isHttpError = err instanceof Error && err.message.startsWith('HTTP ')
+      if (isHttpError) {
+        const updated = { ...provider, connected: true, lastTested: new Date().toISOString() }
+        const providers = { ...get().providers, [id]: updated }
+        set({ providers })
+        saveProviders(providers)
+        return true
+      }
       const updated = { ...provider, connected: false, lastTested: new Date().toISOString() }
       const providers = { ...get().providers, [id]: updated }
       set({ providers })
