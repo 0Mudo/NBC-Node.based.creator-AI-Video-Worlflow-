@@ -65,6 +65,7 @@ interface AssetStore {
   scanPath: string
   defaultLocalPath: string
   setAssets: (assets: Asset[]) => void
+  removeAsset: (id: string) => void
   selectAsset: (id: string | null) => void
   setSearch: (query: string) => void
   setIndexMode: (mode: 'category' | 'project') => void
@@ -88,6 +89,13 @@ export const useAssetStore = create<AssetStore>()(
       scanPath: '',
       defaultLocalPath: 'H:\\素材库',
       setAssets: (assets) => set({ assets }),
+      removeAsset: (id) => set((state) => {
+        const filtered = state.assets.filter((a) => a.id !== id)
+        return {
+          assets: filtered,
+          selectedAssetId: state.selectedAssetId === id ? null : state.selectedAssetId,
+        }
+      }),
       selectAsset: (id) => set({ selectedAssetId: id }),
       setSearch: (query) => set({ searchQuery: query }),
       setIndexMode: (mode) => set({ indexMode: mode }),

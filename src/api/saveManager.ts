@@ -7,6 +7,7 @@ import { emitNBCEvent } from '@/utils/nbcEvents'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useProviderStore } from '@/store/useProviderStore'
 import { useAssetStore } from '@/store/useAssetStore'
+import { useNotificationStore } from '@/store/useNotificationStore'
 
 export interface SaveOptions {
   resultUrl: string
@@ -93,7 +94,14 @@ export async function saveGeneratedAsset(opts: SaveOptions): Promise<SaveResult>
           throw new Error('No data downloaded')
         }
       }
-    } catch (e: any) { result.errors.push(`OSS: ${e.message}`) }
+    } catch (e: any) {
+      result.errors.push(`OSS: ${e.message}`)
+      useNotificationStore.getState().addNotification({
+        type: 'error',
+        title: 'OSS 上传失败',
+        message: `${opts.filename}: ${e.message}`
+      })
+    }
   }
 
   // 4. Feishu sync
@@ -161,16 +169,21 @@ async function uploadToOssViaElectron(url: string, filename: string, data: strin
       const res = await window.electronAPI.uploadOss(config as any, filename, data || '')
       if (res) {
         try {
-          const { expectedUrl } = JSON.parse(res as string)
-          if (expectedUrl) return expectedUrl
-        } catch {
-          // ignore JSON parse error, return raw response
+          const parsed = JSON.parse(res as string)
+          if (parsed.error) {
+            throw new Error(parsed.error)
+          }
+          if (parsed.expectedUrl) return parsed.expectedUrl
+        } catch (parseErr) {
+          if ((parseErr as Error).message.startsWith('未配置') || (parseErr as Error).message.includes('OSS')) {
+            throw parseErr
+          }
         }
         return res as string
       }
     } catch (e) {
       console.error('uploadToOssViaElectron failed', e)
-      return null
+      throw e
     }
   }
   return null

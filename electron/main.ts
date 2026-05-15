@@ -306,24 +306,36 @@ ipcMain.handle('save:oss', async (_, config: any, filename: string, base64Data: 
     const filePath = path.join(stagingDir, filename)
     const buffer = Buffer.from(base64Data, 'base64')
     fs.writeFileSync(filePath, buffer)
-    const ossKey = `generated/${new Date().toISOString().slice(0,10)}/${filename}`
+    const datePrefix = new Date().toISOString().slice(0, 10)
+    const ossKey = `generated/${datePrefix}/${filename}`
 
-    if (config?.accessKeyId && config?.accessKeySecret && config?.bucket) {
-      const client = new OSS({
-        region: config.region || 'oss-cn-shenzhen',
-        accessKeyId: config.accessKeyId,
-        accessKeySecret: config.accessKeySecret,
-        bucket: config.bucket,
-        secure: true
-      })
-      const result = await client.put(ossKey, buffer)
-      return JSON.stringify({ staging: filePath, expectedUrl: result.url })
+    if (!config?.accessKeyId || !config?.accessKeySecret || !config?.bucket) {
+      return JSON.stringify({ error: '未配置 OSS AccessKey/Bucket，请在设置中填写', staging: filePath })
     }
 
-    return JSON.stringify({ staging: filePath, expectedUrl: `https://${config?.bucket||'yukkio'}.oss-cn-shenzhen.aliyuncs.com/${ossKey}` })
-  } catch (e: any) { 
+    const ext = path.extname(filename).toLowerCase()
+    const mimeMap: Record<string, string> = {
+      '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif', '.webp': 'image/webp', '.mp4': 'video/mp4',
+      '.webm': 'video/webm', '.mov': 'video/quicktime', '.avi': 'video/x-msvideo',
+    }
+    const mime = mimeMap[ext] || 'application/octet-stream'
+
+    const client = new OSS({
+      endpoint: config.region
+        ? `https://${config.region}.aliyuncs.com`
+        : 'https://oss-cn-shenzhen.aliyuncs.com',
+      accessKeyId: config.accessKeyId,
+      accessKeySecret: config.accessKeySecret,
+      bucket: config.bucket,
+      secure: true,
+    })
+
+    const result = await client.put(ossKey, filePath, { mime })
+    return JSON.stringify({ staging: filePath, expectedUrl: result.url, ossKey })
+  } catch (e: any) {
     console.error('OSS upload error:', e)
-    return null 
+    return JSON.stringify({ error: e.message || 'OSS 上传失败', code: e.code, staging: '' })
   }
 })
 
@@ -331,11 +343,13 @@ ipcMain.handle('oss:list', async (_, config: any, prefix: string) => {
   try {
     if (!config?.accessKeyId || !config?.accessKeySecret || !config?.bucket) return []
     const client = new OSS({
-      region: config.region || 'oss-cn-shenzhen',
+      endpoint: config.region
+        ? `https://${config.region}.aliyuncs.com`
+        : 'https://oss-cn-shenzhen.aliyuncs.com',
       accessKeyId: config.accessKeyId,
       accessKeySecret: config.accessKeySecret,
       bucket: config.bucket,
-      secure: true
+      secure: true,
     })
     const result = await client.list({ prefix, 'max-keys': 100 }, {})
     return (result.objects || []).map((obj: any) => ({

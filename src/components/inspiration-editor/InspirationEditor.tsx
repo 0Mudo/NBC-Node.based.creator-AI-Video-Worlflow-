@@ -392,10 +392,10 @@ export default function InspirationEditor() {
     const contextContent = `【剧本】：\n${scriptContent}\n\n【分镜】：\n${storyboardContent}`
     
     const { reply, error } = await askInspirationAgent({
-      category: 'character', // using character as default category for extraction prompt context
+      category: 'extract_cards',
       content: contextContent,
       messages: chatHistory,
-      newMessage: '提取三卡，必须返回 JSON 格式数据，包含 characters, scenes, items 数组。将 JSON 放在 markdown 代码块中 (```json ... ```)。'
+      newMessage: '提取三卡，必须返回 JSON 格式数据，包含 characters, scenes, items 数组。将 JSON 放在 markdown 代码块中 (```json ... ```).'
     }, () => {})
 
     setLoading(false)

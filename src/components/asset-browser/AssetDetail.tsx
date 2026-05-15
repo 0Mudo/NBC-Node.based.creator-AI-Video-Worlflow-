@@ -1,8 +1,8 @@
 import { useAssetStore } from '@/store/useAssetStore'
-import { X } from 'lucide-react'
+import { X, Trash2 } from 'lucide-react'
 
 export default function AssetDetail() {
-  const { assets, selectedAssetId, selectAsset } = useAssetStore()
+  const { assets, selectedAssetId, selectAsset, removeAsset } = useAssetStore()
   const asset = assets.find((a) => a.id === selectedAssetId)
   if (!asset) return null
 
@@ -10,7 +10,16 @@ export default function AssetDetail() {
     <div className="border-t border-node-border bg-bg-secondary p-3">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-semibold">素材详情</span>
-        <button className="btn btn-ghost p-0.5" onClick={() => selectAsset(null)}><X size={12} /></button>
+        <div className="flex items-center gap-1">
+          <button
+            className="btn btn-ghost p-0.5 text-text-secondary hover:text-red-500 hover:bg-red-500/10"
+            onClick={() => { removeAsset(asset.id); selectAsset(null) }}
+            title="删除素材"
+          >
+            <Trash2 size={12} />
+          </button>
+          <button className="btn btn-ghost p-0.5" onClick={() => selectAsset(null)}><X size={12} /></button>
+        </div>
       </div>
       {asset.thumbnailPath && (
         <img src={asset.thumbnailPath} alt={asset.name} className="w-full rounded mb-2" style={{ maxHeight: 120, objectFit: 'cover' }} />

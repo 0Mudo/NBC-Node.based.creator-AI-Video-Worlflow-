@@ -18,7 +18,7 @@ import InspirationEditor from '@/components/inspiration-editor/InspirationEditor
 import { useProjectStore } from '@/store/useProjectStore'
 import { useFlowStore } from '@/store/useFlowStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
-import { Settings, Workflow, Sun, Moon } from 'lucide-react'
+import { Settings, Workflow, Sun, Moon, LayoutDashboard } from 'lucide-react'
 import { useThemeStore } from '@/store/useThemeStore'
 import ErrorBoundary from '@/components/shared/ErrorBoundary'
 
@@ -170,13 +170,13 @@ export default function MainLayout() {
             {
               size: 300,
               tabs: [
-                { id: 'palette', title: '节点面板', content: <div/> }
+                { id: 'palette', title: '节点面板', closable: false, content: <div/> }
               ]
             },
             {
               size: 500,
               tabs: [
-                { id: 'inspector', title: '属性检查器', content: <div/> }
+                { id: 'inspector', title: '属性检查器', closable: false, content: <div/> }
               ]
             }
           ]
@@ -184,6 +184,10 @@ export default function MainLayout() {
       ]
     }
   };
+
+  const handleRestoreLayout = () => {
+    dockRef.current?.loadLayout(defaultLayout)
+  }
 
   const loadTab = (tab: TabData) => {
     const tabIdStr = tab.id as string
@@ -214,6 +218,7 @@ export default function MainLayout() {
         </div>
         <div className="flex items-center gap-2">
           <button className="btn btn-ghost p-1.5" onClick={() => setTemplateOpen(true)} title="模板市场"><Workflow size={14} /></button>
+          <button className="btn btn-ghost p-1.5" onClick={handleRestoreLayout} title="恢复默认布局"><LayoutDashboard size={14} /></button>
           <button className="btn btn-ghost p-1.5" onClick={toggleTheme} title="切换主题">{theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}</button>
           <button className="btn btn-ghost p-1.5" onClick={() => setSettingsOpen(true)} title="API 设置"><Settings size={14} /></button>
         </div>

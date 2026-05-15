@@ -74,6 +74,19 @@ function setCursor(lineNum) {
   fs.writeFileSync(CURSOR_FILE, lineNum.toString(), 'utf-8');
 }
 
+// 需要上传到飞书的事件类型白名单
+const ALLOWED_ACTIONS = [
+  'project:create',
+  'workflow:export',
+  'generation:start',
+  'generation:complete',
+  'generation:fail',
+]
+
+function shouldSyncEvent(event) {
+  return ALLOWED_ACTIONS.includes(event.action)
+}
+
 // 格式化事件到飞书记录
 function mapEventToRecord(event) {
   // 我们在 P1 验证中，在飞书建了 5 列："文本"(主键), "事件类型", "节点名称", "状态", "详细信息"
@@ -122,6 +135,7 @@ async function syncEvents() {
   console.log(`当前 Cursor: ${cursor} 行`);
 
   const newRecords = [];
+  let skippedCount = 0;
   let currentLineNum = 0;
 
   const fileStream = fs.createReadStream(EVENT_FILE);
@@ -139,6 +153,7 @@ async function syncEvents() {
     try {
       if (!line.trim()) continue;
       const event = JSON.parse(line);
+      if (!shouldSyncEvent(event)) { skippedCount++; continue; }
       newRecords.push(mapEventToRecord(event));
     } catch (e) {
       console.warn(`解析第 ${currentLineNum} 行失败: ${e.message}`);
@@ -150,7 +165,7 @@ async function syncEvents() {
     return;
   }
 
-  console.log(`发现 ${newRecords.length} 条新事件，开始同步到飞书...`);
+  console.log(`发现 ${newRecords.length} 条新事件${skippedCount > 0 ? ` (已过滤 ${skippedCount} 条非关键事件)` : ''}，开始同步到飞书...`);
   
   try {
     const token = await getTenantAccessToken();

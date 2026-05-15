@@ -1,11 +1,12 @@
 import type { Asset } from '@/types/asset'
-import { Play } from 'lucide-react'
+import { Play, Trash2 } from 'lucide-react'
 
 interface AssetCardProps {
   asset: Asset
   selected: boolean
   onClick: () => void
   onDragStart?: (e: React.DragEvent) => void
+  onDelete?: (id: string) => void
 }
 
 const TAG_CLASS: Record<string, string> = {
@@ -19,7 +20,7 @@ const TAG_CLASS: Record<string, string> = {
   'ZzzMap': 'tag-green',
 }
 
-export default function AssetCard({ asset, selected, onClick, onDragStart }: AssetCardProps) {
+export default function AssetCard({ asset, selected, onClick, onDragStart, onDelete }: AssetCardProps) {
   const handleDragStart = (e: React.DragEvent) => {
     // Determine the type for drop processing
     const isLocal = asset.path.startsWith('blob:') || asset.path.startsWith('file://') || asset.path.startsWith('local://')
@@ -54,6 +55,16 @@ export default function AssetCard({ asset, selected, onClick, onDragStart }: Ass
       draggable
       onDragStart={handleDragStart}
     >
+      {/* Delete button */}
+      {onDelete && (
+        <button
+          className="absolute top-1 right-1 z-10 p-0.5 rounded bg-red-500/80 text-white opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-opacity"
+          onClick={(e) => { e.stopPropagation(); onDelete(asset.id) }}
+          title="删除素材"
+        >
+          <Trash2 size={12} />
+        </button>
+      )}
       {/* Preview Area */}
       <div className="w-full aspect-square bg-bg-tertiary relative overflow-hidden flex items-center justify-center">
         {asset.type === 'video' ? (

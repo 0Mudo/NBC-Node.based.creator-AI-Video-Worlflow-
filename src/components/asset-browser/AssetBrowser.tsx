@@ -1,5 +1,5 @@
 import { useCallback, useRef, useEffect, useMemo, useState } from 'react'
-import { Search, Grid3X3, List, FolderOpen, Upload, LayoutGrid, Folders, Loader2, Image, Film, FileText, Globe } from 'lucide-react'
+import { Search, Grid3X3, List, FolderOpen, Upload, LayoutGrid, Folders, Loader2, Image, Film, FileText, Globe, Trash2 } from 'lucide-react'
 import { useAssetStore } from '@/store/useAssetStore'
 import { useProjectStore } from '@/store/useProjectStore'
 import type { Asset, AssetTag } from '@/types/asset'
@@ -23,7 +23,7 @@ const SAMPLE_ASSETS: Asset[] = [
 ]
 
 export default function AssetBrowser() {
-  const { assets, selectedAssetId, searchQuery, indexMode, filterTag, filterProject, viewMode, selectAsset, setSearch, setIndexMode, setFilterTag, setFilterProject, setViewMode, setAssets, defaultLocalPath } = useAssetStore()
+  const { assets, selectedAssetId, searchQuery, indexMode, filterTag, filterProject, viewMode, selectAsset, removeAsset, setSearch, setIndexMode, setFilterTag, setFilterProject, setViewMode, setAssets, defaultLocalPath } = useAssetStore()
   const { projects } = useProjectStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
   
@@ -327,7 +327,7 @@ export default function AssetBrowser() {
         ) : viewMode === 'grid' ? (
           <div className="asset-grid">
             {filtered.map((asset) => (
-              <AssetCard key={asset.id} asset={asset} selected={selectedAssetId === asset.id} onClick={() => selectAsset(asset.id)} />
+              <AssetCard key={asset.id} asset={asset} selected={selectedAssetId === asset.id} onClick={() => selectAsset(asset.id)} onDelete={removeAsset} />
             ))}
           </div>
         ) : (
@@ -335,7 +335,7 @@ export default function AssetBrowser() {
             {filtered.map((asset) => (
               <div 
                 key={asset.id} 
-                className={`flex items-center gap-2 p-1.5 rounded cursor-pointer text-xs ${selectedAssetId === asset.id ? 'bg-accent/20' : 'hover:bg-node-border'}`} 
+                className={`flex items-center gap-2 p-1.5 rounded cursor-pointer text-xs group ${selectedAssetId === asset.id ? 'bg-accent/20' : 'hover:bg-node-border'}`} 
                 onClick={() => selectAsset(asset.id)}
                 draggable
                 onDragStart={(e) => {
@@ -355,6 +355,13 @@ export default function AssetBrowser() {
                 <span className="text-text-secondary">{asset.type === 'image' ? <Image size={14} /> : asset.type === 'video' ? <Film size={14} /> : asset.type === 'text' ? <FileText size={14} /> : <Globe size={14} />}</span>
                 <span className="flex-1 truncate">{asset.name}</span>
                 <span className="text-text-secondary text-[10px]">{asset.tags[0]}</span>
+                <button
+                  className="p-0.5 rounded text-text-secondary opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-500/10 transition-all"
+                  onClick={(e) => { e.stopPropagation(); removeAsset(asset.id) }}
+                  title="删除素材"
+                >
+                  <Trash2 size={12} />
+                </button>
               </div>
             ))}
           </div>
