@@ -4,16 +4,18 @@ import { useLogStore } from './useLogStore'
 import { useProviderStore } from './useProviderStore'
 import { useNotificationStore } from './useNotificationStore'
 import { useTimelineStore } from './useTimelineStore'
+import { useAssetStore } from './useAssetStore'
 import { useProjectStore } from './useProjectStore'
 import { collectPrompt, collectImageRefs } from '@/engine/promptResolver'
 import { topoSort } from '@/engine/graph'
 import type { GenerationTask, GenerationType } from '@/types/generation'
+import type { Asset } from '@/types/asset'
 import type { ProviderCapability } from '@/types/provider'
 import { generateGPTImageStream } from '@/api/gptImage2'
 import { submitSeedanceTask, pollSeedanceTask, type SeedanceOptions } from '@/api/seedance'
 import { submitComfyUIWorkflow, pollComfyUIResult } from '@/api/comfyui'
 import { generateBananaImage } from '@/api/banana'
-import { saveGeneratedAsset } from '@/api/saveManager'
+import { saveGeneratedAsset, saveLocalViaElectron } from '@/api/saveManager'
 import { emitNBCEvent } from '@/utils/nbcEvents'
 
 let taskCounter = 0
@@ -231,6 +233,45 @@ export async function executeNode(nodeId: string) {
         generationType: type, generationParams: genParams, resultFile: url, success: true,
       })
       useTimelineStore.getState().addLegacyClip({ nodeId, nodeLabel, type: type === 'seedance' ? 'video' : 'image', url })
+    }
+
+    for (const url of successfulUrls) {
+      const ext = type === 'seedance' ? '.mp4' : '.png'
+      const filename = `${type}_${Date.now()}_${Math.floor(Math.random() * 1000)}${ext}`
+      ;(async () => {
+        try {
+          let base64Data: string | null = null
+          if (window.electronAPI) {
+            const resp = await fetch(url)
+            const blob = await resp.blob()
+            const buffer = await blob.arrayBuffer()
+            const bytes = new Uint8Array(buffer)
+            let binary = ''
+            for (let i = 0; i < bytes.byteLength; i++) {
+              binary += String.fromCharCode(bytes[i])
+            }
+            base64Data = btoa(binary)
+          }
+          const savedPath = await saveLocalViaElectron(url, filename, base64Data)
+          if (savedPath) {
+            const { assets, setAssets } = useAssetStore.getState()
+            const newAsset: Asset = {
+              id: `gen_${Date.now()}_${Math.random().toString(36).substr(2, 7)}`,
+              name: filename,
+              type: 'image',
+              path: `nbc://assets/${encodeURIComponent(filename)}?path=${encodeURIComponent(savedPath)}`,
+              prompt: prompt?.substring(0, 200) || '',
+              tags: type === 'seedance' ? ['Seedance'] : ['GPT Image'],
+              createdAt: new Date().toISOString(),
+              thumbnailPath: `nbc://assets/${encodeURIComponent(filename)}?path=${encodeURIComponent(savedPath)}`,
+              projectId: pId || undefined
+            }
+            setAssets([...assets, newAsset])
+          }
+        } catch (e) {
+          console.error('Auto-save to local asset library failed:', e)
+        }
+      })()
     }
 
     useNotificationStore.getState().addNotification({
