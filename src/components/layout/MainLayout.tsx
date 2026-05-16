@@ -21,7 +21,7 @@ import AnalyticsPanel from '@/components/analytics/AnalyticsPanel'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useFlowStore } from '@/store/useFlowStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
-import { Settings, Workflow, Sun, Moon, LayoutDashboard, Download, BarChart3, X } from 'lucide-react'
+import { Settings, Workflow, Sun, Moon, LayoutDashboard, Download, BarChart3, X, Library } from 'lucide-react'
 import { useThemeStore } from '@/store/useThemeStore'
 import ErrorBoundary from '@/components/shared/ErrorBoundary'
 
@@ -30,6 +30,7 @@ export default function MainLayout() {
   const [templateOpen, setTemplateOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [analyticsOpen, setAnalyticsOpen] = useState(false)
+  const [promptLibraryOpen, setPromptLibraryOpen] = useState(false)
   const dockRef = useRef<DockLayout>(null)
 
   const { projects, activeProjectId, autoSaveInterval } = useProjectStore()
@@ -229,6 +230,7 @@ export default function MainLayout() {
           <button className="btn btn-ghost p-1.5" onClick={handleRestoreLayout} title="恢复默认布局"><LayoutDashboard size={14} /></button>
           <button className="btn btn-ghost p-1.5" onClick={toggleTheme} title="切换主题">{theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}</button>
           <button className="btn btn-ghost p-1.5" onClick={() => setSettingsOpen(true)} title="API 设置"><Settings size={14} /></button>
+          <button className="btn btn-ghost p-1.5" onClick={() => setPromptLibraryOpen(true)} title="提示词库"><Library size={14} /></button>
           <button className="btn btn-ghost p-1.5" onClick={() => setExportOpen(true)} title="视频导出"><Download size={14} /></button>
           <button className="btn btn-ghost p-1.5" onClick={() => setAnalyticsOpen(true)} title="生成分析"><BarChart3 size={14} /></button>
         </div>
@@ -278,6 +280,24 @@ export default function MainLayout() {
             </div>
             <div className="flex-1 overflow-hidden">
               <AnalyticsPanel />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {promptLibraryOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onClick={() => setPromptLibraryOpen(false)}>
+          <div className="bg-bg-primary border border-node-border rounded-lg shadow-xl w-[520px] h-[580px] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-node-border flex-shrink-0">
+              <h2 className="text-sm font-semibold flex items-center gap-2">
+                <Library size={16} className="text-accent" /> 提示词库
+              </h2>
+              <button className="btn btn-ghost p-1" onClick={() => setPromptLibraryOpen(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <PromptLibraryPanel />
             </div>
           </div>
         </div>
