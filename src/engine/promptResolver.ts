@@ -1,6 +1,7 @@
 import type { AppNode, AppEdge } from '@/types/flow'
 import { findUpstream } from './graph'
 import { useStyleStore } from '@/store/useStyleStore'
+import { useAssetStore } from '@/store/useAssetStore'
 
 export function resolveTemplates(
   text: string,
@@ -147,6 +148,62 @@ export function collectImageRefs(
   }
 
   return Array.from(refs)
+}
+
+export function resolveImageRefs(imageRefs: string[]): string[] {
+  const assets = useAssetStore.getState().assets
+  const resolved: string[] = []
+  for (const ref of imageRefs) {
+    if (ref.startsWith('http://') || ref.startsWith('https://')) {
+      resolved.push(ref)
+      continue
+    }
+    const asset = assets.find(a => a.path === ref || a.id === ref)
+    if (asset && (asset.path.startsWith('http://') || asset.path.startsWith('https://'))) {
+      resolved.push(asset.path)
+    }
+  }
+  return resolved
+}
+
+function extractFilePathFromNbcUrl(nbcUrl: string): string | null {
+  try {
+    const url = new URL(nbcUrl)
+    const path = url.searchParams.get('path')
+    return path ? decodeURIComponent(path) : null
+  } catch { return null }
+}
+
+export async function convertRefToDataUri(ref: string): Promise<string> {
+  if (ref.startsWith('http://') || ref.startsWith('https://')) {
+    return ref
+  }
+  if (ref.startsWith('data:')) {
+    return ref
+  }
+  if (ref.startsWith('nbc://')) {
+    const filePath = extractFilePathFromNbcUrl(ref)
+    if (filePath && (window as any).electronAPI?.readFile) {
+      const result = await (window as any).electronAPI.readFile(filePath)
+      if (result?.data && result?.mimeType) {
+        return `data:${result.mimeType};base64,${result.data}`
+      }
+    }
+  }
+  if (ref.startsWith('blob:')) {
+    try {
+      const resp = await fetch(ref)
+      const blob = await resp.blob()
+      const dataUri = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+      return dataUri
+    } catch { }
+  }
+  return ref
 }
 
 export function collectConsistencySeed(

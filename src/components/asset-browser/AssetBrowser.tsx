@@ -8,6 +8,7 @@ import AssetCard from './AssetCard'
 import AssetDetail from './AssetDetail'
 import TagEditor from './TagEditor'
 import MediaViewer from './MediaViewer'
+import DeleteConfirmDialog from './DeleteConfirmDialog'
 import EmptyState from '@/components/shared/EmptyState'
 
 import { useProviderStore } from '@/store/useProviderStore'
@@ -32,6 +33,7 @@ export default function AssetBrowser() {
   const [ossDeleteAsset, setOssDeleteAsset] = useState<Asset | null>(null)
   const [ossDeleting, setOssDeleting] = useState(false)
   const [viewerAsset, setViewerAsset] = useState<Asset | null>(null)
+  const [deleteDialogAsset, setDeleteDialogAsset] = useState<Asset | null>(null)
 
   const assetProjectMap = useMemo(() => {
     const map = new Map<string, string>()
@@ -255,6 +257,57 @@ export default function AssetBrowser() {
     }
   }, [ossDeleteAsset, removeAsset])
 
+  const handleRemoveOnly = useCallback((asset: Asset) => {
+    removeAsset(asset.id)
+    setDeleteDialogAsset(null)
+    useNotificationStore.getState().addNotification({ type: 'info', title: '已移除', message: `"${asset.name}" 已从素材库移除，本地文件保留。` })
+  }, [removeAsset])
+
+  const handleDeleteFile = useCallback(async (asset: Asset) => {
+    if (asset.source === 'oss') {
+      if (window.electronAPI?.deleteAnyOss) {
+        const provider = useProviderStore.getState().getProvider('oss')
+        const endpoint = (provider?.endpoints[0] || {}) as any
+        const config = { accessKeyId: endpoint.accessKeyId, accessKeySecret: endpoint.accessKeySecret, bucket: endpoint.bucket, region: endpoint.region }
+        const key = asset.ossKey || asset.id
+        const resultStr = await window.electronAPI.deleteAnyOss(config as any, key)
+        const result = JSON.parse(resultStr)
+        if (result.success) {
+          removeAsset(asset.id)
+          useNotificationStore.getState().addNotification({ type: 'success', title: '已删除', message: `已从 OSS 删除 "${asset.name}"` })
+        } else {
+          useNotificationStore.getState().addNotification({ type: 'error', title: '删除失败', message: result.error || '未知错误' })
+        }
+      }
+      setDeleteDialogAsset(null)
+      return
+    }
+    if (asset.path.startsWith('nbc://')) {
+      try {
+        const url = new URL(asset.path)
+        const filePath = decodeURIComponent(url.searchParams.get('path') || '')
+        if (filePath && window.electronAPI?.trashFile) {
+          const resultStr = await window.electronAPI.trashFile(filePath)
+          const result = JSON.parse(resultStr)
+          if (result.success) {
+            removeAsset(asset.id)
+            useNotificationStore.getState().addNotification({ type: 'success', title: '已删除', message: `"${asset.name}" 已放入回收站` })
+          } else {
+            useNotificationStore.getState().addNotification({ type: 'error', title: '删除失败', message: result.error || '无法放入回收站' })
+            removeAsset(asset.id)
+          }
+        } else {
+          removeAsset(asset.id)
+        }
+      } catch {
+        removeAsset(asset.id)
+      }
+    } else {
+      removeAsset(asset.id)
+    }
+    setDeleteDialogAsset(null)
+  }, [removeAsset])
+
   const handleBatchDeleteOss = useCallback(async () => {
     const ossAssets = assetsWithProjects.filter(a => selectedAssetIds.includes(a.id) && (a.source === 'oss' || a.ossKey))
     if (ossAssets.length === 0) {
@@ -453,9 +506,9 @@ export default function AssetBrowser() {
                 selected={selectedAssetId === asset.id}
                 onClick={() => selectAsset(asset.id)}
                 onView={(a) => setViewerAsset(a)}
-                onDelete={removeAsset}
+                onDelete={setDeleteDialogAsset}
                 onEditTags={(a) => setTagEditAsset(a)}
-                onDeleteOss={(a) => setOssDeleteAsset(a)}
+                onDeleteOss={(a) => setDeleteDialogAsset(a)}
                 isMultiSelect={isMultiSelectMode}
                 isChecked={selectedAssetIds.includes(asset.id)}
                 onToggleSelect={toggleAssetSelection}
@@ -516,15 +569,15 @@ export default function AssetBrowser() {
                     {asset.source === 'oss' && (
                       <button
                         className="p-0.5 rounded text-text-secondary hover:text-orange-500 hover:bg-orange-500/10"
-                        onClick={(e) => { e.stopPropagation(); setOssDeleteAsset(asset) }}
-                        title="从 OSS 删除"
+                        onClick={(e) => { e.stopPropagation(); setDeleteDialogAsset(asset) }}
+                        title="删除"
                       >
                         <CloudOff size={11} />
                       </button>
                     )}
                     <button
                       className="p-0.5 rounded text-text-secondary hover:text-red-500 hover:bg-red-500/10"
-                      onClick={(e) => { e.stopPropagation(); removeAsset(asset.id) }}
+                      onClick={(e) => { e.stopPropagation(); setDeleteDialogAsset(asset) }}
                       title="从素材库移除"
                     >
                       <Trash2 size={11} />
@@ -568,6 +621,15 @@ export default function AssetBrowser() {
             </div>
           </div>
         </div>
+      )}
+
+      {deleteDialogAsset && (
+        <DeleteConfirmDialog
+          asset={deleteDialogAsset}
+          onClose={() => setDeleteDialogAsset(null)}
+          onRemoveOnly={handleRemoveOnly}
+          onDeleteFile={handleDeleteFile}
+        />
       )}
 
       <input ref={fileInputRef} type="file" className="hidden" multiple />

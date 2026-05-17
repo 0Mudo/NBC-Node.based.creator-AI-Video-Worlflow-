@@ -1,23 +1,25 @@
----
-title: 默认模块
-language_tabs:
-  - shell: Shell
-  - http: HTTP
-  - javascript: JavaScript
-  - ruby: Ruby
-  - python: Python
-  - php: PHP
-  - java: Java
-  - go: Go
-toc_footers: []
-includes: []
-search: true
-code_clipboard: true
-highlight_theme: darkula
-headingLevel: 2
-generator: "@tarslib/widdershins v4.0.30"
+***
 
----
+title: 默认模块
+language\_tabs:
+
+- shell: Shell
+- http: HTTP
+- javascript: JavaScript
+- ruby: Ruby
+- python: Python
+- php: PHP
+- java: Java
+- go: Go
+  toc\_footers: \[]
+  includes: \[]
+  search: true
+  code\_clipboard: true
+  highlight\_theme: darkula
+  headingLevel: 2
+  generator: "@tarslib/widdershins v4.0.30"
+
+***
 
 # 默认模块
 
@@ -32,12 +34,12 @@ Base URLs:
 POST /v1/api/generate
 
 基础节点：
-https://grsaiapi.com                (全球节点)
-https://grsai.dakka.com.cn     (国内节点)
+<https://grsaiapi.com>                (全球节点)
+<https://grsai.dakka.com.cn>     (国内节点)
 
 例子：
-https://grsaiapi.com/v1/api/generate
-https://grsai.dakka.com.cn/v1/api/generate
+<https://grsaiapi.com/v1/api/generate>
+<https://grsai.dakka.com.cn/v1/api/generate>
 
 > Body 请求参数
 
@@ -53,16 +55,16 @@ https://grsai.dakka.com.cn/v1/api/generate
 
 ### 请求参数
 
-|名称|位置|类型|必选|中文名|说明|
-|---|---|---|---|---|---|
-|base_url|path|string| 是 ||none|
-|Authorization|header|string| 否 ||请前往以下页面获取APIKEY：https://grsai.ai/zh/dashboard/api-keys|
-|body|body|object| 是 ||none|
-|» model|body|string| 是 | 模型名称|支持以下模型|
-|» prompt|body|string| 是 | 提示词|none|
-|» images|body|[string]| 否 | 参考图|支持base64与url链接|
-|» aspectRatio|body|string| 否 | 比例|gpt-image-2|
-|» replyType|body|string| 否 | 回复类型|支持参数|
+| 名称            | 位置     | 类型        | 必选 | 中文名    | 说明                                                       |
+| ------------- | ------ | --------- | -- | ------ | -------------------------------------------------------- |
+| base\_url     | path   | string    | 是  | <br /> | none                                                     |
+| Authorization | header | string    | 否  | <br /> | 请前往以下页面获取APIKEY：<https://grsai.ai/zh/dashboard/api-keys> |
+| body          | body   | object    | 是  | <br /> | none                                                     |
+| » model       | body   | string    | 是  | 模型名称   | 支持以下模型                                                   |
+| » prompt      | body   | string    | 是  | 提示词    | none                                                     |
+| » images      | body   | \[string] | 否  | 参考图    | 支持base64与url链接                                           |
+| » aspectRatio | body   | string    | 否  | 比例     | gpt-image-2                                              |
+| » replyType   | body   | string    | 否  | 回复类型   | 支持参数                                                     |
 
 #### 详细说明
 
@@ -112,7 +114,7 @@ API调用需要通过aspectRatio填入参数“例如："1024x1024"，以下尺�
 880x2048
 1648x3840
 
-1:3 
+1:3
 688x2048
 1280x3840
 
@@ -120,7 +122,7 @@ API调用需要通过aspectRatio填入参数“例如："1024x1024"，以下尺�
 2048x688
 3840x1280
 
-2:1 
+2:1
 2048x1024
 3840x1920
 
@@ -132,7 +134,7 @@ API调用需要通过aspectRatio填入参数“例如："1024x1024"，以下尺�
 json（返回json）
 stream（返回stream）
 async（异步轮询）
-异步生成结果查询接口：https://qmy27nhsd9.apifox.cn/452409577e0
+异步生成结果查询接口：<https://qmy27nhsd9.apifox.cn/452409577e0>
 
 > 返回示例
 
@@ -162,51 +164,51 @@ async（异步轮询）
 
 ### 返回结果
 
-|状态码|状态码含义|说明|数据模型|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|none|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|none|Inline|
+| 状态码 | 状态码含义                                                            | 说明   | 数据模型   |
+| --- | ---------------------------------------------------------------- | ---- | ------ |
+| 200 | [OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)          | none | Inline |
+| 400 | [Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1) | none | Inline |
 
 ### 返回数据结构
 
 状态码 **200**
 
-|名称|类型|必选|约束|中文名|说明|
-|---|---|---|---|---|---|
-|» id|string|true|none|任务id|none|
-|» status|string|true|none|状态|任务状态<br />running  (进行中)<br />violation  (违规)<br />succeeded (生成成功)<br />failed (任务失败)|
-|» progress|integer|false|none|进度|0~100|
-|» results|[object]|false|none||none|
-|»» url|string|false|none|图片/视频链接|none|
-|» error|string|false|none|报错信息|none|
+| 名称         | 类型        | 必选    | 约束   | 中文名     | 说明                                                             |
+| ---------- | --------- | ----- | ---- | ------- | -------------------------------------------------------------- |
+| » id       | string    | true  | none | 任务id    | none                                                           |
+| » status   | string    | true  | none | 状态      | 任务状态running  (进行中)violation  (违规)succeeded (生成成功)failed (任务失败) |
+| » progress | integer   | false | none | 进度      | 0\~100                                                         |
+| » results  | \[object] | false | none | <br />  | none                                                           |
+| »» url     | string    | false | none | 图片/视频链接 | none                                                           |
+| » error    | string    | false | none | 报错信息    | none                                                           |
 
 状态码 **400**
 
-|名称|类型|必选|约束|中文名|说明|
-|---|---|---|---|---|---|
-|» id|string|true|none||none|
-|» status|string|true|none|状态|状态<br />violation（违规）<br />failed（失败）|
-|» error|string|true|none|报错信息|none|
+| 名称       | 类型     | 必选   | 约束   | 中文名    | 说明                        |
+| -------- | ------ | ---- | ---- | ------ | ------------------------- |
+| » id     | string | true | none | <br /> | none                      |
+| » status | string | true | none | 状态     | 状态violation（违规）failed（失败） |
+| » error  | string | true | none | 报错信息   | none                      |
 
 ## GET 异步生成结果查询接口
 
 GET /v1/api/result
 
 基础节点：
-https://grsaiapi.com                (全球节点)
-https://grsai.dakka.com.cn     (国内节点)
+<https://grsaiapi.com>                (全球节点)
+<https://grsai.dakka.com.cn>     (国内节点)
 
 例子：
-https://grsaiapi.com/v1/api/result
-https://grsai.dakka.com.cn/v1/api/result
+<https://grsaiapi.com/v1/api/result>
+<https://grsai.dakka.com.cn/v1/api/result>
 
 ### 请求参数
 
-|名称|位置|类型|必选|中文名|说明|
-|---|---|---|---|---|---|
-|base_url|path|string| 是 ||none|
-|id|query|string| 否 ||none|
-|Authorization|header|string| 否 ||请前往以下页面获取APIKEY：https://grsai.ai/zh/dashboard/api-keys|
+| 名称            | 位置     | 类型     | 必选 | 中文名    | 说明                                                       |
+| ------------- | ------ | ------ | -- | ------ | -------------------------------------------------------- |
+| base\_url     | path   | string | 是  | <br /> | none                                                     |
+| id            | query  | string | 否  | <br /> | none                                                     |
+| Authorization | header | string | 否  | <br /> | 请前往以下页面获取APIKEY：<https://grsai.ai/zh/dashboard/api-keys> |
 
 > 返回示例
 
@@ -236,31 +238,31 @@ https://grsai.dakka.com.cn/v1/api/result
 
 ### 返回结果
 
-|状态码|状态码含义|说明|数据模型|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|none|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|none|Inline|
+| 状态码 | 状态码含义                                                            | 说明   | 数据模型   |
+| --- | ---------------------------------------------------------------- | ---- | ------ |
+| 200 | [OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)          | none | Inline |
+| 400 | [Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1) | none | Inline |
 
 ### 返回数据结构
 
 状态码 **200**
 
-|名称|类型|必选|约束|中文名|说明|
-|---|---|---|---|---|---|
-|» id|string|true|none|任务id|none|
-|» status|string|true|none|状态|任务状态<br />running  (进行中)<br />violation  (违规)<br />succeeded (生成成功)<br />failed (任务失败)|
-|» progress|integer|false|none|进度|0~100|
-|» results|[object]|false|none||none|
-|»» url|string|false|none|图片/视频链接|none|
-|» error|string|false|none|报错信息|none|
+| 名称         | 类型        | 必选    | 约束   | 中文名     | 说明                                                             |
+| ---------- | --------- | ----- | ---- | ------- | -------------------------------------------------------------- |
+| » id       | string    | true  | none | 任务id    | none                                                           |
+| » status   | string    | true  | none | 状态      | 任务状态running  (进行中)violation  (违规)succeeded (生成成功)failed (任务失败) |
+| » progress | integer   | false | none | 进度      | 0\~100                                                         |
+| » results  | \[object] | false | none | <br />  | none                                                           |
+| »» url     | string    | false | none | 图片/视频链接 | none                                                           |
+| » error    | string    | false | none | 报错信息    | none                                                           |
 
 状态码 **400**
 
-|名称|类型|必选|约束|中文名|说明|
-|---|---|---|---|---|---|
-|» id|string|true|none||none|
-|» status|string|true|none|状态|状态<br />violation（违规）<br />failed（失败）|
-|» error|string|true|none|报错信息|none|
+| 名称       | 类型     | 必选   | 约束   | 中文名    | 说明                        |
+| -------- | ------ | ---- | ---- | ------ | ------------------------- |
+| » id     | string | true | none | <br /> | none                      |
+| » status | string | true | none | 状态     | 状态violation（违规）failed（失败） |
+| » error  | string | true | none | 报错信息   | none                      |
 
 # openai-completions接口
 
@@ -269,12 +271,12 @@ https://grsai.dakka.com.cn/v1/api/result
 POST /v1/chat/completions
 
 基础节点：
-https://grsaiapi.com                (全球节点)
-https://grsai.dakka.com.cn     (国内节点)
+<https://grsaiapi.com>                (全球节点)
+<https://grsai.dakka.com.cn>     (国内节点)
 
 例子：
-https://grsaiapi.com/v1/chat/completions
-https://grsai.dakka.com.cn/v1/chat/completions
+<https://grsaiapi.com/v1/chat/completions>
+<https://grsai.dakka.com.cn/v1/chat/completions>
 
 > Body 请求参数
 
@@ -317,16 +319,16 @@ https://grsai.dakka.com.cn/v1/chat/completions
 
 ### 请求参数
 
-|名称|位置|类型|必选|中文名|说明|
-|---|---|---|---|---|---|
-|base_url|path|string| 是 ||none|
-|Authorization|header|string| 否 ||请前往以下页面获取APIKEY：https://grsai.ai/zh/dashboard/api-keys|
-|body|body|object| 是 ||none|
-|» model|body|string| 是 | 模型名称|支持所有模型|
-|» stream|body|boolean| 是 | stream流|none|
-|» messages|body|[object]| 是 ||none|
-|»» role|body|string| 否 | user|none|
-|»» content|body|string| 否 | 提示词内容|none|
+| 名称            | 位置     | 类型        | 必选 | 中文名     | 说明                                                       |
+| ------------- | ------ | --------- | -- | ------- | -------------------------------------------------------- |
+| base\_url     | path   | string    | 是  | <br />  | none                                                     |
+| Authorization | header | string    | 否  | <br />  | 请前往以下页面获取APIKEY：<https://grsai.ai/zh/dashboard/api-keys> |
+| body          | body   | object    | 是  | <br />  | none                                                     |
+| » model       | body   | string    | 是  | 模型名称    | 支持所有模型                                                   |
+| » stream      | body   | boolean   | 是  | stream流 | none                                                     |
+| » messages    | body   | \[object] | 是  | <br />  | none                                                     |
+| »» role       | body   | string    | 否  | user    | none                                                     |
+| »» content    | body   | string    | 否  | 提示词内容   | none                                                     |
 
 > 返回示例
 
@@ -393,56 +395,56 @@ https://grsai.dakka.com.cn/v1/chat/completions
 
 ### 返回结果
 
-|状态码|状态码含义|说明|数据模型|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|none|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|none|Inline|
+| 状态码 | 状态码含义                                                            | 说明   | 数据模型   |
+| --- | ---------------------------------------------------------------- | ---- | ------ |
+| 200 | [OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)          | none | Inline |
+| 400 | [Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1) | none | Inline |
 
 ### 返回数据结构
 
 状态码 **200**
 
-|名称|类型|必选|约束|中文名|说明|
-|---|---|---|---|---|---|
-|» id|string|true|none||none|
-|» object|string|true|none||none|
-|» created|integer|true|none||none|
-|» model|string|true|none||none|
-|» choices|[object]|true|none||none|
-|»» index|integer|false|none||none|
-|»» message|object|false|none||none|
-|»»» role|string|true|none||none|
-|»»» content|string|true|none||none|
-|»» finish_reason|string|false|none||none|
-|»» content_filter_results|object|false|none||none|
-|»»» hate|object|true|none||none|
-|»»»» filtered|boolean|true|none||none|
-|»»» self_harm|object|true|none||none|
-|»»»» filtered|boolean|true|none||none|
-|»»» sexual|object|true|none||none|
-|»»»» filtered|boolean|true|none||none|
-|»»» violence|object|true|none||none|
-|»»»» filtered|boolean|true|none||none|
-|»»» jailbreak|object|true|none||none|
-|»»»» filtered|boolean|true|none||none|
-|»»»» detected|boolean|true|none||none|
-|»»» profanity|object|true|none||none|
-|»»»» filtered|boolean|true|none||none|
-|»»»» detected|boolean|true|none||none|
-|» usage|object|true|none||none|
-|»» prompt_tokens|integer|true|none||none|
-|»» completion_tokens|integer|true|none||none|
-|»» total_tokens|integer|true|none||none|
-|»» prompt_tokens_details|null|true|none||none|
-|»» completion_tokens_details|null|true|none||none|
-|» system_fingerprint|string|true|none||none|
+| 名称                             | 类型        | 必选    | 约束   | 中文名    | 说明   |
+| ------------------------------ | --------- | ----- | ---- | ------ | ---- |
+| » id                           | string    | true  | none | <br /> | none |
+| » object                       | string    | true  | none | <br /> | none |
+| » created                      | integer   | true  | none | <br /> | none |
+| » model                        | string    | true  | none | <br /> | none |
+| » choices                      | \[object] | true  | none | <br /> | none |
+| »» index                       | integer   | false | none | <br /> | none |
+| »» message                     | object    | false | none | <br /> | none |
+| »»» role                       | string    | true  | none | <br /> | none |
+| »»» content                    | string    | true  | none | <br /> | none |
+| »» finish\_reason              | string    | false | none | <br /> | none |
+| »» content\_filter\_results    | object    | false | none | <br /> | none |
+| »»» hate                       | object    | true  | none | <br /> | none |
+| »»»» filtered                  | boolean   | true  | none | <br /> | none |
+| »»» self\_harm                 | object    | true  | none | <br /> | none |
+| »»»» filtered                  | boolean   | true  | none | <br /> | none |
+| »»» sexual                     | object    | true  | none | <br /> | none |
+| »»»» filtered                  | boolean   | true  | none | <br /> | none |
+| »»» violence                   | object    | true  | none | <br /> | none |
+| »»»» filtered                  | boolean   | true  | none | <br /> | none |
+| »»» jailbreak                  | object    | true  | none | <br /> | none |
+| »»»» filtered                  | boolean   | true  | none | <br /> | none |
+| »»»» detected                  | boolean   | true  | none | <br /> | none |
+| »»» profanity                  | object    | true  | none | <br /> | none |
+| »»»» filtered                  | boolean   | true  | none | <br /> | none |
+| »»»» detected                  | boolean   | true  | none | <br /> | none |
+| » usage                        | object    | true  | none | <br /> | none |
+| »» prompt\_tokens              | integer   | true  | none | <br /> | none |
+| »» completion\_tokens          | integer   | true  | none | <br /> | none |
+| »» total\_tokens               | integer   | true  | none | <br /> | none |
+| »» prompt\_tokens\_details     | null      | true  | none | <br /> | none |
+| »» completion\_tokens\_details | null      | true  | none | <br /> | none |
+| » system\_fingerprint          | string    | true  | none | <br /> | none |
 
 状态码 **400**
 
-|名称|类型|必选|约束|中文名|说明|
-|---|---|---|---|---|---|
-|» error|object|true|none||none|
-|»» message|string|true|none|报错信息|none|
+| 名称         | 类型     | 必选   | 约束   | 中文名    | 说明   |
+| ---------- | ------ | ---- | ---- | ------ | ---- |
+| » error    | object | true | none | <br /> | none |
+| »» message | string | true | none | 报错信息   | none |
 
 # openai-generations接口
 
@@ -451,12 +453,12 @@ https://grsai.dakka.com.cn/v1/chat/completions
 POST /v1/images/generations
 
 基础节点：
-https://grsaiapi.com                (全球节点)
-https://grsai.dakka.com.cn     (国内节点)
+<https://grsaiapi.com>                (全球节点)
+<https://grsai.dakka.com.cn>     (国内节点)
 
 例子：
-https://grsaiapi.com/v1/images/generations
-https://grsai.dakka.com.cn/v1/images/generations
+<https://grsaiapi.com/v1/images/generations>
+<https://grsai.dakka.com.cn/v1/images/generations>
 
 > Body 请求参数
 
@@ -472,16 +474,16 @@ https://grsai.dakka.com.cn/v1/images/generations
 
 ### 请求参数
 
-|名称|位置|类型|必选|中文名|说明|
-|---|---|---|---|---|---|
-|base_url|path|string| 是 ||none|
-|Authorization|header|string| 否 ||请前往以下页面获取APIKEY：https://grsai.ai/zh/dashboard/api-keys|
-|body|body|object| 是 ||none|
-|» model|body|string| 是 | 模型名称|支持所有图片生成模型|
-|» prompt|body|string| 是 | 提示词|none|
-|» image|body|[string]| 否 | 参考图|支持base64与url链接|
-|» size|body|string| 否 | 比例|gpt-image-2|
-|» response_format|body|string| 否 ||none|
+| 名称                 | 位置     | 类型        | 必选 | 中文名    | 说明                                                       |
+| ------------------ | ------ | --------- | -- | ------ | -------------------------------------------------------- |
+| base\_url          | path   | string    | 是  | <br /> | none                                                     |
+| Authorization      | header | string    | 否  | <br /> | 请前往以下页面获取APIKEY：<https://grsai.ai/zh/dashboard/api-keys> |
+| body               | body   | object    | 是  | <br /> | none                                                     |
+| » model            | body   | string    | 是  | 模型名称   | 支持所有图片生成模型                                               |
+| » prompt           | body   | string    | 是  | 提示词    | none                                                     |
+| » image            | body   | \[string] | 否  | 参考图    | 支持base64与url链接                                           |
+| » size             | body   | string    | 否  | 比例     | gpt-image-2                                              |
+| » response\_format | body   | string    | 否  | <br /> | none                                                     |
 
 #### 详细说明
 
@@ -527,7 +529,7 @@ API调用需要通过aspectRatio填入参数“例如："1024x1024"，以下尺�
 880x2048
 1648x3840
 
-1:3 
+1:3
 688x2048
 1280x3840
 
@@ -535,7 +537,7 @@ API调用需要通过aspectRatio填入参数“例如："1024x1024"，以下尺�
 2048x688
 3840x1280
 
-2:1 
+2:1
 2048x1024
 3840x1920
 
@@ -576,32 +578,31 @@ API调用需要通过aspectRatio填入参数“例如："1024x1024"，以下尺�
 
 ### 返回结果
 
-|状态码|状态码含义|说明|数据模型|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|none|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|none|Inline|
+| 状态码 | 状态码含义                                                            | 说明   | 数据模型   |
+| --- | ---------------------------------------------------------------- | ---- | ------ |
+| 200 | [OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)          | none | Inline |
+| 400 | [Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1) | none | Inline |
 
 ### 返回数据结构
 
 状态码 **200**
 
-|名称|类型|必选|约束|中文名|说明|
-|---|---|---|---|---|---|
-|» created|integer|true|none||none|
-|» data|[object]|true|none||none|
-|»» url|string|false|none||none|
-|» usage|object|true|none||none|
-|»» total_tokens|integer|true|none||none|
-|»» input_tokens|integer|true|none||none|
-|»» output_tokens|integer|true|none||none|
-|»» input_tokens_details|object|true|none||none|
+| 名称                        | 类型        | 必选    | 约束   | 中文名    | 说明   |
+| ------------------------- | --------- | ----- | ---- | ------ | ---- |
+| » created                 | integer   | true  | none | <br /> | none |
+| » data                    | \[object] | true  | none | <br /> | none |
+| »» url                    | string    | false | none | <br /> | none |
+| » usage                   | object    | true  | none | <br /> | none |
+| »» total\_tokens          | integer   | true  | none | <br /> | none |
+| »» input\_tokens          | integer   | true  | none | <br /> | none |
+| »» output\_tokens         | integer   | true  | none | <br /> | none |
+| »» input\_tokens\_details | object    | true  | none | <br /> | none |
 
 状态码 **400**
 
-|名称|类型|必选|约束|中文名|说明|
-|---|---|---|---|---|---|
-|» error|object|true|none||none|
-|»» message|string|true|none|报错信息|none|
+| 名称         | 类型     | 必选   | 约束   | 中文名    | 说明   |
+| ---------- | ------ | ---- | ---- | ------ | ---- |
+| » error    | object | true | none | <br /> | none |
+| »» message | string | true | none | 报错信息   | none |
 
 # 数据模型
-

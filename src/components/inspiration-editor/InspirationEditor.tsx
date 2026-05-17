@@ -4,6 +4,7 @@ import { askInspirationAgent } from '@/api/inspirationAgent'
 import { Send, Bot, User, Trash2, FileText, LayoutTemplate, Users, Image as ImageIcon, Box, History, Save, RotateCcw, Clock, ArrowRight, ArrowLeft, Wand2, Upload as UploadIcon, Download, Loader2, Play, Copy, Plus, MessageSquare, X, ToggleLeft, ToggleRight, Split } from 'lucide-react'
 import DiffTextarea from './DiffTextarea'
 import AssetSelectModal from './AssetSelectModal'
+import AssetImagePicker from './AssetImagePicker'
 import CharacterProfileForm from './CharacterProfileForm'
 import SceneProfileForm from './SceneProfileForm'
 import ItemProfileForm from './ItemProfileForm'
@@ -38,7 +39,7 @@ export default function InspirationEditor() {
     activeCategory, autoSaveInterval, chatHistory, sessions,
     setActiveCategory, setActiveItem, setContent, setPreviousContent, setImages, addMessage, 
     clearHistory, newConversation, switchConversation, deleteConversation,
-    saveVersion, restoreVersion, deleteVersion, 
+    saveVersion, restoreVersion, deleteVersion, createBlankCard,
     setAutoSaveInterval, onAIGenerate, getActiveData,
     setCharacterProfile, setSceneProfile, setItemProfile, setScriptScenes, setStoryboardShots
   } = useInspirationStore()
@@ -366,7 +367,7 @@ export default function InspirationEditor() {
 
   const handleImageBound = (asset: Asset) => {
     setBindImageModalOpen(false)
-    if (asset.type === 'image' && asset.path) {
+    if ((asset.type === 'image' || asset.type === 'video') && asset.path) {
       const cardData = getActiveData('character')
       if (bindImageTarget === 'ref') {
         setImages('character', asset.path, cardData.generatedImage)
@@ -865,6 +866,15 @@ export default function InspirationEditor() {
 
   const handleSelectFromAssets = () => {
     setSelectModalOpen(true)
+  }
+
+  const handleCreateBlank = () => {
+    createBlankCard(activeCategory)
+    useNotificationStore.getState().addNotification({
+      type: 'success',
+      title: '已创建空卡片',
+      message: `新建了空${currentLabel}，可自由编辑文本和绑定图片。`
+    })
   }
 
   const handleAssetSelected = (asset: Asset) => {
@@ -1395,6 +1405,13 @@ export default function InspirationEditor() {
                       {batchGenerating ? `生成中 (${batchProgress.current}/${batchProgress.total})` : '一键生成角色形象'}
                     </button>
                   )}
+                  <button
+                    onClick={handleCreateBlank}
+                    className="btn btn-ghost text-xs py-1 px-2 flex items-center gap-1 border border-node-border"
+                    title={`新建空白${currentLabel}`}
+                  >
+                    <Plus size={12} /> 新建空白
+                  </button>
                   <button
                     onClick={handleSelectFromAssets}
                     className="btn btn-ghost text-xs py-1 px-2 flex items-center gap-1 border border-node-border"
@@ -1956,6 +1973,12 @@ export default function InspirationEditor() {
         onClose={() => setSelectModalOpen(false)}
         onSelect={handleAssetSelected}
         assetTypeTag={getAssetTagForCategory(activeCategory)}
+      />
+      {/* Asset Image Picker Modal (for image binding) */}
+      <AssetImagePicker
+        open={bindImageModalOpen}
+        onClose={() => setBindImageModalOpen(false)}
+        onSelect={handleImageBound}
       />
     </div>
   )

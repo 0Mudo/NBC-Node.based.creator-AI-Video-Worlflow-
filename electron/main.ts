@@ -424,6 +424,90 @@ ipcMain.handle('oss:setMeta', async (_, config: any, key: string, meta: Record<s
   }
 })
 
+// --- OSS: list prefixes (directory tree) ---
+ipcMain.handle('oss:listPrefixes', async (_, config: any, prefix: string) => {
+  try {
+    if (!config?.accessKeyId || !config?.accessKeySecret || !config?.bucket) return []
+    const client = createOSSClient(config)
+    const result = await client.list({ prefix: prefix || '', delimiter: '/', 'max-keys': 1000 }, {})
+    const prefixes: string[] = []
+    if (result.prefixes) {
+      for (const p of result.prefixes) {
+        if (p !== prefix) prefixes.push(p)
+      }
+    }
+    return prefixes
+  } catch (e: any) {
+    console.error('OSS listPrefixes error:', e)
+    return []
+  }
+})
+
+// --- OSS: upload file from local path ---
+ipcMain.handle('oss:uploadFile', async (_, config: any, localPath: string, ossKey: string) => {
+  try {
+    if (!config?.accessKeyId || !config?.accessKeySecret || !config?.bucket) {
+      return JSON.stringify({ error: '未配置 OSS AccessKey/Bucket' })
+    }
+    if (!fs.existsSync(localPath)) {
+      return JSON.stringify({ error: '本地文件不存在' })
+    }
+    const ext = path.extname(localPath).toLowerCase()
+    const mimeMap: Record<string, string> = {
+      '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif', '.webp': 'image/webp', '.mp4': 'video/mp4',
+      '.webm': 'video/webm', '.mov': 'video/quicktime', '.avi': 'video/x-msvideo',
+    }
+    const client = createOSSClient(config)
+    const result = await client.put(ossKey, localPath, { mime: mimeMap[ext] || 'application/octet-stream' })
+    return JSON.stringify({ url: result.url, key: ossKey })
+  } catch (e: any) {
+    console.error('OSS uploadFile error:', e)
+    return JSON.stringify({ error: e.message || 'OSS 上传失败' })
+  }
+})
+
+// --- OSS: delete any key (no generated/ restriction) ---
+ipcMain.handle('oss:deleteAny', async (_, config: any, key: string) => {
+  try {
+    if (!config?.accessKeyId || !config?.accessKeySecret || !config?.bucket) {
+      return JSON.stringify({ success: false, error: '未配置 OSS AccessKey/Bucket' })
+    }
+    const client = createOSSClient(config)
+    await client.delete(key)
+    return JSON.stringify({ success: true })
+  } catch (e: any) {
+    console.error('OSS deleteAny error:', e)
+    return JSON.stringify({ success: false, error: e.message || 'OSS 删除失败' })
+  }
+})
+
+// --- OSS: batch delete any keys ---
+ipcMain.handle('oss:deleteMultiAny', async (_, config: any, keys: string[]) => {
+  try {
+    if (!config?.accessKeyId || !config?.accessKeySecret || !config?.bucket) {
+      return JSON.stringify({ success: false, error: '未配置 OSS AccessKey/Bucket' })
+    }
+    const client = createOSSClient(config)
+    const result = await client.deleteMulti(keys, { quiet: false })
+    const deleted = (result.deleted || []).map((d: any) => d.Key || d.key)
+    return JSON.stringify({ success: true, deleted })
+  } catch (e: any) {
+    console.error('OSS deleteMultiAny error:', e)
+    return JSON.stringify({ success: false, error: e.message || 'OSS 批量删除失败' })
+  }
+})
+
+// --- Shell: move to trash ---
+ipcMain.handle('shell:trash', async (_, filePath: string) => {
+  try {
+    await shell.trashItem(filePath)
+    return JSON.stringify({ success: true })
+  } catch (e: any) {
+    return JSON.stringify({ success: false, error: e.message || '无法放入回收站' })
+  }
+})
+
 // --- TTS:generate ---
 ipcMain.handle('tts:generate', async (_, config: any, text: string, voiceId: string, speed: number, pitch: number) => {
   try {

@@ -77,6 +77,9 @@ interface InspirationState {
   setCharacterProfile: (profile: CharacterProfile) => void
   setSceneProfile: (profile: SceneProfile) => void
   setItemProfile: (profile: ItemProfile) => void
+
+  // Create blank card
+  createBlankCard: (category: InspirationCategory) => string
   setScriptScenes: (scenes: ScriptScene[]) => void
   setStoryboardShots: (shots: StoryboardShot[]) => void
 
@@ -186,6 +189,13 @@ export const useInspirationStore = create<InspirationState>()(
           }
         }
       }),
+
+      createBlankCard: (category) => {
+        const projectKey = getProjectKey(category)
+        const itemId = `blank_${projectKey}_${Date.now()}`
+        get().setActiveItem(category, itemId, '')
+        return itemId
+      },
 
       setAutoSaveInterval: (minutes) => set({ autoSaveInterval: minutes }),
       

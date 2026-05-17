@@ -6,7 +6,7 @@ import { useNotificationStore } from './useNotificationStore'
 import { useTimelineStore } from './useTimelineStore'
 import { useAssetStore } from './useAssetStore'
 import { useProjectStore } from './useProjectStore'
-import { collectPrompt, collectImageRefs, collectNegativePrompt, collectConsistencySeed } from '@/engine/promptResolver'
+import { collectPrompt, collectImageRefs, collectNegativePrompt, collectConsistencySeed, resolveImageRefs, convertRefToDataUri } from '@/engine/promptResolver'
 import { topoSort } from '@/engine/graph'
 import type { GenerationTask, GenerationType } from '@/types/generation'
 import type { Asset } from '@/types/asset'
@@ -65,8 +65,13 @@ async function execGptImage2(node: any, prompt: string, imageRefs: string[], sig
   const endpoint = provider?.endpoints.find(e => e.isDefault) || provider?.endpoints[0]
   const rawUrls = node.data.gptImageUrls as string | undefined
   const refUrls = rawUrls ? rawUrls.split(/[\r\n]+/).filter(Boolean) : []
+  const httpRefs = resolveImageRefs(imageRefs)
+  const dataUriPromises = imageRefs
+    .filter(r => !r.startsWith('http://') && !r.startsWith('https://'))
+    .map(r => convertRefToDataUri(r))
+  const dataUris = (await Promise.all(dataUriPromises)).filter(u => u.startsWith('data:'))
   const combinedUrls = Array.from(new Set(
-    [...refUrls, ...imageRefs].filter(u => u.startsWith('http://') || u.startsWith('https://'))
+    [...refUrls, ...httpRefs, ...dataUris].filter(u => u.startsWith('http://') || u.startsWith('https://') || u.startsWith('data:'))
   ))
   const negativePrompt = (node.data._negativePrompt as string) || ''
   const finalPrompt = negativePrompt
@@ -91,7 +96,8 @@ async function execGptImage2(node: any, prompt: string, imageRefs: string[], sig
 async function execSeedance(node: any, prompt: string, imageRefs: string[], signal?: AbortSignal) {
   const provider = getProviderForType('seedance')
   const endpoint = provider?.endpoints.find(e => e.isDefault) || provider?.endpoints[0]
-  const refImages = imageRefs
+  const resolvedImageRefs = resolveImageRefs(imageRefs)
+  const refImages = resolvedImageRefs
     .filter(img => img && (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('asset://')))
     .map(url => ({ url, role: 'reference_image' as const }))
   const negativePrompt = (node.data._negativePrompt as string) || ''
@@ -124,8 +130,13 @@ async function execBanana(node: any, prompt: string, imageRefs: string[], signal
   const endpoint = provider?.endpoints.find(e => e.isDefault) || provider?.endpoints[0]
   const rawUrls = node.data.bananaUrls as string | undefined
   const refUrls = rawUrls ? rawUrls.split(/[\r\n]+/).filter(Boolean) : []
+  const httpRefs = resolveImageRefs(imageRefs)
+  const dataUriPromises = imageRefs
+    .filter(r => !r.startsWith('http://') && !r.startsWith('https://'))
+    .map(r => convertRefToDataUri(r))
+  const dataUris = (await Promise.all(dataUriPromises)).filter(u => u.startsWith('data:'))
   const combinedUrls = Array.from(new Set(
-    [...refUrls, ...imageRefs].filter(u => u.startsWith('http://') || u.startsWith('https://'))
+    [...refUrls, ...httpRefs, ...dataUris].filter(u => u.startsWith('http://') || u.startsWith('https://') || u.startsWith('data:'))
   ))
   const negativePrompt = (node.data._negativePrompt as string) || ''
   const finalPrompt = negativePrompt

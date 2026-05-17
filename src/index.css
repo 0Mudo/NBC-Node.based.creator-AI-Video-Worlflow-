@@ -185,6 +185,15 @@ input[type="number"] { -moz-appearance: textfield; }
   transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
+.react-flow__handle::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px; height: 28px;
+  border-radius: 50%;
+}
+
 .react-flow__handle:hover {
   transform: scale(1.4);
   box-shadow: 0 0 8px rgb(var(--accent) / 0.4);

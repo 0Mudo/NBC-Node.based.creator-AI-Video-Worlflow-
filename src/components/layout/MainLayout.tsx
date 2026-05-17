@@ -3,6 +3,7 @@ import DockLayout, { LayoutData, TabData } from 'rc-dock'
 import "rc-dock/dist/rc-dock.css"
 
 import AssetBrowser from '@/components/asset-browser/AssetBrowser'
+import OssBrowser from '@/components/asset-browser/OssBrowser'
 import FlowEditor from '@/components/node-editor/FlowEditor'
 import NodePalette from '@/components/node-editor/NodePalette'
 import Inspector from '@/components/inspector/Inspector'
@@ -129,7 +130,8 @@ export default function MainLayout() {
               tabs: [
                 { id: 'project', title: '项目', content: <div/> },
                 { id: 'workflow', title: '工作流', content: <div/> },
-                { id: 'assets', title: '素材', content: <div/> }
+                { id: 'assets', title: '素材', content: <div/> },
+                { id: 'oss', title: '云端', content: <div/> }
               ]
             }
           ]
@@ -185,6 +187,7 @@ export default function MainLayout() {
     project: <ProjectPanel />,
     workflow: <WorkflowPanel />,
     assets: <AssetBrowser />,
+    oss: <OssBrowser />,
     flow: <FlowEditor />,
     palette: <NodePalette />,
     inspector: <Inspector />,

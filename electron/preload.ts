@@ -10,8 +10,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveFile: (filename: string, base64Data: string, dir?: string) => ipcRenderer.invoke('save:local', filename, base64Data, dir),
   uploadOss: (config: any, filename: string, base64Data: string) => ipcRenderer.invoke('save:oss', config, filename, base64Data),
   listOss: (config: any, prefix: string) => ipcRenderer.invoke('oss:list', config, prefix),
+  listOssPrefixes: (config: any, prefix: string) => ipcRenderer.invoke('oss:listPrefixes', config, prefix),
+  uploadOssFile: (config: any, localPath: string, ossKey: string) => ipcRenderer.invoke('oss:uploadFile', config, localPath, ossKey),
   deleteOss: (config: any, key: string) => ipcRenderer.invoke('oss:delete', config, key),
   deleteMultiOss: (config: any, keys: string[]) => ipcRenderer.invoke('oss:deleteMulti', config, keys),
+  deleteAnyOss: (config: any, key: string) => ipcRenderer.invoke('oss:deleteAny', config, key),
+  deleteMultiAnyOss: (config: any, keys: string[]) => ipcRenderer.invoke('oss:deleteMultiAny', config, keys),
   setOssMeta: (config: any, key: string, meta: Record<string, string>) => ipcRenderer.invoke('oss:setMeta', config, key, meta),
   listFeishu: (config: any) => ipcRenderer.invoke('feishu:list', config),
   uploadFeishu: (config: any, filename: string, base64Data: string) => ipcRenderer.invoke('feishu:upload', config, filename, base64Data),
@@ -24,6 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ttsGenerate: (config: any, text: string, voiceId: string, speed: number, pitch: number) => ipcRenderer.invoke('tts:generate', config, text, voiceId, speed, pitch),
   exportVideo: (options: any) => ipcRenderer.invoke('export:video', options),
   openInShell: (target: string) => ipcRenderer.invoke('shell:open', target),
+  trashFile: (filePath: string) => ipcRenderer.invoke('shell:trash', filePath),
   onDeepLink: (callback: (url: string) => void) => {
     const handler = (_event: any, url: string) => callback(url)
     ipcRenderer.on('deep-link', handler)

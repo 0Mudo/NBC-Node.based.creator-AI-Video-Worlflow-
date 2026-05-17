@@ -33,8 +33,12 @@ export interface ElectronAPI {
   saveFile: (filename: string, data: string, dir?: string) => Promise<string | null>
   uploadOss: (config: any, filename: string, data: string) => Promise<string | null>
   listOss: (config: any, prefix: string) => Promise<any[]>
+  listOssPrefixes: (config: any, prefix: string) => Promise<string[]>
+  uploadOssFile: (config: any, localPath: string, ossKey: string) => Promise<string>
   deleteOss: (config: any, key: string) => Promise<string>
   deleteMultiOss: (config: any, keys: string[]) => Promise<string>
+  deleteAnyOss: (config: any, key: string) => Promise<string>
+  deleteMultiAnyOss: (config: any, keys: string[]) => Promise<string>
   setOssMeta: (config: any, key: string, meta: Record<string, string>) => Promise<string>
   listFeishu: (config: any) => Promise<any[]>
   uploadFeishu: (config: any, filename: string, data: string) => Promise<string | null>
@@ -56,6 +60,7 @@ export interface ElectronAPI {
   ttsGenerate: (config: any, text: string, voiceId: string, speed: number, pitch: number) => Promise<string>
   exportVideo: (options: any) => Promise<string>
   openInShell: (target: string) => Promise<boolean>
+  trashFile: (filePath: string) => Promise<string>
   onDeepLink: (callback: (url: string) => void) => () => void
   removeDeepLinkListener: () => void
   onAppClosing: (callback: () => void) => () => void

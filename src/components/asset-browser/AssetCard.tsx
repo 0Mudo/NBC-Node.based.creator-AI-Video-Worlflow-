@@ -1,6 +1,7 @@
 import type { Asset } from '@/types/asset'
 import { ASSET_TAG_CN } from '@/types/asset'
 import { Play, Trash2, Pencil, CheckSquare, Square, CloudOff } from 'lucide-react'
+import VideoThumbnail from './VideoThumbnail'
 
 interface AssetCardProps {
   asset: Asset
@@ -8,7 +9,7 @@ interface AssetCardProps {
   onClick: () => void
   onView?: (asset: Asset) => void
   onDragStart?: (e: React.DragEvent) => void
-  onDelete?: (id: string) => void
+  onDelete?: (asset: Asset) => void
   onEditTags?: (asset: Asset) => void
   onDeleteOss?: (asset: Asset) => void
   isMultiSelect?: boolean
@@ -104,8 +105,8 @@ export default function AssetCard({ asset, selected, onClick, onView, onDragStar
           {onDelete && (
             <button
               className="p-0.5 rounded bg-red-500/80 text-white hover:bg-red-600"
-              onClick={(e) => { e.stopPropagation(); onDelete(asset.id) }}
-              title="从素材库移除"
+              onClick={(e) => { e.stopPropagation(); onDelete(asset) }}
+              title="删除素材"
             >
               <Trash2 size={11} />
             </button>
@@ -120,12 +121,8 @@ export default function AssetCard({ asset, selected, onClick, onView, onDragStar
       >
         {asset.type === 'video' ? (
           <div className="relative w-full h-full">
-            {asset.thumbnailPath ? (
-              <img src={asset.thumbnailPath} className="w-full h-full object-cover" alt="thumbnail" />
-            ) : (
-              <video src={asset.path} className="w-full h-full object-cover" />
-            )}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+            <VideoThumbnail src={asset.path} alt={asset.name} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
               <Play size={24} className="text-white opacity-80" />
             </div>
           </div>
