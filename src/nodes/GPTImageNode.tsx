@@ -21,7 +21,7 @@ function GPTImageNode({ data, selected }: NodeProps<NodeData>) {
       <Handle type="source" position={Position.Right} id="output" />
       <div className="node-header" style={{ justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div className="node-icon" style={{ background: '#fd79a8' }}><ImagePlus size={14} color="#1a1a2e" /></div>
+          <div className="node-icon" style={{ background: '#fd79a8', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}><ImagePlus size={14} style={{ color: 'rgb(var(--bg-primary))' }} /></div>
           <span>{data.label || 'GPT图像生成'}</span>
         </div>
         <button className="btn btn-ghost p-0.5" onClick={handleRun} disabled={status === 'running'} title="生成">

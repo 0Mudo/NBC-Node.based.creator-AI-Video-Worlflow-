@@ -40,6 +40,17 @@ export interface ElectronAPI {
   uploadFeishu: (config: any, filename: string, data: string) => Promise<string | null>
   queueFeishu: (msg: string) => Promise<string>
   logEvent: (eventJson: string) => Promise<string>
+  runFeishuSync: (config: {
+    feishuAppId: string
+    feishuAppSecret: string
+    bitableAppToken: string
+    bitableTableId: string
+    nbcDir?: string
+    allowedActions?: string[]
+    fieldNames?: Record<string, string>
+    batchSize?: number
+  }) => Promise<{ success: boolean; synced: number; skipped: number; cursorLine: number; error?: string }>
+  getEventsPath: () => Promise<string>
   saveToFile: (workflowData: string, defaultFilename?: string) => Promise<{ filePath: string | null; success: boolean }>
   loadFromFile: () => Promise<{ data: string | null; filePath: string }>
   ttsGenerate: (config: any, text: string, voiceId: string, speed: number, pitch: number) => Promise<string>

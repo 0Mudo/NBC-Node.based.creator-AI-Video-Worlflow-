@@ -1,15 +1,19 @@
 import type { ReactNode } from 'react'
 import { useFlowStore } from '@/store/useFlowStore'
+import type { AppNode } from '@/types/flow'
 import { useAssetStore } from '@/store/useAssetStore'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useStyleStore } from '@/store/useStyleStore'
 
-import { Info, Settings, Trash2, Sparkles } from 'lucide-react'
+import { Info, Settings, Trash2, Sparkles, RefreshCw } from 'lucide-react'
+import { useCallback } from 'react'
 import EmptyState from '@/components/shared/EmptyState'
 import { nodeTypeLabels } from '@/nodes'
 import type { Asset, AssetTag } from '@/types/asset'
 import { ASPECT_RATIO_OPTIONS } from '@/utils/constants'
 import PromptOptimizer from './PromptOptimizer'
+import { useInspirationStore } from '@/store/useInspirationStore'
+import { useNotificationStore } from '@/store/useNotificationStore'
 
 function buildAssetOptions(
   assets: Asset[],
@@ -141,6 +145,217 @@ function CardAssetFields({
       <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">参考图片路径</label><input className="input mt-0.5" value={(nodeData[config.refImageField] as string) || ''} onChange={(e) => handleChange(config.refImageField, e.target.value)} placeholder={config.refImagePlaceholder} /></div>
       {extra}
     </>
+  )
+}
+
+function ScriptInspector({ node, handleChange }: { node: AppNode; handleChange: (field: string, value: unknown) => void }) {
+  const { getActiveData } = useInspirationStore()
+  const scriptData = getActiveData('script')
+  const scenes = scriptData?.scriptScenes || []
+
+  const handleSceneSelect = (sceneId: string) => {
+    if (!sceneId) {
+      handleChange('scriptSceneId', undefined)
+      handleChange('scriptSceneNumber', undefined)
+      handleChange('scriptSceneHeading', undefined)
+      handleChange('scriptText', '')
+      return
+    }
+    const scene = scenes.find((s) => s.id === sceneId)
+    if (scene) {
+      handleChange('scriptSceneId', scene.id)
+      handleChange('scriptSceneNumber', scene.sceneNumber)
+      handleChange('scriptSceneHeading', scene.heading)
+      handleChange('scriptText', scene.action || scene.heading)
+    }
+  }
+
+  return (
+    <>
+      <div>
+        <label className="text-[10px] text-text-secondary uppercase tracking-wider">灵感编辑器场次</label>
+        <select
+          className="input mt-0.5"
+          value={(node.data.scriptSceneId as string) || ''}
+          onChange={(e) => handleSceneSelect(e.target.value)}
+        >
+          <option value="">-- 手动输入 --</option>
+          {scenes.map((s) => (
+            <option key={s.id} value={s.id}>
+              第{s.sceneNumber}场 {s.heading}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="text-[10px] text-text-secondary uppercase tracking-wider">剧本内容</label>
+        <textarea
+          className="input mt-0.5"
+          rows={8}
+          value={(node.data.scriptText as string) || ''}
+          onChange={(e) => handleChange('scriptText', e.target.value)}
+          placeholder="选择灵感编辑器场次自动填充，或手动输入剧本内容..."
+        />
+      </div>
+    </>
+  )
+}
+
+function StoryboardInspector({ node, handleChange }: { node: AppNode; handleChange: (field: string, value: unknown) => void }) {
+  const { getActiveData } = useInspirationStore()
+  const storyboardData = getActiveData('storyboard')
+  const shots = storyboardData?.storyboardShots || []
+
+  const handleShotSelect = (shotId: string) => {
+    if (!shotId) {
+      handleChange('storyboardShotId', undefined)
+      handleChange('storyboardShotNumber', undefined)
+      handleChange('storyboardShotDescription', undefined)
+      handleChange('storyboardShotType', undefined)
+      handleChange('storyboardDialogue', undefined)
+      handleChange('storyboardCharacterIds', undefined)
+      handleChange('storyboardSceneId', undefined)
+      handleChange('storyboardItemIds', undefined)
+      return
+    }
+    const shot = shots.find((s) => s.id === shotId)
+    if (shot) {
+      handleChange('storyboardShotId', shot.id)
+      handleChange('storyboardShotNumber', shot.shotNumber)
+      handleChange('storyboardShotDescription', shot.description)
+      handleChange('storyboardShotType', shot.shotType)
+      handleChange('storyboardDialogue', shot.dialogue)
+      handleChange('storyboardCharacterIds', shot.characterIds)
+      handleChange('storyboardSceneId', shot.sceneId)
+      handleChange('storyboardItemIds', shot.itemIds)
+    }
+  }
+
+  return (
+    <>
+      <div>
+        <label className="text-[10px] text-text-secondary uppercase tracking-wider">灵感编辑器分镜</label>
+        <select
+          className="input mt-0.5"
+          value={(node.data.storyboardShotId as string) || ''}
+          onChange={(e) => handleShotSelect(e.target.value)}
+        >
+          <option value="">-- 选择分镜 --</option>
+          {shots.map((s) => (
+            <option key={s.id} value={s.id}>
+              镜{s.shotNumber} {s.shotType} {s.description?.slice(0, 30)}
+            </option>
+          ))}
+        </select>
+      </div>
+      {node.data.storyboardShotId && (
+        <div className="bg-bg-tertiary/50 rounded p-2 space-y-1 text-[10px]">
+          <div className="flex justify-between">
+            <span className="text-text-secondary">镜头号</span>
+            <span>{node.data.storyboardShotNumber}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-text-secondary">景别</span>
+            <span>{node.data.storyboardShotType as string}</span>
+          </div>
+          {node.data.storyboardDialogue && (
+            <div className="flex justify-between">
+              <span className="text-text-secondary">对白</span>
+              <span className="text-accent truncate max-w-[180px]">「{node.data.storyboardDialogue as string}」</span>
+            </div>
+          )}
+          <div className="text-text-secondary leading-relaxed">{node.data.storyboardShotDescription as string}</div>
+        </div>
+      )}
+    </>
+  )
+}
+
+function PromptInspector({ node, handleChange }: { node: AppNode; handleChange: (field: string, value: unknown) => void }) {
+  const nodes = useFlowStore((s) => s.nodes)
+  const edges = useFlowStore((s) => s.edges)
+
+  const handleRefreshFromUpstream = useCallback(() => {
+    const upstreamNodeIds = new Set<string>()
+    edges.filter((e) => e.target === node.id).forEach((e) => upstreamNodeIds.add(e.source))
+    const upstreamNodes = nodes.filter((n) => upstreamNodeIds.has(n.id))
+
+    const parts: string[] = []
+
+    for (const un of upstreamNodes) {
+      if (un.type === 'characterCard') {
+        const name = un.data.characterName
+        const appearance = un.data.characterAppearance
+        if (name && appearance) parts.push(`角色「${name}」：${appearance}`)
+        else if (name) parts.push(`角色「${name}」`)
+      } else if (un.type === 'sceneCard') {
+        const name = un.data.sceneName
+        const desc = un.data.sceneDescription
+        if (name && desc) parts.push(`场景「${name}」：${desc}`)
+        else if (name) parts.push(`场景「${name}」`)
+      } else if (un.type === 'itemCard') {
+        const name = un.data.itemName
+        const desc = un.data.itemDescription
+        if (name && desc) parts.push(`物品「${name}」：${desc}`)
+        else if (name) parts.push(`物品「${name}」`)
+      } else if (un.type === 'script') {
+        const heading = un.data.scriptSceneHeading
+        const text = un.data.scriptText
+        if (heading && text) parts.push(`[剧本·第${un.data.scriptSceneNumber}场 ${heading}]\n${text}`)
+        else if (text) parts.push(`[剧本]\n${text as string}`)
+      } else if (un.type === 'storyboard') {
+        const shotNum = un.data.storyboardShotNumber
+        const desc = un.data.storyboardShotDescription
+        const dialogue = un.data.storyboardDialogue
+        const shotType = un.data.storyboardShotType
+        let sb = `[分镜·镜${shotNum}`
+        if (shotType) sb += ` ${shotType}`
+        sb += ']'
+        if (desc) sb += `\n${desc}`
+        if (dialogue) sb += `\n对白：「${dialogue}」`
+        parts.push(sb)
+      }
+    }
+
+    if (parts.length === 0) {
+      useNotificationStore.getState().addNotification({
+        type: 'warning',
+        title: '无上游信息',
+        message: '请先将角色卡/场景卡/物品卡/剧本/分镜节点连线到提示词节点。',
+      })
+      return
+    }
+
+    const text = parts.join('\n\n')
+    handleChange('promptText', text)
+    useNotificationStore.getState().addNotification({
+      type: 'success',
+      title: '已刷新提示词',
+      message: `已从 ${parts.length} 个上游节点收集信息并写入提示词文本框。`,
+    })
+  }, [node.id, nodes, edges, handleChange])
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-0.5">
+        <label className="text-[10px] text-text-secondary uppercase tracking-wider">提示词文本</label>
+        <button
+          className="btn btn-ghost text-[10px] py-0.5 px-2 flex items-center gap-1 border border-node-border hover:border-accent/50 transition-colors"
+          onClick={handleRefreshFromUpstream}
+          title="从上游节点拉取信息自动写入"
+        >
+          <RefreshCw size={10} /> 刷新状态
+        </button>
+      </div>
+      <textarea
+        className="input mt-0.5"
+        rows={6}
+        value={(node.data.promptText as string) || ''}
+        onChange={(e) => handleChange('promptText', e.target.value)}
+        placeholder="输入提示词，或点击「刷新状态」从上游节点自动拉取..."
+      />
+      <PromptOptimizer node={node} />
+    </div>
   )
 }
 
@@ -292,20 +507,13 @@ export default function Inspector() {
         )}
 
         {/* --- Script --- */}
-        {node.type === 'script' && (
-          <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">剧本/分镜文本</label>
-            <textarea className="input mt-0.5" rows={12} value={(node.data.scriptText as string) || ''} onChange={(e) => handleChange('scriptText', e.target.value)}
-              placeholder="输入分镜头或剧本...&#10;&#10;示例：&#10;镜头1：蜂医从巴别塔高处跃下，慢动作&#10;镜头2：疾风从侧面突入，双持冲锋枪开火&#10;镜头3：两人在钥匙房对峙，全息地图闪烁" /></div>
-        )}
+        {node.type === 'script' && <ScriptInspector node={node} handleChange={handleChange} />}
+
+        {/* --- Storyboard --- */}
+        {node.type === 'storyboard' && <StoryboardInspector node={node} handleChange={handleChange} />}
 
         {/* --- Prompt --- */}
-        {node.type === 'prompt' && (
-          <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">提示词文本</label>
-            <textarea className="input mt-0.5" rows={6} value={(node.data.promptText as string) || ''} onChange={(e) => handleChange('promptText', e.target.value)}
-              placeholder="输入提示词。可用 {{character}} 和 {{scene}} 作为模板变量..." />
-            <PromptOptimizer node={node} />
-          </div>
-        )}
+        {node.type === 'prompt' && <PromptInspector node={node} handleChange={handleChange} />}
 
         {/* --- GPT Image 2 --- */}
         {node.type === 'gptImage2' && (

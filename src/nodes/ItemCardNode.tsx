@@ -37,7 +37,7 @@ function ItemCardNode({ id, data, selected }: NodeProps<NodeData>) {
     >
       <Handle type="source" position={Position.Right} id="output" />
       <div className="node-header">
-        <div className="node-icon" style={{ background: '#e67e22' }}><Box size={14} color="#1a1a2e" /></div>
+        <div className="node-icon" style={{ background: '#e67e22', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}><Box size={14} style={{ color: 'rgb(var(--bg-primary))' }} /></div>
         <span>{data.label || '物品卡'}</span>
       </div>
       <div className="node-body">

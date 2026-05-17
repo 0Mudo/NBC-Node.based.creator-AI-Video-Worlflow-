@@ -10,12 +10,14 @@ interface Props {
 
 export default function EmptyState({ icon: Icon, title, subtitle, action }: Props) {
   return (
-    <div className="flex flex-col items-center justify-center h-full text-text-secondary text-xs text-center px-4">
-      <Icon size={28} className="mb-2 opacity-30" />
-      <p>{title}</p>
-      {subtitle && <p className="mt-1 opacity-70">{subtitle}</p>}
+    <div className="empty-state">
+      <div className="empty-state-icon">
+        <Icon size={32} />
+      </div>
+      <p className="empty-state-title">{title}</p>
+      {subtitle && <p className="empty-state-subtitle">{subtitle}</p>}
       {action && (
-        <button className="btn btn-ghost text-[10px] mt-3 border border-node-border" onClick={action.onClick}>
+        <button className="btn btn-secondary text-[11px] mt-4" onClick={action.onClick}>
           {action.label}
         </button>
       )}

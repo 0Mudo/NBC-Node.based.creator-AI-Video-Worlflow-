@@ -220,19 +220,51 @@ export default function MainLayout() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-bg-primary nbc-dock-theme">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between px-3 py-2 backdrop-blur-sm bg-bg-secondary/90 border-b border-node-border flex-shrink-0 z-10">
-        <div className="flex items-center gap-1">
-          <span className="text-xs font-semibold tracking-wide ml-2 animate-fade-in">NBC · 节点式素材创作器</span>
+      {/* Toolbar — Noir Studio */}
+      <div className="flex items-center justify-between h-11 px-4 bg-bg-secondary/80 backdrop-blur-xl border-b border-node-border/30 flex-shrink-0 z-10 select-none">
+        <div className="flex items-center gap-3">
+          {/* Brand mark */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-md flex items-center justify-center shadow-sm"
+              style={{
+                background: 'linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent-secondary)) 100%)',
+              }}
+            >
+              <span className="text-[10px] font-bold text-bg-primary leading-none" style={{ fontFamily: "'Playfair Display', serif" }}>N</span>
+            </div>
+            <div className="flex flex-col leading-none">
+              <span className="text-[13px] font-bold tracking-tight text-text-primary font-display">NBC</span>
+              <span className="text-[9px] text-text-tertiary tracking-wider uppercase">Node‑Based Creator</span>
+            </div>
+          </div>
+          {/* Divider */}
+          <div className="w-px h-5 bg-node-border/30" />
         </div>
-        <div className="flex items-center gap-2">
-          <button className="btn btn-ghost p-1.5" onClick={() => setTemplateOpen(true)} title="模板市场"><Workflow size={14} /></button>
-          <button className="btn btn-ghost p-1.5" onClick={handleRestoreLayout} title="恢复默认布局"><LayoutDashboard size={14} /></button>
-          <button className="btn btn-ghost p-1.5" onClick={toggleTheme} title="切换主题">{theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}</button>
-          <button className="btn btn-ghost p-1.5" onClick={() => setSettingsOpen(true)} title="API 设置"><Settings size={14} /></button>
-          <button className="btn btn-ghost p-1.5" onClick={() => setPromptLibraryOpen(true)} title="提示词库"><Library size={14} /></button>
-          <button className="btn btn-ghost p-1.5" onClick={() => setExportOpen(true)} title="视频导出"><Download size={14} /></button>
-          <button className="btn btn-ghost p-1.5" onClick={() => setAnalyticsOpen(true)} title="生成分析"><BarChart3 size={14} /></button>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1">
+          <button className="btn btn-ghost btn-icon" onClick={() => setTemplateOpen(true)} title="模板市场">
+            <Workflow size={15} />
+          </button>
+          <button className="btn btn-ghost btn-icon" onClick={handleRestoreLayout} title="恢复默认布局">
+            <LayoutDashboard size={15} />
+          </button>
+          <button className="btn btn-ghost btn-icon" onClick={toggleTheme} title="切换主题">
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+          <div className="w-px h-4 bg-node-border/20 mx-0.5" />
+          <button className="btn btn-ghost btn-icon" onClick={() => setSettingsOpen(true)} title="API 设置">
+            <Settings size={15} />
+          </button>
+          <button className="btn btn-ghost btn-icon" onClick={() => setPromptLibraryOpen(true)} title="提示词库">
+            <Library size={15} />
+          </button>
+          <button className="btn btn-ghost btn-icon" onClick={() => setExportOpen(true)} title="视频导出">
+            <Download size={15} />
+          </button>
+          <button className="btn btn-ghost btn-icon" onClick={() => setAnalyticsOpen(true)} title="生成分析">
+            <BarChart3 size={15} />
+          </button>
         </div>
       </div>
 
@@ -250,14 +282,18 @@ export default function MainLayout() {
       <TemplateMarket open={templateOpen} onClose={() => setTemplateOpen(false)} />
 
       {exportOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onClick={() => setExportOpen(false)}>
-          <div className="bg-bg-primary border border-node-border rounded-lg shadow-xl w-[500px] h-[520px] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-node-border flex-shrink-0">
-              <h2 className="text-sm font-semibold flex items-center gap-2">
-                <Download size={16} className="text-accent" /> 视频导出
+        <div className="fixed inset-0 z-50 settings-overlay" onClick={() => setExportOpen(false)}>
+          <div className="settings-dialog w-[500px] h-[520px] flex flex-col !p-0" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-node-border/30 flex-shrink-0">
+              <h2 className="text-sm font-semibold flex items-center gap-2.5">
+                <span className="w-7 h-7 rounded-md flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent-secondary)) 100%)' }}>
+                  <Download size={14} className="text-bg-primary" />
+                </span>
+                视频导出
               </h2>
-              <button className="btn btn-ghost p-1" onClick={() => setExportOpen(false)}>
-                <X size={16} />
+              <button className="btn btn-ghost btn-icon" onClick={() => setExportOpen(false)}>
+                <X size={15} />
               </button>
             </div>
             <div className="flex-1 overflow-hidden">
@@ -268,14 +304,18 @@ export default function MainLayout() {
       )}
 
       {analyticsOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onClick={() => setAnalyticsOpen(false)}>
-          <div className="bg-bg-primary border border-node-border rounded-lg shadow-xl w-[550px] h-[500px] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-node-border flex-shrink-0">
-              <h2 className="text-sm font-semibold flex items-center gap-2">
-                <BarChart3 size={16} className="text-accent" /> 生成分析
+        <div className="fixed inset-0 z-50 settings-overlay" onClick={() => setAnalyticsOpen(false)}>
+          <div className="settings-dialog w-[550px] h-[500px] flex flex-col !p-0" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-node-border/30 flex-shrink-0">
+              <h2 className="text-sm font-semibold flex items-center gap-2.5">
+                <span className="w-7 h-7 rounded-md flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent-secondary)) 100%)' }}>
+                  <BarChart3 size={14} className="text-bg-primary" />
+                </span>
+                生成分析
               </h2>
-              <button className="btn btn-ghost p-1" onClick={() => setAnalyticsOpen(false)}>
-                <X size={16} />
+              <button className="btn btn-ghost btn-icon" onClick={() => setAnalyticsOpen(false)}>
+                <X size={15} />
               </button>
             </div>
             <div className="flex-1 overflow-hidden">
@@ -286,14 +326,18 @@ export default function MainLayout() {
       )}
 
       {promptLibraryOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onClick={() => setPromptLibraryOpen(false)}>
-          <div className="bg-bg-primary border border-node-border rounded-lg shadow-xl w-[520px] h-[580px] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-node-border flex-shrink-0">
-              <h2 className="text-sm font-semibold flex items-center gap-2">
-                <Library size={16} className="text-accent" /> 提示词库
+        <div className="fixed inset-0 z-50 settings-overlay" onClick={() => setPromptLibraryOpen(false)}>
+          <div className="settings-dialog w-[520px] h-[580px] flex flex-col !p-0" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-node-border/30 flex-shrink-0">
+              <h2 className="text-sm font-semibold flex items-center gap-2.5">
+                <span className="w-7 h-7 rounded-md flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent-secondary)) 100%)' }}>
+                  <Library size={14} className="text-bg-primary" />
+                </span>
+                提示词库
               </h2>
-              <button className="btn btn-ghost p-1" onClick={() => setPromptLibraryOpen(false)}>
-                <X size={16} />
+              <button className="btn btn-ghost btn-icon" onClick={() => setPromptLibraryOpen(false)}>
+                <X size={15} />
               </button>
             </div>
             <div className="flex-1 overflow-hidden">

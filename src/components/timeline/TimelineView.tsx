@@ -3,6 +3,7 @@ import { useTimelineStore, type TrackClip } from '@/store/useTimelineStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
 import { useFlowStore } from '@/store/useFlowStore'
 import { useInspirationStore } from '@/store/useInspirationStore'
+import { useAssetStore } from '@/store/useAssetStore'
 import { executeNode } from '@/store/useExecutionEngine'
 import {
   Film, Plus, Trash2, GripVertical, X, Import, Check, Clock,
@@ -45,14 +46,14 @@ function snapTime(time: number, snapPoints: number[], pxPerSec: number): number 
 }
 
 function ClipBlock({
-  clip, pxPerSec, snapPoints, onUpdate, onDelete, onTriggerGenerate,
+  clip, pxPerSec, snapPoints, onUpdate, onDelete, onAnalyzeClip,
 }: {
   clip: TrackClip
   pxPerSec: number
   snapPoints: number[]
   onUpdate: (updates: Partial<TrackClip>) => void
   onDelete: () => void
-  onTriggerGenerate: () => void
+  onAnalyzeClip: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [dragging, setDragging] = useState<'move' | 'trimLeft' | 'trimRight' | null>(null)
@@ -115,7 +116,7 @@ function ClipBlock({
       onMouseDown={(e) => handleMouseDown(e, 'move')}
     >
       {clip.status === 'empty' ? (
-        <div className="flex items-center justify-center h-full" onClick={onTriggerGenerate}>
+        <div className="flex items-center justify-center h-full" onClick={onAnalyzeClip}>
           <div className="flex flex-col items-center gap-0.5 text-[9px] text-text-secondary hover:text-accent">
             <Play size={12} />
             <span className="truncate max-w-full px-2">{clip.label.slice(0, 12)}</span>
@@ -130,7 +131,7 @@ function ClipBlock({
       ) : clip.status === 'failed' ? (
         <div className="flex items-center justify-center h-full text-[9px] text-red-400 gap-1">
           <span>失败</span>
-          <button className="underline hover:text-red-300" onClick={(e) => { e.stopPropagation(); onTriggerGenerate() }}>重试</button>
+          <button className="underline hover:text-red-300" onClick={(e) => { e.stopPropagation(); onAnalyzeClip() }}>重试</button>
         </div>
       ) : clip.sourceType === 'video' ? (
         <video src={clip.sourceUrl} className="w-full h-full object-cover pointer-events-none" muted />
@@ -475,25 +476,181 @@ export default function TimelineView() {
     setNewDuration(5)
   }
 
-  const handleTriggerGenerate = useCallback((clip: TrackClip) => {
-    const genNodes = nodes.filter((n) =>
-      n.type === 'gptImage2' || n.type === 'seedance'
+  const handleAnalyzeClip = useCallback((clip: TrackClip) => {
+    const spec = clip.spec
+    const addNode = useFlowStore.getState().addNode
+    const existingNodes = nodes
+    let nodeId = 0
+    function makeId(type: string): string { return `${type}_${++nodeId}_${Date.now()}` }
+
+    const createdNodes: string[] = []
+    const baseX = 300
+    const baseY = 200
+    let yOffset = 0
+    const LAYOUT_GAP = 160
+    const NODE_X = baseX + 50
+
+    const characterAssets = useAssetStore.getState().assets.filter(
+      (a) => a.type === 'text' && a.tags?.includes('Character')
     )
-    if (genNodes.length === 0) {
+    const sceneAssets = useAssetStore.getState().assets.filter(
+      (a) => a.type === 'text' && a.tags?.includes('Scene')
+    )
+    const itemAssets = useAssetStore.getState().assets.filter(
+      (a) => a.type === 'text' && a.tags?.includes('Item')
+    )
+
+    // 1. Character Cards
+    if (spec.characterIds && spec.characterIds.length > 0) {
+      for (const charId of spec.characterIds) {
+        const existing = existingNodes.find(
+          (n) => n.type === 'characterCard' && n.data.characterAssetId === charId
+        )
+        if (!existing) {
+          const charAsset = characterAssets.find((a) => a.id === charId)
+          if (charAsset) {
+            const id = makeId('characterCard')
+            addNode({
+              id,
+              type: 'characterCard',
+              position: { x: NODE_X, y: baseY + yOffset },
+              data: {
+                label: charAsset.name || '角色卡',
+                _nodeId: id,
+                characterAssetId: charId,
+                characterName: charAsset.name,
+                characterAppearance: charAsset.prompt || '',
+                characterRefImage: charAsset.thumbnailPath || '',
+              },
+            })
+            createdNodes.push(`角色卡「${charAsset.name}」`)
+            yOffset += LAYOUT_GAP
+          }
+        } else {
+          createdNodes.push(`角色卡「${existing.data.characterName || charId}」(已存在)`)
+        }
+      }
+    }
+
+    // 2. Scene Card
+    if (spec.sceneId) {
+      const existing = existingNodes.find(
+        (n) => n.type === 'sceneCard' && n.data.sceneAssetId === spec.sceneId
+      )
+      if (!existing) {
+        const sceneAsset = sceneAssets.find((a) => a.id === spec.sceneId)
+        if (sceneAsset) {
+          const id = makeId('sceneCard')
+          addNode({
+            id,
+            type: 'sceneCard',
+            position: { x: NODE_X, y: baseY + yOffset },
+            data: {
+              label: sceneAsset.name || '场景卡',
+              _nodeId: id,
+              sceneAssetId: spec.sceneId,
+              sceneName: sceneAsset.name,
+              sceneDescription: sceneAsset.prompt || '',
+              sceneRefImage: sceneAsset.thumbnailPath || '',
+            },
+          })
+          createdNodes.push(`场景卡「${sceneAsset.name}」`)
+          yOffset += LAYOUT_GAP
+        }
+      } else {
+        createdNodes.push(`场景卡「${existing.data.sceneName || spec.sceneId}」(已存在)`)
+      }
+    }
+
+    // 3. Item Cards - check if any item assets match by name in clip label/dialogue
+    const searchText = (clip.label + ' ' + (spec.dialogue || '') + ' ' + (spec.action || '')).toLowerCase()
+    for (const item of itemAssets) {
+      if (item.name && searchText.includes(item.name.toLowerCase())) {
+        const existing = existingNodes.find(
+          (n) => n.type === 'itemCard' && n.data.itemAssetId === item.id
+        )
+        if (!existing) {
+          const id = makeId('itemCard')
+          addNode({
+            id,
+            type: 'itemCard',
+            position: { x: NODE_X, y: baseY + yOffset },
+            data: {
+              label: item.name || '物品卡',
+              _nodeId: id,
+              itemAssetId: item.id,
+              itemName: item.name,
+              itemDescription: item.prompt || '',
+              itemRefImage: item.thumbnailPath || '',
+            },
+          })
+          createdNodes.push(`物品卡「${item.name}」`)
+          yOffset += LAYOUT_GAP
+        } else {
+          createdNodes.push(`物品卡「${item.name}」(已存在)`)
+        }
+      }
+    }
+
+    // 4. Script node with scene info
+    if (spec.sceneId) {
+      const sceneAsset = sceneAssets.find((a) => a.id === spec.sceneId)
+      const existing = existingNodes.find(
+        (n) => n.type === 'script' && n.data.scriptSceneId === spec.sceneId
+      )
+      if (!existing && sceneAsset) {
+        const id = makeId('script')
+        addNode({
+          id,
+          type: 'script',
+          position: { x: NODE_X - 200, y: baseY + yOffset },
+          data: {
+            label: `第?场 ${sceneAsset.name}`,
+            _nodeId: id,
+            scriptText: sceneAsset.prompt || '',
+          },
+        })
+        createdNodes.push(`剧本节点「${sceneAsset.name}」`)
+        yOffset += LAYOUT_GAP
+      }
+    }
+
+    // 5. Storyboard node with shot info
+    if (spec.shotType || spec.dialogue) {
+      const id = makeId('storyboard')
+      addNode({
+        id,
+        type: 'storyboard',
+        position: { x: NODE_X, y: baseY + yOffset },
+        data: {
+          label: clip.label || '分镜',
+          _nodeId: id,
+          storyboardShotDescription: clip.label,
+          storyboardShotType: spec.shotType || '',
+          storyboardDialogue: spec.dialogue || '',
+          storyboardCharacterIds: spec.characterIds || [],
+          storyboardSceneId: spec.sceneId || '',
+        },
+      })
+      createdNodes.push(`分镜节点「${clip.label}」`)
+      yOffset += LAYOUT_GAP
+    }
+
+    if (createdNodes.length === 0) {
       useNotificationStore.getState().addNotification({
-        type: 'warning', title: '无生成节点',
-        message: '请先在画布中添加 GPT Image / Seedance 节点',
+        type: 'warning',
+        title: '片段分析',
+        message: `片段「${clip.label}」未关联任何角色卡/场景卡/物品卡。请先在时间线编辑片段详情或手动创建节点。`,
       })
       return
     }
-    const targetNode = genNodes[0]
-    updateClip(clip.id, { status: 'generating' })
+
     useNotificationStore.getState().addNotification({
-      type: 'info', title: '触发生成',
-      message: `正在为片段「${clip.label}」执行节点「${targetNode.data.label || targetNode.type}」`,
+      type: 'info',
+      title: `片段分析：「${clip.label}」`,
+      message: `已在画布上调出以下节点：\n${createdNodes.join('、')}\n\n请连接角色卡→场景卡→物品卡→剧本→分镜→提示词节点后点击节点的运行按钮生成。`,
     })
-    executeNode(targetNode.id)
-  }, [nodes, updateClip])
+  }, [nodes])
 
   const handleBatchGenerate = useCallback(async () => {
     const emptyClips = videoClips.filter(c => c.status === 'empty')
@@ -704,7 +861,7 @@ export default function TimelineView() {
                     snapPoints={snapPoints}
                     onUpdate={(u) => updateClip(clip.id, u)}
                     onDelete={() => removeClip(clip.id)}
-                    onTriggerGenerate={() => handleTriggerGenerate(clip)}
+                    onAnalyzeClip={() => handleAnalyzeClip(clip)}
                   />
                 ))}
               </div>

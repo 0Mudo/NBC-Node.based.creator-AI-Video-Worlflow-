@@ -4,6 +4,7 @@ import CharacterCardNode from './CharacterCardNode'
 import SceneCardNode from './SceneCardNode'
 import ItemCardNode from './ItemCardNode'
 import ScriptNode from './ScriptNode'
+import StoryboardNode from './StoryboardNode'
 import PromptNode from './PromptNode'
 import GPTImageNode from './GPTImageNode'
 import SeedanceNode from './SeedanceNode'
@@ -16,6 +17,7 @@ export const nodeTypes = {
   sceneCard: SceneCardNode,
   itemCard: ItemCardNode,
   script: ScriptNode,
+  storyboard: StoryboardNode,
   prompt: PromptNode,
   gptImage2: GPTImageNode,
   seedance: SeedanceNode,
@@ -28,7 +30,8 @@ export const nodeTypeLabels: Record<NodeType, string> = {
   characterCard: '角色卡',
   sceneCard: '场景卡',
   itemCard: '物品卡',
-  script: '剧本/分镜',
+  script: '剧本',
+  storyboard: '分镜',
   prompt: '提示词',
   gptImage2: 'GPT图像生成',
   seedance: 'Seedance视频生成',
@@ -41,7 +44,8 @@ export const nodeTypeColors: Record<NodeType, string> = {
   characterCard: '#ff6b6b',
   sceneCard: '#f9ca24',
   itemCard: '#e67e22',
-  script: '#55e6c1',
+  script: '#00cec9',
+  storyboard: '#e17055',
   prompt: '#a29bfe',
   gptImage2: '#fd79a8',
   seedance: '#6c5ce7',

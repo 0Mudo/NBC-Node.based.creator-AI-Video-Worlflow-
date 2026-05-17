@@ -9,7 +9,7 @@ function PromptNode({ data, selected }: NodeProps<NodeData>) {
       <Handle type="target" position={Position.Left} id="input" />
       <Handle type="source" position={Position.Right} id="output" />
       <div className="node-header">
-        <div className="node-icon" style={{ background: '#a29bfe' }}><FileText size={14} color="#1a1a2e" /></div>
+        <div className="node-icon" style={{ background: '#a29bfe', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}><FileText size={14} style={{ color: 'rgb(var(--bg-primary))' }} /></div>
         <span>{data.label || '提示词'}</span>
       </div>
       <div className="node-body">

@@ -2,9 +2,12 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: nbc: http: https: ws: wss:; img-src 'self' data: blob: nbc: http: https:; media-src 'self' data: blob: nbc: http: https:;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: nbc: http: https: ws: wss:; img-src 'self' data: blob: nbc: http: https:; media-src 'self' data: blob: nbc: http: https:; font-src 'self' data: https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Node-Based Creator</title>
+    <title>NBC · Node-Based Creator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
   </head>
   <body class="bg-bg-primary text-text-primary">
     <div id="error-log" style="position: absolute; top: 0; left: 0; background: rgba(0,0,0,0.8); color: red; z-index: 9999; padding: 20px; display: none; white-space: pre-wrap; width: 100vw; height: 100vh; overflow: auto;"></div>

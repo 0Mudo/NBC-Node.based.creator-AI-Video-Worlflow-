@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveToFile: (workflowData: string, defaultFilename?: string) => ipcRenderer.invoke('project:saveToFile', workflowData, defaultFilename),
   loadFromFile: () => ipcRenderer.invoke('project:loadFromFile'),
   logEvent: (eventJson: string) => ipcRenderer.invoke('event:log', eventJson),
+  runFeishuSync: (config: any) => ipcRenderer.invoke('feishu:sync:run', config),
+  getEventsPath: () => ipcRenderer.invoke('event:getPath'),
   ttsGenerate: (config: any, text: string, voiceId: string, speed: number, pitch: number) => ipcRenderer.invoke('tts:generate', config, text, voiceId, speed, pitch),
   exportVideo: (options: any) => ipcRenderer.invoke('export:video', options),
   openInShell: (target: string) => ipcRenderer.invoke('shell:open', target),

@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, net, protocol, shell } from 'elect
 import path from 'path'
 import fs from 'fs'
 import OSS from 'ali-oss'
+import { runFeishuSync, type FeishuSyncConfig } from './feishuSync'
 
 let mainWindow: BrowserWindow | null = null
 let pendingDeepLink: string | null = null
@@ -628,6 +629,16 @@ ipcMain.handle('save:feishu', async (_, msg: string) => {
 // Return the NBC events JSONL file path for agent reading
 ipcMain.handle('event:getPath', async () => {
   return path.join(app.getPath('documents'), 'NBC素材', 'nbc_events.jsonl')
+})
+
+// --- IPC: 飞书多维表格同步（内置功能） ---
+ipcMain.handle('feishu:sync:run', async (_, config: FeishuSyncConfig) => {
+  try {
+    const result = await runFeishuSync(config)
+    return { success: true, ...result }
+  } catch (e: any) {
+    return { success: false, error: e.message, synced: 0, skipped: 0, cursorLine: 0 }
+  }
 })
 
 // --- IPC: Project File Save/Load ---

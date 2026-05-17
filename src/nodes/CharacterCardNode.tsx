@@ -53,7 +53,7 @@ function CharacterCardNode({ id, data, selected }: NodeProps<NodeData>) {
     >
       <Handle type="source" position={Position.Right} id="output" />
       <div className="node-header">
-        <div className="node-icon" style={{ background: '#ff6b6b' }}><User size={14} color="#1a1a2e" /></div>
+        <div className="node-icon" style={{ background: '#ff6b6b', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}><User size={14} style={{ color: 'rgb(var(--bg-primary))' }} /></div>
         <span>{data.label || '角色卡'}</span>
         {hasConsistency && (
           <span className="text-[9px] px-1 py-0.5 rounded bg-accent/15 text-accent font-medium ml-auto" title="已配置角色一致性数据">🎯一致性</span>

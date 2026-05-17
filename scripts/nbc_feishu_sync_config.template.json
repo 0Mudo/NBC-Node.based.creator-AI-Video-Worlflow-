@@ -1,0 +1,28 @@
+{
+  "_说明": "复制此文件到 文档/NBC素材/nbc_feishu_sync_config.json 并填写你的真实配置",
+  "_配置方式": "也可以使用环境变量覆盖: NBC_FEISHU_APP_ID, NBC_FEISHU_APP_SECRET, NBC_FEISHU_BITABLE_APP_TOKEN, NBC_FEISHU_BITABLE_TABLE_ID",
+
+  "feishuAppId": "cli_你的飞书应用AppId",
+  "feishuAppSecret": "你的飞书应用AppSecret",
+  "bitableAppToken": "你的多维表格AppToken",
+  "bitableTableId": "你的表格TableId",
+
+  "nbcDir": "自动(文档/NBC素材)",
+  "batchSize": 100,
+
+  "allowedActions": [
+    "project:create",
+    "generation:start",
+    "generation:complete",
+    "generation:fail"
+  ],
+
+  "fieldNames": {
+    "primary": "文本",
+    "eventType": "事件类型",
+    "nodeName": "节点名称",
+    "status": "状态",
+    "details": "详细信息",
+    "operator": "操作人"
+  }
+}

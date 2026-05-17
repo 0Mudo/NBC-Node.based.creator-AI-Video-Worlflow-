@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { X, Key, Plus, Trash2, ChevronDown, ChevronRight, TestTube, ToggleLeft, ToggleRight, Eye, EyeOff, FolderOpen, Download, Upload } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { X, Key, Plus, Trash2, ChevronDown, ChevronRight, TestTube, ToggleLeft, ToggleRight, Eye, EyeOff, FolderOpen, Download, Upload, RefreshCw, Clock, Check, Loader2 } from 'lucide-react'
 import { useProviderStore } from '@/store/useProviderStore'
 import { useAssetStore } from '@/store/useAssetStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
@@ -13,6 +13,10 @@ function ProviderCard({ provider }: { provider: ProviderConfig }) {
   const [testing, setTesting] = useState(false)
   const [localProvider, setLocalProvider] = useState<ProviderConfig>(provider)
   const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    setLocalProvider(provider)
+  }, [provider])
 
   const handleParamChange = (key: string, value: string) => {
     setLocalProvider((prev) => {
@@ -220,6 +224,218 @@ function AddProviderForm({ onClose }: { onClose: () => void }) {
 
 import { useProjectStore } from '@/store/useProjectStore'
 
+interface SyncConfig {
+  feishuAppId: string
+  feishuAppSecret: string
+  bitableAppToken: string
+  bitableTableId: string
+  autoSync: boolean
+  autoSyncInterval: number
+  allowedActions: string[]
+}
+
+const SYNC_CONFIG_KEY = 'nbc_feishu_sync_config'
+
+const ALL_EVENT_ACTIONS = [
+  { key: 'project:create', label: '项目创建' },
+  { key: 'generation:start', label: '生成开始' },
+  { key: 'generation:complete', label: '生成完成' },
+  { key: 'generation:fail', label: '生成失败' },
+]
+
+function loadSyncConfig(): SyncConfig {
+  try {
+    const raw = localStorage.getItem(SYNC_CONFIG_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return {
+    feishuAppId: '',
+    feishuAppSecret: '',
+    bitableAppToken: '',
+    bitableTableId: '',
+    autoSync: false,
+    autoSyncInterval: 5,
+    allowedActions: ['project:create', 'generation:start', 'generation:complete', 'generation:fail'],
+  }
+}
+
+function saveSyncConfig(config: SyncConfig) {
+  localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(config))
+}
+
+function FeishuSyncSettings() {
+  const [config, setConfig] = useState<SyncConfig>(loadSyncConfig)
+  const [syncing, setSyncing] = useState(false)
+  const [lastResult, setLastResult] = useState<string | null>(null)
+  const syncTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const { addNotification } = useNotificationStore()
+
+  const update = (patch: Partial<SyncConfig>) => {
+    setConfig((prev) => {
+      const next = { ...prev, ...patch }
+      saveSyncConfig(next)
+      return next
+    })
+  }
+
+  const toggleAction = (key: string) => {
+    setConfig((prev) => {
+      const next = prev.allowedActions.includes(key)
+        ? { ...prev, allowedActions: prev.allowedActions.filter((a) => a !== key) }
+        : { ...prev, allowedActions: [...prev.allowedActions, key] }
+      saveSyncConfig(next)
+      return next
+    })
+  }
+
+  const handleSync = async () => {
+    if (!config.feishuAppId || !config.feishuAppSecret || !config.bitableAppToken || !config.bitableTableId) {
+      addNotification({ type: 'warning', title: '配置不完整', message: '请先填写飞书同步所需的 App ID、App Secret、表格 Token 和 Table ID。' })
+      return
+    }
+    if (config.allowedActions.length === 0) {
+      addNotification({ type: 'warning', title: '未选择事件', message: '请至少选择一个要同步的事件类型。' })
+      return
+    }
+    setSyncing(true)
+    setLastResult(null)
+    try {
+      if (window.electronAPI?.runFeishuSync) {
+        const result = await window.electronAPI.runFeishuSync({
+          feishuAppId: config.feishuAppId,
+          feishuAppSecret: config.feishuAppSecret,
+          bitableAppToken: config.bitableAppToken,
+          bitableTableId: config.bitableTableId,
+          allowedActions: config.allowedActions,
+        })
+        if (result.success) {
+          const msg = `同步完成：${result.synced} 条新事件${result.skipped > 0 ? `（已过滤 ${result.skipped} 条）` : ''}`
+          setLastResult(msg)
+          addNotification({ type: 'success', title: '飞书同步完成', message: msg })
+        } else {
+          setLastResult(`同步失败：${result.error}`)
+          addNotification({ type: 'error', title: '飞书同步失败', message: result.error || '未知错误' })
+        }
+      } else {
+        setLastResult('当前非 Electron 环境，无法运行同步（请启动桌面应用）')
+        addNotification({ type: 'warning', title: '无法同步', message: '飞书同步功能需在 Electron 桌面应用中运行。' })
+      }
+    } catch (e: any) {
+      setLastResult(`同步异常：${e.message}`)
+      addNotification({ type: 'error', title: '同步异常', message: e.message })
+    }
+    setSyncing(false)
+  }
+
+  // 自动同步定时器管理
+  useEffect(() => {
+    if (syncTimerRef.current) { clearInterval(syncTimerRef.current); syncTimerRef.current = null }
+
+    if (config.autoSync && config.feishuAppId && config.feishuAppSecret && config.bitableAppToken && config.bitableTableId && config.allowedActions.length > 0) {
+      const intervalMs = config.autoSyncInterval * 60 * 1000
+      syncTimerRef.current = setInterval(() => {
+        if (window.electronAPI?.runFeishuSync) {
+          window.electronAPI.runFeishuSync({
+            feishuAppId: config.feishuAppId,
+            feishuAppSecret: config.feishuAppSecret,
+            bitableAppToken: config.bitableAppToken,
+            bitableTableId: config.bitableTableId,
+            allowedActions: config.allowedActions,
+          }).then((result) => {
+            if (result.success && result.synced > 0) {
+              addNotification({ type: 'info', title: '飞书自动同步', message: `已同步 ${result.synced} 条事件` })
+            }
+          }).catch(() => {})
+        }
+      }, intervalMs)
+    }
+
+    return () => { if (syncTimerRef.current) clearInterval(syncTimerRef.current) }
+  }, [config.autoSync, config.autoSyncInterval, config.feishuAppId, config.feishuAppSecret, config.bitableAppToken, config.bitableTableId, config.allowedActions.length])
+
+  return (
+    <div>
+      <h3 className="text-xs font-semibold mb-2 text-text-secondary">飞书多维表格同步</h3>
+      <div className="bg-bg-tertiary/50 p-3 rounded-lg border border-node-border space-y-3">
+        <p className="text-[10px] text-text-secondary">将 NBC 操作事件（项目创建、生成开始/完成/失败）自动同步到飞书多维表格。</p>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[10px] text-text-secondary block mb-0.5">App ID</label>
+            <input className="input text-xs w-full" type="password" value={config.feishuAppId}
+              onChange={(e) => update({ feishuAppId: e.target.value })} placeholder="cli_..." />
+          </div>
+          <div>
+            <label className="text-[10px] text-text-secondary block mb-0.5">App Secret</label>
+            <input className="input text-xs w-full" type="password" value={config.feishuAppSecret}
+              onChange={(e) => update({ feishuAppSecret: e.target.value })} placeholder="飞书应用密钥" />
+          </div>
+          <div>
+            <label className="text-[10px] text-text-secondary block mb-0.5">多维表格 App Token</label>
+            <input className="input text-xs w-full" value={config.bitableAppToken}
+              onChange={(e) => update({ bitableAppToken: e.target.value })} placeholder="Wg8Jb..." />
+          </div>
+          <div>
+            <label className="text-[10px] text-text-secondary block mb-0.5">表格 Table ID</label>
+            <input className="input text-xs w-full" value={config.bitableTableId}
+              onChange={(e) => update({ bitableTableId: e.target.value })} placeholder="tblHwf..." />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-[10px] text-text-secondary block mb-1">同步事件类型</label>
+          <div className="flex flex-wrap gap-1.5">
+            {ALL_EVENT_ACTIONS.map((act) => (
+              <button key={act.key}
+                className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${config.allowedActions.includes(act.key) ? 'bg-accent/20 border-accent text-accent' : 'border-node-border text-text-secondary hover:border-accent/50'}`}
+                onClick={() => toggleAction(act.key)}
+              >
+                {act.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" className="w-3.5 h-3.5 rounded accent-accent"
+                checked={config.autoSync} onChange={(e) => update({ autoSync: e.target.checked })} />
+              <span className="text-xs">启用自动同步</span>
+            </label>
+            {config.autoSync && (
+              <select className="input text-[10px] py-0.5 w-32"
+                value={config.autoSyncInterval} onChange={(e) => update({ autoSyncInterval: parseInt(e.target.value) || 5 })}>
+                <option value={1}>每 1 分钟</option>
+                <option value={5}>每 5 分钟</option>
+                <option value={10}>每 10 分钟</option>
+                <option value={30}>每 30 分钟</option>
+                <option value={60}>每 1 小时</option>
+              </select>
+            )}
+          </div>
+          <button className="btn btn-accent text-xs flex items-center gap-1.5" onClick={handleSync} disabled={syncing}>
+            {syncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+            {syncing ? '同步中...' : '立即同步'}
+          </button>
+        </div>
+
+        {lastResult && (
+          <div className={`text-[10px] px-2 py-1.5 rounded border ${lastResult.includes('失败') || lastResult.includes('异常') ? 'bg-red-500/10 border-red-500/30 text-red-400' : lastResult.includes('无法') ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' : 'bg-green-500/10 border-green-500/30 text-green-400'}`}>
+            {lastResult}
+          </div>
+        )}
+
+        {config.autoSync && (
+          <div className="text-[9px] text-text-tertiary flex items-center gap-1">
+            <Clock size={10} /> 自动同步已开启 · 每 {config.autoSyncInterval} 分钟执行一次
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function SettingsPanel({ open, onClose }: Props) {
   const { providers, updateProvider } = useProviderStore()
   const { defaultLocalPath, setDefaultLocalPath } = useAssetStore()
@@ -253,11 +469,23 @@ export default function SettingsPanel({ open, onClose }: Props) {
       autoSaveInterval: autoSaveInterval,
     }
 
+    const feishuSyncConfig = loadSyncConfig()
+    const feishuSyncExport: Record<string, any> = {
+      feishuAppId: feishuSyncConfig.feishuAppId,
+      feishuAppSecret: exportIncludeKeys ? feishuSyncConfig.feishuAppSecret : '',
+      bitableAppToken: feishuSyncConfig.bitableAppToken,
+      bitableTableId: feishuSyncConfig.bitableTableId,
+      autoSync: feishuSyncConfig.autoSync,
+      autoSyncInterval: feishuSyncConfig.autoSyncInterval,
+      allowedActions: feishuSyncConfig.allowedActions,
+    }
+
     const exportData = {
-      version: '1.0.0',
+      version: '1.1.0',
       exportedAt: new Date().toISOString(),
       providers: providersExport,
       general: generalSettings,
+      feishuSync: feishuSyncExport,
     }
 
     const json = JSON.stringify(exportData, null, 2)
@@ -329,18 +557,33 @@ export default function SettingsPanel({ open, onClose }: Props) {
           if (typeof g.autoSaveInterval === 'number') {
             useProjectStore.getState().setAutoSaveInterval(g.autoSaveInterval)
           }
-          useNotificationStore.getState().addNotification({
-            type: 'success',
-            title: '配置已导入',
-            message: `成功导入 ${Object.keys(importedProviders).length} 个 Provider 配置和通用设置。`
-          })
-        } else {
-          useNotificationStore.getState().addNotification({
-            type: 'success',
-            title: '配置已导入',
-            message: `成功导入 ${Object.keys(importedProviders).length} 个 Provider 配置。`
-          })
         }
+
+        if (isNewFormat && raw.feishuSync) {
+          const fs = raw.feishuSync
+          const existingSyncConfig = loadSyncConfig()
+          const mergedSync: SyncConfig = {
+            feishuAppId: fs.feishuAppId || existingSyncConfig.feishuAppId,
+            feishuAppSecret: fs.feishuAppSecret || existingSyncConfig.feishuAppSecret,
+            bitableAppToken: fs.bitableAppToken || existingSyncConfig.bitableAppToken,
+            bitableTableId: fs.bitableTableId || existingSyncConfig.bitableTableId,
+            autoSync: typeof fs.autoSync === 'boolean' ? fs.autoSync : existingSyncConfig.autoSync,
+            autoSyncInterval: typeof fs.autoSyncInterval === 'number' ? fs.autoSyncInterval : existingSyncConfig.autoSyncInterval,
+            allowedActions: Array.isArray(fs.allowedActions) ? fs.allowedActions : existingSyncConfig.allowedActions,
+          }
+          saveSyncConfig(mergedSync)
+        }
+
+        const hasGeneral = isNewFormat && raw.general && typeof raw.general.autoSaveInterval === 'number'
+        const hasSync = isNewFormat && raw.feishuSync
+        const msgParts: string[] = [`成功导入 ${Object.keys(importedProviders).length} 个 Provider 配置`]
+        if (hasGeneral) msgParts.push('通用设置')
+        if (hasSync) msgParts.push('飞书同步配置')
+        useNotificationStore.getState().addNotification({
+          type: 'success',
+          title: '配置已导入',
+          message: msgParts.join('、') + '。'
+        })
       } catch (err) {
         alert('导入失败：文件格式不正确。')
       }
@@ -425,6 +668,9 @@ export default function SettingsPanel({ open, onClose }: Props) {
             </div>
           </div>
 
+          {/* Feishu Sync Settings */}
+          <FeishuSyncSettings />
+
           {/* Provider Settings */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -485,7 +731,7 @@ export default function SettingsPanel({ open, onClose }: Props) {
               <Download size={16} /> 导出全部配置
             </h3>
             <p className="text-xs text-text-secondary mb-4">
-              导出所有 Provider 配置和自动备份间隔设置。分享给团队成员时，导入方已有的相同 Provider 会合并更新。
+              导出所有 Provider 配置、通用设置和飞书同步配置。分享给团队成员时，导入方已有的相同 Provider 会合并更新，密钥为空则保留本地值。
             </p>
             <label className="flex items-center gap-3 mb-4 cursor-pointer">
               <input
