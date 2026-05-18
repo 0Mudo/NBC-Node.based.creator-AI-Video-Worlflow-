@@ -93,13 +93,29 @@ async function execGptImage2(node: any, prompt: string, imageRefs: string[], sig
   return result.url
 }
 
+const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.flv', '.wmv']
+
+function isVideoUrl(url: string): boolean {
+  try {
+    const pathname = new URL(url).pathname.toLowerCase()
+    return VIDEO_EXTENSIONS.some(ext => pathname.endsWith(ext))
+  } catch {
+    return VIDEO_EXTENSIONS.some(ext => url.toLowerCase().endsWith(ext))
+  }
+}
+
 async function execSeedance(node: any, prompt: string, imageRefs: string[], signal?: AbortSignal) {
   const provider = getProviderForType('seedance')
   const endpoint = provider?.endpoints.find(e => e.isDefault) || provider?.endpoints[0]
   const resolvedImageRefs = resolveImageRefs(imageRefs)
-  const refImages = resolvedImageRefs
+  const validRefs = resolvedImageRefs
     .filter(img => img && (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('asset://')))
+  const refImages = validRefs
+    .filter(url => !isVideoUrl(url))
     .map(url => ({ url, role: 'reference_image' as const }))
+  const refVideos = validRefs
+    .filter(url => isVideoUrl(url))
+    .map(url => ({ url, role: 'reference_video' as const }))
   const negativePrompt = (node.data._negativePrompt as string) || ''
   const finalPrompt = negativePrompt
     ? `${prompt}\n\nNEGATIVE PROMPT (STRICTLY AVOID): ${negativePrompt}`
@@ -117,6 +133,7 @@ async function execSeedance(node: any, prompt: string, imageRefs: string[], sign
     serviceTier: (node.data.seedanceServiceTier as SeedanceOptions['serviceTier']),
     webSearch: (node.data.seedanceWebSearch as boolean) || false,
     referenceImages: refImages.length ? refImages : undefined,
+    referenceVideos: refVideos.length ? refVideos : undefined,
     apiKey: endpoint?.apiKey || '',
     endpoint: endpoint?.url,
   })
