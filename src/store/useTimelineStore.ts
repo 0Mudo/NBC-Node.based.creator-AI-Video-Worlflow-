@@ -76,7 +76,51 @@ export interface GeneratedClip {
   createdAt: number
 }
 
+export interface TimelineMediaItem {
+  id: string
+  kind: 'generated' | 'asset'
+  type: 'image' | 'video'
+  sourceUrl: string
+  thumbnail?: string
+  assetId?: string
+  sourceNodeId?: string
+  sourceTaskId?: string
+  createdAt: number
+  status: 'idle' | 'generating' | 'done' | 'failed'
+  error?: string
+}
+
+export interface TimelineRow {
+  id: string
+  order: number
+  title: string
+  promptText: string
+  duration: number
+  promptNodeId?: string
+  scriptNodeId?: string
+  storyboardNodeId?: string
+  imageNodeId?: string
+  videoNodeId?: string
+  lastEditedAt?: number
+  spec: {
+    characterIds: string[]
+    sceneIds: string[]
+    itemIds: string[]
+    shotType: string
+    transition: string
+    dialogue?: string
+    action?: string
+    emotion?: string
+  }
+  imageBindings: TimelineMediaItem[]
+  videoBindings: TimelineMediaItem[]
+  activeImageId?: string
+  activeVideoId?: string
+  imageVariantCount: number
+}
+
 interface TimelineStore {
+  rows: TimelineRow[]
   tracks: Track[]
   playheadTime: number
   zoomLevel: number
@@ -95,6 +139,17 @@ interface TimelineStore {
 
   // Bulk
   importClipsFromScript: (scriptText: string, targetTrackId?: string) => void
+
+  // Row ops
+  addRow: (row?: Partial<TimelineRow>) => string
+  updateRow: (rowId: string, updates: Partial<TimelineRow>) => void
+  removeRow: (rowId: string) => void
+  reorderRows: (fromIndex: number, toIndex: number) => void
+  getRow: (rowId: string) => TimelineRow | undefined
+  bindMediaToRow: (rowId: string, mediaType: 'image' | 'video', item: Omit<TimelineMediaItem, 'id' | 'createdAt'> & Partial<Pick<TimelineMediaItem, 'id' | 'createdAt'>>) => string
+  removeMediaBinding: (rowId: string, mediaType: 'image' | 'video', itemId: string) => void
+  setActiveMediaBinding: (rowId: string, mediaType: 'image' | 'video', itemId?: string) => void
+  setRowGenerating: (rowId: string, mediaType: 'image' | 'video', generating: boolean, error?: string) => void
 
   // Query
   getClip: (clipId: string) => TrackClip | undefined
@@ -171,90 +226,205 @@ function createDefaultTracks(): Track[] {
   ]
 }
 
-function migrateLegacyData(raw: any): { tracks: Track[]; playheadTime: number } {
-  const legacySlots: TimelineSlot[] = raw.slots || []
-  const legacyClips: GeneratedClip[] = raw.clips || []
-
-  if (legacySlots.length === 0 && legacyClips.length === 0) {
-    return { tracks: createDefaultTracks(), playheadTime: 0 }
+function createEmptyRow(order: number, overrides: Partial<TimelineRow> = {}): TimelineRow {
+  return {
+    id: overrides.id || `row_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    order,
+    title: overrides.title || `分镜 ${order + 1}`,
+    promptText: overrides.promptText || '',
+    duration: overrides.duration || 5,
+    promptNodeId: overrides.promptNodeId,
+    scriptNodeId: overrides.scriptNodeId,
+    storyboardNodeId: overrides.storyboardNodeId,
+    imageNodeId: overrides.imageNodeId,
+    videoNodeId: overrides.videoNodeId,
+    lastEditedAt: overrides.lastEditedAt,
+    spec: {
+      characterIds: overrides.spec?.characterIds || [],
+      sceneIds: overrides.spec?.sceneIds || [],
+      itemIds: overrides.spec?.itemIds || [],
+      shotType: overrides.spec?.shotType || '',
+      transition: overrides.spec?.transition || '硬切',
+      dialogue: overrides.spec?.dialogue,
+      action: overrides.spec?.action,
+      emotion: overrides.spec?.emotion,
+    },
+    imageBindings: overrides.imageBindings || [],
+    videoBindings: overrides.videoBindings || [],
+    activeImageId: overrides.activeImageId,
+    activeVideoId: overrides.activeVideoId,
+    imageVariantCount: Math.min(4, Math.max(1, overrides.imageVariantCount || 1)),
   }
+}
 
-  const videoTrack = createDefaultTracks()[0]
-  const subtitleTrack = createDefaultTracks()[3]
+function ensureRowOrders(rows: TimelineRow[]): TimelineRow[] {
+  return rows
+    .slice()
+    .sort((a, b) => a.order - b.order)
+    .map((row, index) => ({ ...row, order: index }))
+}
+
+function buildTracksFromRows(rows: TimelineRow[]): Track[] {
+  const defaults = createDefaultTracks()
+  const videoTrack = defaults[0]
+  const subtitleTrack = defaults[3]
   videoTrack.clips = []
   subtitleTrack.clips = []
 
   let currentTime = 0
-  for (const slot of legacySlots.sort((a, b) => a.order - b.order)) {
-    const matchedClip = legacyClips.find(c => c.id === slot.filledClipId)
-    const sourceType = matchedClip
-      ? (matchedClip.type === 'video' ? 'video' as const : 'image' as const)
-      : 'text' as const
+  for (const row of ensureRowOrders(rows)) {
+    const activeImage = row.imageBindings.find((item) => item.id === row.activeImageId)
+    const activeVideo = row.videoBindings.find((item) => item.id === row.activeVideoId)
+    const activeMedia = activeVideo || activeImage
+    const sourceType = activeVideo
+      ? 'video'
+      : activeImage
+        ? 'image'
+        : 'text'
 
     videoTrack.clips.push({
-      id: `clip_${Date.now()}_${slot.order}_${Math.random().toString(36).slice(2, 6)}`,
+      id: `clip_row_${row.id}`,
       trackId: videoTrack.id,
-      label: slot.label,
+      label: row.title,
       startTime: currentTime,
-      duration: slot.spec.duration,
-      sourceUrl: matchedClip?.url || '',
+      duration: row.duration,
+      sourceUrl: activeMedia?.sourceUrl || '',
       sourceType,
-      thumbnail: matchedClip?.thumbnail,
-      status: matchedClip ? 'done' : 'empty',
+      thumbnail: activeMedia?.thumbnail,
+      status: activeMedia
+        ? (activeMedia.status === 'failed' ? 'failed' : activeMedia.status === 'generating' ? 'generating' : 'done')
+        : 'empty',
       spec: {
-        characterIds: slot.spec.characterIds || [],
-        sceneId: slot.spec.sceneId || '',
-        shotType: slot.spec.shotType || '',
-        transition: slot.spec.transition || '硬切',
-        dialogue: slot.spec.dialogue,
-        action: slot.spec.action,
-        emotion: slot.spec.emotion,
+        characterIds: row.spec.characterIds,
+        sceneId: row.spec.sceneIds[0] || '',
+        shotType: row.spec.shotType,
+        transition: row.spec.transition,
+        dialogue: row.spec.dialogue,
+        action: row.spec.action,
+        emotion: row.spec.emotion,
       },
-      genNodeId: slot.sourceNodeId,
+      genNodeId: row.videoNodeId || row.imageNodeId,
       opacity: 1,
       volume: 1,
     })
 
-    if (slot.spec.dialogue) {
+    if (row.spec.dialogue) {
       subtitleTrack.clips.push({
-        id: `clip_dialogue_${Date.now()}_${slot.order}`,
+        id: `clip_dialogue_row_${row.id}`,
         trackId: subtitleTrack.id,
-        label: slot.spec.dialogue,
+        label: row.spec.dialogue,
         startTime: currentTime,
-        duration: slot.spec.duration,
+        duration: row.duration,
         sourceUrl: '',
         sourceType: 'text',
         status: 'done',
-        spec: { ...videoTrack.clips[videoTrack.clips.length - 1].spec },
+        spec: {
+          characterIds: row.spec.characterIds,
+          sceneId: row.spec.sceneIds[0] || '',
+          shotType: row.spec.shotType,
+          transition: row.spec.transition,
+          dialogue: row.spec.dialogue,
+          action: row.spec.action,
+          emotion: row.spec.emotion,
+        },
         opacity: 1,
         volume: 1,
       })
     }
 
-    currentTime += slot.spec.duration
+    currentTime += row.duration
   }
 
+  return [videoTrack, defaults[1], defaults[2], subtitleTrack]
+}
+
+function migrateLegacyData(raw: any): { rows: TimelineRow[]; tracks: Track[]; playheadTime: number } {
+  const legacySlots: TimelineSlot[] = raw.slots || []
+  const legacyClips: GeneratedClip[] = raw.clips || []
+
+  if (legacySlots.length === 0 && legacyClips.length === 0) {
+    const rows: TimelineRow[] = []
+    return { rows, tracks: buildTracksFromRows(rows), playheadTime: 0 }
+  }
+
+  const rows = legacySlots
+    .sort((a, b) => a.order - b.order)
+    .map((slot, index) => {
+      const matchedClip = legacyClips.find(c => c.id === slot.filledClipId)
+      const imageBindings: TimelineMediaItem[] = []
+      const videoBindings: TimelineMediaItem[] = []
+
+      if (matchedClip) {
+        const item: TimelineMediaItem = {
+          id: `binding_${slot.id}_${matchedClip.id}`,
+          kind: 'generated',
+          type: matchedClip.type,
+          sourceUrl: matchedClip.url,
+          thumbnail: matchedClip.thumbnail,
+          sourceNodeId: matchedClip.nodeId,
+          createdAt: matchedClip.createdAt,
+          status: 'done',
+        }
+        if (matchedClip.type === 'video') videoBindings.push(item)
+        else imageBindings.push(item)
+      }
+
+      return createEmptyRow(index, {
+        id: slot.id,
+        title: slot.label,
+        promptText: slot.label,
+        duration: slot.spec.duration,
+        imageNodeId: matchedClip?.type === 'image' ? matchedClip.nodeId : undefined,
+        videoNodeId: matchedClip?.type === 'video' ? matchedClip.nodeId : undefined,
+        spec: {
+          characterIds: slot.spec.characterIds || [],
+          sceneIds: slot.spec.sceneId ? [slot.spec.sceneId] : [],
+          itemIds: [],
+          shotType: slot.spec.shotType || '',
+          transition: slot.spec.transition || '硬切',
+          dialogue: slot.spec.dialogue,
+          action: slot.spec.action,
+          emotion: slot.spec.emotion,
+        },
+        imageBindings,
+        videoBindings,
+        activeImageId: imageBindings[0]?.id,
+        activeVideoId: videoBindings[0]?.id,
+      })
+    })
+
   return {
-    tracks: [videoTrack, createDefaultTracks()[1], createDefaultTracks()[2], subtitleTrack],
+    rows,
+    tracks: buildTracksFromRows(rows),
     playheadTime: 0,
   }
 }
 
 const STORAGE_KEY_PREFIX = 'nbc_timeline_v2_'
 
-function autoSave(tracks: Track[], playheadTime: number) {
+function autoSave(rows: TimelineRow[], tracks: Track[], playheadTime: number) {
   const projectId = useProjectStore.getState().activeProjectId
   if (projectId) {
-    safeSetItem(`${STORAGE_KEY_PREFIX}${projectId}`, JSON.stringify({ tracks, playheadTime }))
+    safeSetItem(`${STORAGE_KEY_PREFIX}${projectId}`, JSON.stringify({ rows, tracks, playheadTime }))
   }
 }
 
-function loadSaved(): { tracks: Track[]; playheadTime: number } {
+function loadSaved(): { rows: TimelineRow[]; tracks: Track[]; playheadTime: number } {
   const projectId = useProjectStore.getState().activeProjectId
   if (projectId) {
     const raw = safeGetItem(`${STORAGE_KEY_PREFIX}${projectId}`)
     if (raw) {
-      try { return JSON.parse(raw) } catch {}
+      try {
+        const parsed = JSON.parse(raw)
+        const rows: TimelineRow[] = Array.isArray(parsed.rows)
+          ? ensureRowOrders(parsed.rows.map((row: TimelineRow, index: number) => createEmptyRow(index, row)))
+          : []
+        return {
+          rows,
+          tracks: buildTracksFromRows(rows),
+          playheadTime: parsed.playheadTime || 0,
+        }
+      } catch {}
     }
     // Try legacy migration
     const legacyRaw = safeGetItem(`nbc_timeline_${projectId}`)
@@ -267,7 +437,7 @@ function loadSaved(): { tracks: Track[]; playheadTime: number } {
       } catch {}
     }
   }
-  return { tracks: createDefaultTracks(), playheadTime: 0 }
+  return { rows: [], tracks: buildTracksFromRows([]), playheadTime: 0 }
 }
 
 function findClip(tracks: Track[], clipId: string): TrackClip | undefined {
@@ -276,6 +446,13 @@ function findClip(tracks: Track[], clipId: string): TrackClip | undefined {
     if (c) return c
   }
   return undefined
+}
+
+function persistRows(setter: (rows: TimelineRow[]) => TimelineRow[], playheadTime: number): { rows: TimelineRow[]; tracks: Track[] } {
+  const rows = ensureRowOrders(setter(useTimelineStore.getState().rows))
+  const tracks = buildTracksFromRows(rows)
+  autoSave(rows, tracks, playheadTime)
+  return { rows, tracks }
 }
 
 export const useTimelineStore = create<TimelineStore>((set, get) => ({
@@ -294,7 +471,7 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
     }
     tracks.push(newTrack)
     set({ tracks })
-    autoSave(tracks, get().playheadTime)
+    autoSave(get().rows, tracks, get().playheadTime)
   },
 
   removeTrack: (trackId) => {
@@ -302,7 +479,7 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
       .filter(t => t.id !== trackId)
       .map((t, i) => ({ ...t, index: i }))
     set({ tracks })
-    autoSave(tracks, get().playheadTime)
+    autoSave(get().rows, tracks, get().playheadTime)
   },
 
   reorderTrack: (fromIdx, toIdx) => {
@@ -311,7 +488,7 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
     tracks.splice(toIdx, 0, moved)
     const reordered = tracks.map((t, i) => ({ ...t, index: i }))
     set({ tracks: reordered })
-    autoSave(reordered, get().playheadTime)
+    autoSave(get().rows, reordered, get().playheadTime)
   },
 
   updateTrack: (trackId, updates) => {
@@ -319,73 +496,116 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
       t.id === trackId ? { ...t, ...updates } : t
     )
     set({ tracks })
-    autoSave(tracks, get().playheadTime)
+    autoSave(get().rows, tracks, get().playheadTime)
   },
 
   addClip: (trackId, clip) => {
-    const id = `clip_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
-    const newClip: TrackClip = { ...clip, id, spec: clip.spec || { characterIds: [], sceneId: '', shotType: '', transition: '硬切' } }
-    const tracks = get().tracks.map(t =>
-      t.id === trackId ? { ...t, clips: [...t.clips, newClip] } : t
-    )
-    set({ tracks })
-    autoSave(tracks, get().playheadTime)
-    return id
+    const parsedRow = createEmptyRow(get().rows.length, {
+      title: clip.label,
+      promptText: clip.label,
+      duration: clip.duration,
+      spec: {
+        characterIds: clip.spec?.characterIds || [],
+        sceneIds: clip.spec?.sceneId ? [clip.spec.sceneId] : [],
+        itemIds: [],
+        shotType: clip.spec?.shotType || '',
+        transition: clip.spec?.transition || '硬切',
+        dialogue: clip.spec?.dialogue,
+        action: clip.spec?.action,
+        emotion: clip.spec?.emotion,
+      },
+    })
+
+    if (clip.sourceUrl && (clip.sourceType === 'image' || clip.sourceType === 'video')) {
+      const mediaId = `binding_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+      const item: TimelineMediaItem = {
+        id: mediaId,
+        kind: 'asset',
+        type: clip.sourceType,
+        sourceUrl: clip.sourceUrl,
+        thumbnail: clip.thumbnail,
+        createdAt: Date.now(),
+        status: clip.status === 'failed' ? 'failed' : clip.status === 'generating' ? 'generating' : 'done',
+      }
+      if (clip.sourceType === 'image') {
+        parsedRow.imageBindings = [item]
+        parsedRow.activeImageId = mediaId
+      } else {
+        parsedRow.videoBindings = [item]
+        parsedRow.activeVideoId = mediaId
+      }
+    }
+
+    const next = persistRows((rows) => [...rows, parsedRow], get().playheadTime)
+    set(next)
+    return `clip_row_${parsedRow.id}`
   },
 
   updateClip: (clipId, updates) => {
-    const tracks = get().tracks.map(t => ({
-      ...t,
-      clips: t.clips.map(c => c.id === clipId ? { ...c, ...updates } : c)
-    }))
-    set({ tracks })
-    autoSave(tracks, get().playheadTime)
+    const rowId = clipId.startsWith('clip_row_') ? clipId.replace('clip_row_', '') : undefined
+    if (!rowId) return
+    const next = persistRows((rows) => rows.map((row) => {
+      if (row.id !== rowId) return row
+      const imageBindings = row.imageBindings.map((item) =>
+        item.id === row.activeImageId
+          ? {
+              ...item,
+              sourceUrl: updates.sourceUrl ?? item.sourceUrl,
+              thumbnail: updates.thumbnail ?? item.thumbnail,
+              status: updates.status === 'empty' ? 'idle' : (updates.status as TimelineMediaItem['status']) || item.status,
+            }
+          : item
+      )
+      const videoBindings = row.videoBindings.map((item) =>
+        item.id === row.activeVideoId
+          ? {
+              ...item,
+              sourceUrl: updates.sourceUrl ?? item.sourceUrl,
+              thumbnail: updates.thumbnail ?? item.thumbnail,
+              status: updates.status === 'empty' ? 'idle' : (updates.status as TimelineMediaItem['status']) || item.status,
+            }
+          : item
+      )
+      return {
+        ...row,
+        title: updates.label ?? row.title,
+        promptText: updates.label ?? row.promptText,
+        duration: updates.duration ?? row.duration,
+        spec: {
+          ...row.spec,
+          characterIds: updates.spec?.characterIds || row.spec.characterIds,
+          sceneIds: updates.spec?.sceneId ? [updates.spec.sceneId] : row.spec.sceneIds,
+          shotType: updates.spec?.shotType ?? row.spec.shotType,
+          transition: updates.spec?.transition ?? row.spec.transition,
+          dialogue: updates.spec?.dialogue ?? row.spec.dialogue,
+          action: updates.spec?.action ?? row.spec.action,
+          emotion: updates.spec?.emotion ?? row.spec.emotion,
+        },
+        imageBindings,
+        videoBindings,
+      }
+    }), get().playheadTime)
+    set(next)
   },
 
   removeClip: (clipId) => {
-    const tracks = get().tracks.map(t => ({
-      ...t,
-      clips: t.clips.filter(c => c.id !== clipId)
-    }))
-    set({ tracks })
-    autoSave(tracks, get().playheadTime)
+    const rowId = clipId.startsWith('clip_row_') ? clipId.replace('clip_row_', '') : undefined
+    if (!rowId) return
+    const next = persistRows((rows) => rows.filter((row) => row.id !== rowId), get().playheadTime)
+    set(next)
   },
 
-  moveClip: (clipId, newTrackId, newStartTime) => {
-    const clip = findClip(get().tracks, clipId)
-    if (!clip) return
-    const tracks = get().tracks.map(t => {
-      if (t.id === clip.trackId) {
-        return { ...t, clips: t.clips.filter(c => c.id !== clipId) }
-      }
-      if (t.id === newTrackId) {
-        return { ...t, clips: [...t.clips, { ...clip, trackId: newTrackId, startTime: newStartTime }] }
-      }
-      return t
-    })
-    set({ tracks })
-    autoSave(tracks, get().playheadTime)
-  },
+  moveClip: () => {},
 
-  importClipsFromScript: (scriptText, targetTrackId) => {
+  importClipsFromScript: (scriptText) => {
     const lines = scriptText.split('\n').filter(l => l.trim())
-    const tracks = get().tracks
-    const videoTrack = targetTrackId
-      ? tracks.find(t => t.id === targetTrackId)
-      : tracks.find(t => t.type === 'video') || tracks[0]
-    const subtitleTrack = tracks.find(t => t.type === 'subtitle')
-    if (!videoTrack) return
 
     const assets = useAssetStore.getState().assets
     const charAssets = assets.filter(a => a.type === 'text' && a.tags.includes('Character'))
     const sceneAssets = assets.filter(a => a.type === 'text' && a.tags.includes('Scene'))
+    const itemAssets = assets.filter(a => a.type === 'text' && a.tags.includes('Item'))
 
-    // Calculate start time after last clip on video track
-    const lastClip = videoTrack.clips[videoTrack.clips.length - 1]
-    let currentTime = lastClip ? lastClip.startTime + lastClip.duration : 0
-
-    const newClips: TrackClip[] = []
-    const newSubtitleClips: TrackClip[] = []
+    const importedRows: TimelineRow[] = []
 
     for (let i = 0; i < lines.length; i++) {
       const parsed = parseLine(lines[i].trim())
@@ -401,67 +621,147 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
         if (matchedScene) finalSceneId = matchedScene.id
       }
 
-      newClips.push({
-        id: `clip_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 6)}`,
-        trackId: videoTrack.id,
-        label: parsed.label,
-        startTime: currentTime,
+      const matchedItemIds = itemAssets
+        .filter((item) => item.name && parsed.label.includes(item.name))
+        .map((item) => item.id)
+
+      importedRows.push(createEmptyRow(get().rows.length + i, {
+        title: parsed.label,
+        promptText: parsed.label,
         duration: parsed.duration,
-        sourceUrl: '',
-        sourceType: 'text',
-        status: 'empty',
         spec: {
           characterIds: Array.from(matchedCharIds),
-          sceneId: finalSceneId,
+          sceneIds: finalSceneId ? [finalSceneId] : [],
+          itemIds: matchedItemIds,
           shotType: parsed.shotType,
           transition: parsed.transition,
           dialogue: parsed.dialogue,
+          action: parsed.label,
         },
-        opacity: 1,
-        volume: 1,
-      })
-
-      if (parsed.dialogue && subtitleTrack) {
-        newSubtitleClips.push({
-          id: `clip_dialogue_${Date.now()}_${i}`,
-          trackId: subtitleTrack.id,
-          label: parsed.dialogue,
-          startTime: currentTime,
-          duration: parsed.duration,
-          sourceUrl: '',
-          sourceType: 'text',
-          status: 'done',
-          spec: {
-            characterIds: Array.from(matchedCharIds),
-            sceneId: finalSceneId,
-            shotType: parsed.shotType,
-            transition: parsed.transition,
-            dialogue: parsed.dialogue,
-          },
-          opacity: 1,
-          volume: 1,
-        })
-      }
-
-      currentTime += parsed.duration
+      }))
     }
 
-    const updatedTracks = tracks.map(t => {
-      if (t.id === videoTrack.id) {
-        return { ...t, clips: [...t.clips, ...newClips] }
-      }
-      if (t.id === subtitleTrack?.id) {
-        return { ...t, clips: [...t.clips, ...newSubtitleClips] }
-      }
-      return t
-    })
-
-    set({ tracks: updatedTracks })
-    autoSave(updatedTracks, get().playheadTime)
+    const next = persistRows((rows) => [...rows, ...importedRows], get().playheadTime)
+    set(next)
 
     emitNBCEvent('timeline:import', useProjectStore.getState().activeProjectId || undefined, {
-      summary: `导入了 ${newClips.length} 个分镜片段`,
+      summary: `导入了 ${importedRows.length} 个分镜片段`,
     })
+  },
+
+  addRow: (row) => {
+    const newRow = createEmptyRow(get().rows.length, row)
+    const next = persistRows((rows) => [...rows, newRow], get().playheadTime)
+    set(next)
+    return newRow.id
+  },
+
+  updateRow: (rowId, updates) => {
+    const next = persistRows((rows) => rows.map((row) => {
+      if (row.id !== rowId) return row
+      return createEmptyRow(row.order, {
+        ...row,
+        ...updates,
+        id: row.id,
+        spec: {
+          ...row.spec,
+          ...updates.spec,
+          characterIds: updates.spec?.characterIds || row.spec.characterIds,
+          sceneIds: updates.spec?.sceneIds || row.spec.sceneIds,
+          itemIds: updates.spec?.itemIds || row.spec.itemIds,
+        },
+        imageBindings: updates.imageBindings || row.imageBindings,
+        videoBindings: updates.videoBindings || row.videoBindings,
+      })
+    }), get().playheadTime)
+    set(next)
+  },
+
+  removeRow: (rowId) => {
+    const next = persistRows((rows) => rows.filter((row) => row.id !== rowId), get().playheadTime)
+    set(next)
+  },
+
+  reorderRows: (fromIndex, toIndex) => {
+    const next = persistRows((rows) => {
+      const copied = rows.slice()
+      const [moved] = copied.splice(fromIndex, 1)
+      if (!moved) return rows
+      copied.splice(toIndex, 0, moved)
+      return copied
+    }, get().playheadTime)
+    set(next)
+  },
+
+  getRow: (rowId) => get().rows.find((row) => row.id === rowId),
+
+  bindMediaToRow: (rowId, mediaType, item) => {
+    const mediaId = item.id || `binding_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+    const binding: TimelineMediaItem = {
+      ...item,
+      id: mediaId,
+      createdAt: item.createdAt || Date.now(),
+    }
+    const next = persistRows((rows) => rows.map((row) => {
+      if (row.id !== rowId) return row
+      if (mediaType === 'image') {
+        const bindings = [...row.imageBindings.filter((existing) => existing.id !== mediaId), binding].slice(0, 4)
+        return { ...row, imageBindings: bindings, activeImageId: mediaId }
+      }
+      const bindings = [...row.videoBindings.filter((existing) => existing.id !== mediaId), binding]
+      return { ...row, videoBindings: bindings, activeVideoId: mediaId }
+    }), get().playheadTime)
+    set(next)
+    return mediaId
+  },
+
+  removeMediaBinding: (rowId, mediaType, itemId) => {
+    const next = persistRows((rows) => rows.map((row) => {
+      if (row.id !== rowId) return row
+      if (mediaType === 'image') {
+        const bindings = row.imageBindings.filter((item) => item.id !== itemId)
+        return { ...row, imageBindings: bindings, activeImageId: row.activeImageId === itemId ? bindings[0]?.id : row.activeImageId }
+      }
+      const bindings = row.videoBindings.filter((item) => item.id !== itemId)
+      return { ...row, videoBindings: bindings, activeVideoId: row.activeVideoId === itemId ? bindings[0]?.id : row.activeVideoId }
+    }), get().playheadTime)
+    set(next)
+  },
+
+  setActiveMediaBinding: (rowId, mediaType, itemId) => {
+    const next = persistRows((rows) => rows.map((row) => {
+      if (row.id !== rowId) return row
+      return mediaType === 'image'
+        ? { ...row, activeImageId: itemId }
+        : { ...row, activeVideoId: itemId }
+    }), get().playheadTime)
+    set(next)
+  },
+
+  setRowGenerating: (rowId, mediaType, generating, error) => {
+    const next = persistRows((rows) => rows.map((row) => {
+      if (row.id !== rowId) return row
+      const nextStatus: TimelineMediaItem['status'] = generating ? 'generating' : error ? 'failed' : 'done'
+      const updateBinding = (item: TimelineMediaItem): TimelineMediaItem => ({
+        ...item,
+        status: nextStatus,
+        error,
+      })
+      if (mediaType === 'image' && row.activeImageId) {
+        return {
+          ...row,
+          imageBindings: row.imageBindings.map((item) => item.id === row.activeImageId ? updateBinding(item) : item),
+        }
+      }
+      if (mediaType === 'video' && row.activeVideoId) {
+        return {
+          ...row,
+          videoBindings: row.videoBindings.map((item) => item.id === row.activeVideoId ? updateBinding(item) : item),
+        }
+      }
+      return row
+    }), get().playheadTime)
+    set(next)
   },
 
   getClip: (clipId) => findClip(get().tracks, clipId),
@@ -505,35 +805,45 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
 
   // Legacy bridge for execution engine compatibility
   addLegacyClip: (clip) => {
-    const tracks = get().tracks
-    const videoTrack = tracks.find(t => t.type === 'video') || tracks[0]
-    if (!videoTrack) return
-
-    const lastClip = videoTrack.clips[videoTrack.clips.length - 1]
-    const startTime = lastClip ? lastClip.startTime + lastClip.duration : 0
-
-    const newClip: TrackClip = {
-      id: `clip_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      trackId: videoTrack.id,
-      label: clip.nodeLabel,
-      startTime,
-      duration: 5,
-      sourceUrl: clip.url,
-      sourceType: clip.type,
-      thumbnail: clip.thumbnail,
-      status: 'done',
-      spec: { characterIds: [], sceneId: '', shotType: '', transition: '硬切' },
-      genNodeId: clip.nodeId,
-      opacity: 1,
-      volume: 1,
+    const rowId = (clip as Omit<GeneratedClip, 'id' | 'createdAt'> & { rowId?: string }).rowId
+    if (rowId) {
+      const mediaId = get().bindMediaToRow(rowId, clip.type, {
+        kind: 'generated',
+        type: clip.type,
+        sourceUrl: clip.url,
+        thumbnail: clip.thumbnail,
+        sourceNodeId: clip.nodeId,
+        status: 'done',
+      })
+      get().setActiveMediaBinding(rowId, clip.type, mediaId)
+      return
     }
 
-    const updatedTracks = tracks.map(t =>
-      t.id === videoTrack.id
-        ? { ...t, clips: [...t.clips, newClip] }
-        : t
-    )
-    set({ tracks: updatedTracks })
-    autoSave(updatedTracks, get().playheadTime)
+    const row = createEmptyRow(get().rows.length, {
+      title: clip.nodeLabel,
+      promptText: clip.nodeLabel,
+      duration: 5,
+    })
+    const binding: TimelineMediaItem = {
+      id: `binding_${row.id}`,
+      kind: 'generated',
+      type: clip.type,
+      sourceUrl: clip.url,
+      thumbnail: clip.thumbnail,
+      sourceNodeId: clip.nodeId,
+      createdAt: Date.now(),
+      status: 'done',
+    }
+    if (clip.type === 'image') {
+      row.imageBindings = [binding]
+      row.activeImageId = binding.id
+      row.imageNodeId = clip.nodeId
+    } else {
+      row.videoBindings = [binding]
+      row.activeVideoId = binding.id
+      row.videoNodeId = clip.nodeId
+    }
+    const next = persistRows((rows) => [...rows, row], get().playheadTime)
+    set(next)
   },
 }))

@@ -80,7 +80,18 @@ function FlowEditorInner() {
           const asset: Asset = parsedData.url ? { name: parsedData.name, path: parsedData.url, id: parsedData.url } as Asset : parsedData as Asset
           const id = getId()
           console.log('Adding asset input node:', asset)
-          addNode({ id, type: 'assetInput', position, data: { label: asset.name || '素材', assetId: asset.path || asset.id, _nodeId: id } } as any)
+          addNode({
+            id,
+            type: 'assetInput',
+            position,
+            data: {
+              label: asset.name || '素材',
+              assetId: asset.id,
+              _nodeId: id,
+              nodeWidth: 220,
+              nodeHeight: 160,
+            }
+          } as any)
           return
         }
 
@@ -108,7 +119,18 @@ function FlowEditorInner() {
       
       const asset: Asset = parsedData
       const id = getId()
-      addNode({ id, type: 'assetInput', position, data: { label: asset.name, assetId: asset.path || asset.id, _nodeId: id } } as any)
+      addNode({
+        id,
+        type: 'assetInput',
+        position,
+        data: {
+          label: asset.name,
+          assetId: asset.id,
+          _nodeId: id,
+          nodeWidth: 220,
+          nodeHeight: 160,
+        }
+      } as any)
     } catch (e) { console.warn('Drop parse error:', e) }
   }, [addNode, screenToFlowPosition])
 
@@ -182,6 +204,7 @@ function FlowEditorInner() {
           <input ref={fileInputRef} type="file" accept=".json,.nbc.json" className="hidden" onChange={onFileImport} />
           <div className="w-px h-4 bg-node-border mx-1" />
           <button className="btn btn-accent text-xs flex items-center gap-1" onClick={() => { if (confirm('确定运行所有生成节点？')) executeAll() }}><Zap size={12} /> 全部运行</button>
+          <button className="btn btn-ghost text-xs flex items-center gap-1 text-text-secondary hover:text-red-400" onClick={() => { if (confirm('确定清空所有节点？此操作不可撤销。')) { useFlowStore.getState().setNodes([]); useFlowStore.getState().setEdges([]); } }}><Trash2 size={12} /> 清空画布</button>
           {(selectedNodes.length > 0 || selectedEdges.length > 0) && (
             <>
               <div className="w-px h-4 bg-node-border mx-1" />

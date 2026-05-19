@@ -43,15 +43,23 @@ export async function apiFetch(url: string, options: {
     return res
   } else {
     // Browser mode - works via Vite proxy
-    const resp = await fetch(url, {
-      method: options.method || 'GET',
-      headers: { ...options.headers, ...(bodyStr ? { 'Content-Type': 'application/json' } : {}) },
-      body: bodyStr,
-    })
-    if (!resp.ok) {
-      const text = await resp.text()
-      throw new Error(`HTTP ${resp.status}: ${text.slice(0, 200)}`)
+    const timeoutMs = options.timeoutMs || 120000
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+    try {
+      const resp = await fetch(url, {
+        method: options.method || 'GET',
+        headers: { ...options.headers, ...(bodyStr ? { 'Content-Type': 'application/json' } : {}) },
+        body: bodyStr,
+        signal: controller.signal,
+      })
+      if (!resp.ok) {
+        const text = await resp.text()
+        throw new Error(`HTTP ${resp.status}: ${text.slice(0, 200)}`)
+      }
+      return { status: resp.status, body: await resp.text(), headers: {} }
+    } finally {
+      clearTimeout(timeoutId)
     }
-    return { status: resp.status, body: await resp.text(), headers: {} }
   }
 }

@@ -28,6 +28,7 @@ function getGenerationParams(node: any, type: string): Record<string, unknown> {
   const params: Record<string, unknown> = { batchCount: (node.data.batchCount as number) || 1 }
   switch (type) {
     case 'gptImage2':
+      params['model'] = (node.data.gptImageModel as string) || 'gpt-image-2-vip'
       params['quality'] = (node.data.gptImageQuality as string) || 'auto'
       params['aspectRatio'] = (node.data.gptImageAspectRatio as string) || '1:1'
       break
@@ -184,6 +185,8 @@ export async function executeNode(nodeId: string) {
   if (!node) return
   const type = node.type as GenerationType
   if (!EXECUTORS[type]) return
+  const timelineRowId = node.data.timelineRowId as string | undefined
+  const timelineMediaType = (node.data.timelineMediaType as 'image' | 'video' | undefined)
 
   const prompt = collectPrompt(nodeId, nodes, edges)
   const imageRefs = collectImageRefs(nodeId, nodes, edges)
@@ -205,6 +208,9 @@ export async function executeNode(nodeId: string) {
 
   setProcessing(true)
   updateNodeData(nodeId, { _execStatus: 'running', _error: undefined, _taskIds: allTasks.map(t => t.id) })
+  if (timelineRowId && timelineMediaType) {
+    useTimelineStore.getState().setRowGenerating(timelineRowId, timelineMediaType, true)
+  }
 
   const label = TYPE_LABELS[type] || type
   useNotificationStore.getState().addNotification({
@@ -258,7 +264,21 @@ export async function executeNode(nodeId: string) {
         summary: `${label} 生成完成: ${nodeLabel}`, nodeType: type, nodeLabel,
         generationType: type, generationParams: genParams, resultFile: url, success: true,
       })
-      useTimelineStore.getState().addLegacyClip({ nodeId, nodeLabel, type: type === 'seedance' ? 'video' : 'image', url })
+      if (timelineRowId && timelineMediaType) {
+        useTimelineStore.getState().bindMediaToRow(timelineRowId, timelineMediaType, {
+          kind: 'generated',
+          type: timelineMediaType,
+          sourceUrl: url,
+          thumbnail: url,
+          sourceNodeId: nodeId,
+          status: 'done',
+        })
+      } else {
+        useTimelineStore.getState().addLegacyClip({ nodeId, nodeLabel, type: type === 'seedance' ? 'video' : 'image', url })
+      }
+    }
+    if (timelineRowId && timelineMediaType) {
+      useTimelineStore.getState().setRowGenerating(timelineRowId, timelineMediaType, false)
     }
 
     for (const url of successfulUrls) {
@@ -330,6 +350,9 @@ export async function executeNode(nodeId: string) {
     }
   } else if (failedTasks.length > 0) {
     updateNodeData(nodeId, { _execStatus: 'failed', _error: `所有 ${batchCount} 个并发请求均失败或被取消` })
+    if (timelineRowId && timelineMediaType) {
+      useTimelineStore.getState().setRowGenerating(timelineRowId, timelineMediaType, false, `所有 ${batchCount} 个并发请求均失败或被取消`)
+    }
     useNotificationStore.getState().addNotification({
       type: 'error', title: `${label} 生成失败`,
       message: `节点「${nodeLabel}」的所有请求均失败`,

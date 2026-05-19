@@ -3,6 +3,12 @@ import { findUpstream } from './graph'
 import { useStyleStore } from '@/store/useStyleStore'
 import { useAssetStore } from '@/store/useAssetStore'
 
+function asStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+  if (typeof value === 'string' && value.trim()) return [value]
+  return []
+}
+
 export function resolveTemplates(
   text: string,
   promptNode: AppNode,
@@ -13,13 +19,31 @@ export function resolveTemplates(
   const charNode = upstream.find((n) => n.type === 'characterCard')
   const sceneNode = upstream.find((n) => n.type === 'sceneCard')
   const itemNode = upstream.find((n) => n.type === 'itemCard')
+  const characterNames = asStringArray(charNode?.data.characterNames).length
+    ? asStringArray(charNode?.data.characterNames).join('、')
+    : ((charNode?.data.characterName as string) || '')
+  const characterAppearances = asStringArray(charNode?.data.characterAppearances).length
+    ? asStringArray(charNode?.data.characterAppearances).join('\n')
+    : ((charNode?.data.characterAppearance as string) || '')
+  const sceneNames = asStringArray(sceneNode?.data.sceneNames).length
+    ? asStringArray(sceneNode?.data.sceneNames).join('、')
+    : ((sceneNode?.data.sceneName as string) || '')
+  const sceneDescriptions = asStringArray(sceneNode?.data.sceneDescriptions).length
+    ? asStringArray(sceneNode?.data.sceneDescriptions).join('\n')
+    : ((sceneNode?.data.sceneDescription as string) || '')
+  const itemNames = asStringArray(itemNode?.data.itemNames).length
+    ? asStringArray(itemNode?.data.itemNames).join('、')
+    : ((itemNode?.data.itemName as string) || '')
+  const itemDescriptions = asStringArray(itemNode?.data.itemDescriptions).length
+    ? asStringArray(itemNode?.data.itemDescriptions).join('\n')
+    : ((itemNode?.data.itemDescription as string) || '')
   return text
-    .replace(/\{\{character\}\}/g, (charNode?.data.characterName as string) || '')
-    .replace(/\{\{characterAppearance\}\}/g, (charNode?.data.characterAppearance as string) || '')
-    .replace(/\{\{scene\}\}/g, (sceneNode?.data.sceneName as string) || '')
-    .replace(/\{\{sceneDescription\}\}/g, (sceneNode?.data.sceneDescription as string) || '')
-    .replace(/\{\{item\}\}/g, (itemNode?.data.itemName as string) || '')
-    .replace(/\{\{itemDescription\}\}/g, (itemNode?.data.itemDescription as string) || '')
+    .replace(/\{\{character\}\}/g, characterNames)
+    .replace(/\{\{characterAppearance\}\}/g, characterAppearances)
+    .replace(/\{\{scene\}\}/g, sceneNames)
+    .replace(/\{\{sceneDescription\}\}/g, sceneDescriptions)
+    .replace(/\{\{item\}\}/g, itemNames)
+    .replace(/\{\{itemDescription\}\}/g, itemDescriptions)
 }
 
 export function collectPrompt(
@@ -43,9 +67,16 @@ export function collectPrompt(
     }
     if (node.type === 'characterCard') {
       const parts: string[] = []
-      const n = node.data.characterName || ''
-      const a = node.data.characterAppearance || ''
-      if (n || a) parts.push(`角色名：${n}\n外观描述：${a}`)
+      const names = asStringArray(node.data.characterNames)
+      const appearances = asStringArray(node.data.characterAppearances)
+      if (names.length || appearances.length) {
+        parts.push(`角色名：${names.join('、')}`)
+        if (appearances.length) parts.push(`外观描述：\n${appearances.map((item, index) => `${index + 1}. ${item}`).join('\n')}`)
+      } else {
+        const n = node.data.characterName || ''
+        const a = node.data.characterAppearance || ''
+        if (n || a) parts.push(`角色名：${n}\n外观描述：${a}`)
+      }
       const facePrompt = node.data.characterFacePrompt as string | undefined
       const bodyPrompt = node.data.characterBodyPrompt as string | undefined
       if (facePrompt || bodyPrompt) {
@@ -58,12 +89,24 @@ export function collectPrompt(
       if (parts.length) characters.push(`【角色设定】\n${parts.join('\n')}`)
     }
     if (node.type === 'sceneCard') {
-      const n = node.data.sceneName || ''; const d = node.data.sceneDescription || ''
-      if (n || d) scenes.push(`【场景设定】\n场景名：${n}\n场景描述：${d}`)
+      const names = asStringArray(node.data.sceneNames)
+      const descs = asStringArray(node.data.sceneDescriptions)
+      if (names.length || descs.length) {
+        scenes.push(`【场景设定】\n场景名：${names.join('、')}\n场景描述：${descs.join('\n')}`)
+      } else {
+        const n = node.data.sceneName || ''; const d = node.data.sceneDescription || ''
+        if (n || d) scenes.push(`【场景设定】\n场景名：${n}\n场景描述：${d}`)
+      }
     }
     if (node.type === 'itemCard') {
-      const n = node.data.itemName || ''; const d = node.data.itemDescription || ''
-      if (n || d) items.push(`【物品设定】\n物品名：${n}\n物品描述：${d}`)
+      const names = asStringArray(node.data.itemNames)
+      const descs = asStringArray(node.data.itemDescriptions)
+      if (names.length || descs.length) {
+        items.push(`【物品设定】\n物品名：${names.join('、')}\n物品描述：${descs.join('\n')}`)
+      } else {
+        const n = node.data.itemName || ''; const d = node.data.itemDescription || ''
+        if (n || d) items.push(`【物品设定】\n物品名：${n}\n物品描述：${d}`)
+      }
     }
   }
 
@@ -132,11 +175,13 @@ export function collectImageRefs(
       const multi = node.data.characterRefImages as string[] | undefined
       if (multi) multi.forEach(r => refs.add(r))
     }
-    if (node.type === 'sceneCard' && node.data.sceneRefImage) {
-      refs.add(node.data.sceneRefImage as string)
+    if (node.type === 'sceneCard') {
+      if (node.data.sceneRefImage) refs.add(node.data.sceneRefImage as string)
+      asStringArray(node.data.sceneRefImages).forEach((ref) => refs.add(ref))
     }
-    if (node.type === 'itemCard' && node.data.itemRefImage) {
-      refs.add(node.data.itemRefImage as string)
+    if (node.type === 'itemCard') {
+      if (node.data.itemRefImage) refs.add(node.data.itemRefImage as string)
+      asStringArray(node.data.itemRefImages).forEach((ref) => refs.add(ref))
     }
   }
 

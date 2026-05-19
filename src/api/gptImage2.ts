@@ -2,6 +2,46 @@ import { apiFetch } from './client'
 
 const API_BASE = import.meta.env.DEV ? '/api/grsai' : 'https://grsai.dakka.com.cn'
 
+const MAX_RETRIES = 3
+const RETRY_DELAY_MS = 2000
+
+function isNetworkError(err: Error): boolean {
+  const msg = err.message || ''
+  return (
+    msg.includes('超时') ||
+    msg.includes('连接') ||
+    msg.includes('TIMED_OUT') ||
+    msg.includes('CONNECTION') ||
+    msg.includes('DNS') ||
+    msg.includes('NAME_NOT_RESOLVED') ||
+    msg.includes('ERR_')
+  )
+}
+
+async function fetchWithRetry(
+  url: string,
+  options: Parameters<typeof apiFetch>[1] & { retries?: number; retryDelay?: number }
+): ReturnType<typeof apiFetch> {
+  const maxRetries = options.retries ?? MAX_RETRIES
+  const delay = options.retryDelay ?? RETRY_DELAY_MS
+  let lastError: Error | null = null
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await apiFetch(url, options)
+    } catch (err: any) {
+      lastError = err instanceof Error ? err : new Error(String(err))
+      if (attempt < maxRetries - 1 && isNetworkError(lastError)) {
+        console.log(`[GPTImage] 网络错误，${(attempt + 1) * delay / 1000}秒后重试 (${attempt + 1}/${maxRetries - 1}): ${lastError.message}`)
+        await new Promise(r => setTimeout(r, (attempt + 1) * delay))
+        continue
+      }
+      throw lastError
+    }
+  }
+  throw lastError!
+}
+
 export interface GPTImageOptions {
   prompt: string
   model?: string
@@ -157,7 +197,7 @@ export async function generateGPTImageStream(
     // 注意：官方兼容接口参考图参数为 image
     if (options.urls?.length) body.image = options.urls
 
-    const res = await apiFetch(requestUrl, {
+    const res = await fetchWithRetry(requestUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -222,7 +262,7 @@ export async function generateGPTImageStream(
   if (options.webHook) body.webHook = options.webHook
   if (options.shutProgress !== undefined) body.shutProgress = options.shutProgress
 
-  const res = await apiFetch(requestUrl, {
+  const res = await fetchWithRetry(requestUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -329,7 +369,7 @@ export async function pollGPTImageResult(
       fetchOptions.body = JSON.stringify({ id: taskId })
     }
 
-    const res = await apiFetch(pollUrl, fetchOptions)
+    const res = await fetchWithRetry(pollUrl, fetchOptions)
     if (signal?.aborted) throw new Error('AbortError')
 
     const json = JSON.parse(res.body)

@@ -1,8 +1,11 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
-import { Search, Grid3X3, List, FolderOpen, Upload, RefreshCw, Loader2, Cloud, Folder, File, Image, Film, Trash2, ChevronRight, ChevronDown, ArrowLeft, FolderSync } from 'lucide-react'
+import { Search, Grid3X3, List, FolderOpen, Upload, RefreshCw, Loader2, Cloud, Folder, File, Image, Film, Trash2, ChevronRight, ChevronDown, ArrowLeft, FolderSync, Play } from 'lucide-react'
 import { useProviderStore } from '@/store/useProviderStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
 import { useAssetStore } from '@/store/useAssetStore'
+import VideoThumbnail from './VideoThumbnail'
+import MediaViewer from './MediaViewer'
+import type { Asset } from '@/types/asset'
 
 interface OssObject {
   key: string
@@ -51,6 +54,7 @@ export default function OssBrowser() {
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, currentFile: '' })
   const [selectedForDelete, setSelectedForDelete] = useState<string | null>(null)
   const [hoveredObj, setHoveredObj] = useState<string | null>(null)
+  const [viewerAsset, setViewerAsset] = useState<Asset | null>(null)
 
   const config = useMemo(() => getOssConfig(), [])
 
@@ -271,6 +275,28 @@ export default function OssBrowser() {
     setSelectedForDelete(null)
   }, [config])
 
+  const objToAsset = useCallback((obj: OssObject): Asset => ({
+    id: obj.key,
+    name: obj.name,
+    type: obj.name.match(/\.(mp4|webm|mov|avi)$/i) ? 'video' : 'image',
+    path: obj.url,
+    size: obj.size,
+    createdAt: obj.lastModified,
+    tags: ['OSS'],
+    ossKey: obj.key,
+    source: 'oss',
+  }), [])
+
+  const viewerAssetList = useMemo(() =>
+    objects
+      .filter(o => o.name.match(/\.(png|jpg|jpeg|gif|webp|mp4|webm|mov|avi)$/i))
+      .map(o => objToAsset(o)),
+    [objects, objToAsset])
+
+  const handleDoubleClick = useCallback((obj: OssObject) => {
+    setViewerAsset(objToAsset(obj))
+  }, [objToAsset])
+
   const handleDragStart = useCallback((e: React.DragEvent, obj: OssObject) => {
     const payload = {
       type: 'asset',
@@ -428,6 +454,7 @@ export default function OssBrowser() {
                       className="asset-card group relative bg-bg-secondary/30 rounded-lg overflow-hidden cursor-pointer"
                       draggable
                       onDragStart={(e) => handleDragStart(e, obj)}
+                      onDoubleClick={() => handleDoubleClick(obj)}
                       onMouseEnter={() => setHoveredObj(obj.key)}
                       onMouseLeave={() => setHoveredObj(null)}
                     >
@@ -443,9 +470,11 @@ export default function OssBrowser() {
                         {obj.name.match(/\.(png|jpg|jpeg|gif|webp)$/i) ? (
                           <img src={obj.url} alt={obj.name} className="w-full h-full object-cover" loading="lazy" />
                         ) : obj.name.match(/\.(mp4|webm|mov|avi)$/i) ? (
-                          <div className="flex flex-col items-center gap-1 text-text-tertiary">
-                            <Film size={24} />
-                            <span className="text-[10px]">视频</span>
+                          <div className="relative w-full h-full">
+                            <VideoThumbnail src={obj.url} alt={obj.name} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+                              <Play size={24} className="text-white opacity-80" />
+                            </div>
                           </div>
                         ) : (
                           <File size={24} className="text-text-tertiary" />
@@ -468,12 +497,15 @@ export default function OssBrowser() {
                       className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-bg-secondary/50 cursor-pointer group text-xs"
                       draggable
                       onDragStart={(e) => handleDragStart(e, obj)}
+                      onDoubleClick={() => handleDoubleClick(obj)}
                       onMouseEnter={() => setHoveredObj(obj.key)}
                       onMouseLeave={() => setHoveredObj(null)}
                     >
                       <div className="w-8 h-8 rounded bg-bg-secondary/50 flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {obj.name.match(/\.(png|jpg|jpeg|gif|webp)$/i) ? (
                           <img src={obj.url} alt={obj.name} className="w-full h-full object-cover" />
+                        ) : obj.name.match(/\.(mp4|webm|mov|avi)$/i) ? (
+                          <VideoThumbnail src={obj.url} alt={obj.name} className="w-full h-full object-cover" />
                         ) : (
                           (() => { const Icon = getFileIcon(obj.name); return <Icon size={14} className="text-text-tertiary" /> })()
                         )}
@@ -507,6 +539,15 @@ export default function OssBrowser() {
             </div>
           </div>
         </div>
+      )}
+
+      {viewerAsset && (
+        <MediaViewer
+          asset={viewerAsset}
+          assetList={viewerAssetList}
+          onClose={() => setViewerAsset(null)}
+          onNavigate={(a) => setViewerAsset(a)}
+        />
       )}
     </div>
   )

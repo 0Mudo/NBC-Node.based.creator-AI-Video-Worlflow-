@@ -5,15 +5,12 @@ import { useAssetStore } from '@/store/useAssetStore'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useStyleStore } from '@/store/useStyleStore'
 
-import { Info, Settings, Trash2, Sparkles, RefreshCw } from 'lucide-react'
-import { useCallback } from 'react'
+import { Info, Settings, Trash2, Sparkles } from 'lucide-react'
 import EmptyState from '@/components/shared/EmptyState'
 import { nodeTypeLabels } from '@/nodes'
 import type { Asset, AssetTag } from '@/types/asset'
 import { ASPECT_RATIO_OPTIONS } from '@/utils/constants'
-import PromptOptimizer from './PromptOptimizer'
 import { useInspirationStore } from '@/store/useInspirationStore'
-import { useNotificationStore } from '@/store/useNotificationStore'
 
 function buildAssetOptions(
   assets: Asset[],
@@ -86,12 +83,20 @@ function buildAssetOptions(
 
 interface CardFieldsConfig {
   assetIdField: string
+  assetIdsField: string
   nameField: string
+  namesField: string
   nameLabel: string
   descField: string
+  descsField: string
   descLabel: string
   refImageField: string
+  refImagesField: string
   refImagePlaceholder: string
+}
+
+function getSelectedOptions(select: HTMLSelectElement): string[] {
+  return Array.from(select.selectedOptions).map((option) => option.value).filter(Boolean)
 }
 
 function CardAssetFields({
@@ -119,30 +124,33 @@ function CardAssetFields({
         <label className="text-[10px] text-text-secondary uppercase tracking-wider">
           <Sparkles size={10} className="inline mr-1 text-accent" />灵感库 <span className="opacity-50 font-normal">(从素材库选择)</span>
         </label>
-        <select className="input mt-0.5"
-          value={(nodeData[config.assetIdField] as string) || ''}
+        <select
+          className="input mt-0.5 min-h-[120px]"
+          multiple
+          value={((nodeData[config.assetIdsField] as string[]) || []).filter(Boolean)}
           onChange={(e) => {
-            const assetId = e.target.value
-            if (!assetId) {
-              handleChange(config.assetIdField, '')
-              return
-            }
-            const asset = assets.find((a) => a.id === assetId)
-            if (asset) {
-              handleChange(config.assetIdField, asset.id)
-              handleChange(config.nameField, asset.name)
-              handleChange(config.descField, asset.prompt || '')
-              handleChange(config.refImageField, asset.thumbnailPath || '')
-            }
+            const assetIds = getSelectedOptions(e.target)
+            const selectedAssets = assets.filter((a) => assetIds.includes(a.id))
+            handleChange(config.assetIdsField, assetIds)
+            handleChange(config.assetIdField, assetIds[0] || '')
+            handleChange(config.namesField, selectedAssets.map((asset) => asset.name))
+            handleChange(config.nameField, selectedAssets[0]?.name || '')
+            handleChange(config.descsField, selectedAssets.map((asset) => asset.prompt || ''))
+            handleChange(config.descField, selectedAssets[0]?.prompt || '')
+            handleChange(config.refImagesField, selectedAssets.map((asset) => asset.thumbnailPath || '').filter(Boolean))
+            handleChange(config.refImageField, selectedAssets[0]?.thumbnailPath || '')
           }}
         >
-          <option value="">未选择...</option>
           {buildAssetOptions(assets, tag, activeProjectId, projectNameMap)}
         </select>
+        <div className="text-[10px] text-text-secondary mt-1">可按住 `Ctrl` / `Shift` 多选</div>
       </div>
       <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">{config.nameLabel}</label><input className="input mt-0.5" value={(nodeData[config.nameField] as string) || ''} onChange={(e) => handleChange(config.nameField, e.target.value)} /></div>
+      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">已选名称列表</label><textarea className="input mt-0.5" rows={3} value={Array.isArray(nodeData[config.namesField]) ? (nodeData[config.namesField] as string[]).join('\n') : ''} onChange={(e) => handleChange(config.namesField, e.target.value.split('\n').filter(Boolean))} /></div>
       <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">{config.descLabel}</label><textarea className="input mt-0.5" rows={4} value={(nodeData[config.descField] as string) || ''} onChange={(e) => handleChange(config.descField, e.target.value)} /></div>
+      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">描述列表</label><textarea className="input mt-0.5" rows={4} value={Array.isArray(nodeData[config.descsField]) ? (nodeData[config.descsField] as string[]).join('\n') : ''} onChange={(e) => handleChange(config.descsField, e.target.value.split('\n').filter(Boolean))} /></div>
       <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">参考图片路径</label><input className="input mt-0.5" value={(nodeData[config.refImageField] as string) || ''} onChange={(e) => handleChange(config.refImageField, e.target.value)} placeholder={config.refImagePlaceholder} /></div>
+      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">参考图片列表</label><textarea className="input mt-0.5" rows={3} value={Array.isArray(nodeData[config.refImagesField]) ? (nodeData[config.refImagesField] as string[]).join('\n') : ''} onChange={(e) => handleChange(config.refImagesField, e.target.value.split('\n').filter(Boolean))} /></div>
       {extra}
     </>
   )
@@ -271,94 +279,6 @@ function StoryboardInspector({ node, handleChange }: { node: AppNode; handleChan
   )
 }
 
-function PromptInspector({ node, handleChange }: { node: AppNode; handleChange: (field: string, value: unknown) => void }) {
-  const nodes = useFlowStore((s) => s.nodes)
-  const edges = useFlowStore((s) => s.edges)
-
-  const handleRefreshFromUpstream = useCallback(() => {
-    const upstreamNodeIds = new Set<string>()
-    edges.filter((e) => e.target === node.id).forEach((e) => upstreamNodeIds.add(e.source))
-    const upstreamNodes = nodes.filter((n) => upstreamNodeIds.has(n.id))
-
-    const parts: string[] = []
-
-    for (const un of upstreamNodes) {
-      if (un.type === 'characterCard') {
-        const name = un.data.characterName
-        const appearance = un.data.characterAppearance
-        if (name && appearance) parts.push(`角色「${name}」：${appearance}`)
-        else if (name) parts.push(`角色「${name}」`)
-      } else if (un.type === 'sceneCard') {
-        const name = un.data.sceneName
-        const desc = un.data.sceneDescription
-        if (name && desc) parts.push(`场景「${name}」：${desc}`)
-        else if (name) parts.push(`场景「${name}」`)
-      } else if (un.type === 'itemCard') {
-        const name = un.data.itemName
-        const desc = un.data.itemDescription
-        if (name && desc) parts.push(`物品「${name}」：${desc}`)
-        else if (name) parts.push(`物品「${name}」`)
-      } else if (un.type === 'script') {
-        const heading = un.data.scriptSceneHeading
-        const text = un.data.scriptText
-        if (heading && text) parts.push(`[剧本·第${un.data.scriptSceneNumber}场 ${heading}]\n${text}`)
-        else if (text) parts.push(`[剧本]\n${text as string}`)
-      } else if (un.type === 'storyboard') {
-        const shotNum = un.data.storyboardShotNumber
-        const desc = un.data.storyboardShotDescription
-        const dialogue = un.data.storyboardDialogue
-        const shotType = un.data.storyboardShotType
-        let sb = `[分镜·镜${shotNum}`
-        if (shotType) sb += ` ${shotType}`
-        sb += ']'
-        if (desc) sb += `\n${desc}`
-        if (dialogue) sb += `\n对白：「${dialogue}」`
-        parts.push(sb)
-      }
-    }
-
-    if (parts.length === 0) {
-      useNotificationStore.getState().addNotification({
-        type: 'warning',
-        title: '无上游信息',
-        message: '请先将角色卡/场景卡/物品卡/剧本/分镜节点连线到提示词节点。',
-      })
-      return
-    }
-
-    const text = parts.join('\n\n')
-    handleChange('promptText', text)
-    useNotificationStore.getState().addNotification({
-      type: 'success',
-      title: '已刷新提示词',
-      message: `已从 ${parts.length} 个上游节点收集信息并写入提示词文本框。`,
-    })
-  }, [node.id, nodes, edges, handleChange])
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-0.5">
-        <label className="text-[10px] text-text-secondary uppercase tracking-wider">提示词文本</label>
-        <button
-          className="btn btn-ghost text-[10px] py-0.5 px-2 flex items-center gap-1 border border-node-border hover:border-accent/50 transition-colors"
-          onClick={handleRefreshFromUpstream}
-          title="从上游节点拉取信息自动写入"
-        >
-          <RefreshCw size={10} /> 刷新状态
-        </button>
-      </div>
-      <textarea
-        className="input mt-0.5"
-        rows={6}
-        value={(node.data.promptText as string) || ''}
-        onChange={(e) => handleChange('promptText', e.target.value)}
-        placeholder="输入提示词，或点击「刷新状态」从上游节点自动拉取..."
-      />
-      <PromptOptimizer node={node} />
-    </div>
-  )
-}
-
 export default function Inspector() {
   const { nodes, selectedNodeId, updateNodeData, removeNode, selectNode } = useFlowStore()
   const assets = useAssetStore((s) => s.assets)
@@ -405,11 +325,15 @@ export default function Inspector() {
               tag="Character"
               config={{
                 assetIdField: 'characterAssetId',
+                assetIdsField: 'characterAssetIds',
                 nameField: 'characterName',
+                namesField: 'characterNames',
                 nameLabel: '名称',
                 descField: 'characterAppearance',
+                descsField: 'characterAppearances',
                 descLabel: '外观描述',
                 refImageField: 'characterRefImage',
+                refImagesField: 'characterRefImages',
                 refImagePlaceholder: '本地路径或URL...',
               }}
               nodeData={node.data}
@@ -470,11 +394,15 @@ export default function Inspector() {
             tag="Scene"
             config={{
               assetIdField: 'sceneAssetId',
+              assetIdsField: 'sceneAssetIds',
               nameField: 'sceneName',
+              namesField: 'sceneNames',
               nameLabel: '名称',
               descField: 'sceneDescription',
+              descsField: 'sceneDescriptions',
               descLabel: '场景描述',
               refImageField: 'sceneRefImage',
+              refImagesField: 'sceneRefImages',
               refImagePlaceholder: '本地全景图路径或URL...',
             }}
             nodeData={node.data}
@@ -491,11 +419,15 @@ export default function Inspector() {
             tag="Item"
             config={{
               assetIdField: 'itemAssetId',
+              assetIdsField: 'itemAssetIds',
               nameField: 'itemName',
+              namesField: 'itemNames',
               nameLabel: '名称',
               descField: 'itemDescription',
+              descsField: 'itemDescriptions',
               descLabel: '物品描述',
               refImageField: 'itemRefImage',
+              refImagesField: 'itemRefImages',
               refImagePlaceholder: '本地图片路径或URL...',
             }}
             nodeData={node.data}
@@ -513,7 +445,11 @@ export default function Inspector() {
         {node.type === 'storyboard' && <StoryboardInspector node={node} handleChange={handleChange} />}
 
         {/* --- Prompt --- */}
-        {node.type === 'prompt' && <PromptInspector node={node} handleChange={handleChange} />}
+        {node.type === 'prompt' && (
+          <div className="text-xs text-text-secondary bg-bg-tertiary/40 rounded p-2">
+            提示词节点已改为节点内直接编辑，这里不再提供文本输入。
+          </div>
+        )}
 
         {/* --- GPT Image 2 --- */}
         {node.type === 'gptImage2' && (

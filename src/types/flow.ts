@@ -16,6 +16,10 @@ export type NodeType =
 export interface NodeData {
   label: string
   _nodeId?: string
+  nodeWidth?: number
+  nodeHeight?: number
+  timelineRowId?: string
+  timelineMediaType?: 'image' | 'video'
   _execStatus?: string
   _resultUrl?: string
   _resultUrls?: string[]
@@ -36,6 +40,9 @@ export interface NodeData {
   characterAppearance?: string
   characterRefImage?: string
   characterRefImages?: string[]
+  characterAssetIds?: string[]
+  characterNames?: string[]
+  characterAppearances?: string[]
   characterCards?: string
   characterAssetId?: string
   characterFacePrompt?: string
@@ -51,12 +58,20 @@ export interface NodeData {
   sceneDescription?: string
   sceneRefImage?: string
   sceneAssetId?: string
+  sceneAssetIds?: string[]
+  sceneNames?: string[]
+  sceneDescriptions?: string[]
+  sceneRefImages?: string[]
 
   // Item Card
   itemName?: string
   itemDescription?: string
   itemRefImage?: string
   itemAssetId?: string
+  itemAssetIds?: string[]
+  itemNames?: string[]
+  itemDescriptions?: string[]
+  itemRefImages?: string[]
 
   // Prompt
   promptText?: string

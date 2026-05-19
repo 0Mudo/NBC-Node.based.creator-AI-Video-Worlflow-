@@ -1,8 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import type { Asset } from '@/types/asset'
 import { ASSET_TAG_CN } from '@/types/asset'
-import { useAssetStore } from '@/store/useAssetStore'
-import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Play, Pause, Volume2, VolumeX, Download, Copy, Check, Info } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Play, Pause, Volume2, VolumeX, Download, Copy, Check, Info } from 'lucide-react'
 
 interface MediaViewerProps {
   asset: Asset
@@ -10,6 +9,10 @@ interface MediaViewerProps {
   onClose: () => void
   onNavigate: (asset: Asset) => void
 }
+
+const MIN_SCALE = 0.25
+const MAX_SCALE = 5.0
+const ZOOM_STEP = 0.25
 
 const TAG_CLASS: Record<string, string> = {
   'Character': 'tag-red', 'Scene': 'tag-yellow', 'GPT Image': 'tag-purple',
@@ -33,9 +36,14 @@ function formatDate(iso?: string): string {
 
 export default function MediaViewer({ asset, assetList, onClose, onNavigate }: MediaViewerProps) {
   const [showInfo, setShowInfo] = useState(true)
-  const [zoomed, setZoomed] = useState(false)
+  const [scale, setScale] = useState(1)
+  const [panX, setPanX] = useState(0)
+  const [panY, setPanY] = useState(0)
+  const [isPanning, setIsPanning] = useState(false)
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 })
   const [copied, setCopied] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const mediaContainerRef = useRef<HTMLDivElement>(null)
   const [videoPlaying, setVideoPlaying] = useState(false)
   const [videoMuted, setVideoMuted] = useState(false)
   const [videoCurrent, setVideoCurrent] = useState(0)
@@ -59,7 +67,7 @@ export default function MediaViewer({ asset, assetList, onClose, onNavigate }: M
       if (e.key === 'ArrowLeft') goPrev()
       if (e.key === 'ArrowRight') goNext()
       if (e.key === 'i' || e.key === 'I') setShowInfo(v => !v)
-      if (e.key === 'f' || e.key === 'F') setZoomed(v => !v)
+      if (e.key === 'f' || e.key === 'F') resetZoom()
       if (e.key === ' ' && asset.type === 'video') {
         e.preventDefault()
         const v = videoRef.current
@@ -71,11 +79,65 @@ export default function MediaViewer({ asset, assetList, onClose, onNavigate }: M
   }, [onClose, goPrev, goNext, asset.type])
 
   useEffect(() => {
-    setZoomed(false)
+    setScale(1)
+    setPanX(0)
+    setPanY(0)
     setVideoPlaying(false)
     setVideoCurrent(0)
     setVideoDuration(0)
   }, [asset.id])
+
+  const resetZoom = useCallback(() => {
+    setScale(1)
+    setPanX(0)
+    setPanY(0)
+  }, [])
+
+  const zoomIn = useCallback(() => {
+    setScale(s => Math.min(MAX_SCALE, s + ZOOM_STEP))
+  }, [])
+
+  const zoomOut = useCallback(() => {
+    setScale(s => {
+      const next = Math.max(MIN_SCALE, s - ZOOM_STEP)
+      if (next <= 1) {
+        setPanX(0)
+        setPanY(0)
+      }
+      return next
+    })
+  }, [])
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault()
+    const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP
+    setScale(s => {
+      const next = Math.max(MIN_SCALE, Math.min(MAX_SCALE, s + delta))
+      if (next <= 1) {
+        setPanX(0)
+        setPanY(0)
+      }
+      return next
+    })
+  }, [])
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (scale > 1) {
+      setIsPanning(true)
+      setPanStart({ x: e.clientX - panX, y: e.clientY - panY })
+    }
+  }, [scale, panX, panY])
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isPanning && scale > 1) {
+      setPanX(e.clientX - panStart.x)
+      setPanY(e.clientY - panStart.y)
+    }
+  }, [isPanning, scale, panStart])
+
+  const handleMouseUp = useCallback(() => {
+    setIsPanning(false)
+  }, [])
 
   const handleVideoTimeUpdate = () => {
     if (videoRef.current) {
@@ -130,6 +192,8 @@ export default function MediaViewer({ asset, assetList, onClose, onNavigate }: M
     }
   }
 
+  const scalePct = Math.round(scale * 100)
+
   return (
     <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col" onClick={onClose}>
       {/* Top bar */}
@@ -137,6 +201,9 @@ export default function MediaViewer({ asset, assetList, onClose, onNavigate }: M
         <div className="flex items-center gap-3 min-w-0">
           <span className="text-sm text-white/90 font-medium truncate max-w-[400px]">{asset.name}</span>
           <span className="text-xs text-white/40">{currentIdx + 1} / {assetList.length}</span>
+          {scale !== 1 && (
+            <span className="text-[10px] text-accent/80 bg-accent/10 px-1.5 py-0.5 rounded">{scalePct}%</span>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -146,13 +213,27 @@ export default function MediaViewer({ asset, assetList, onClose, onNavigate }: M
           >
             <Info size={16} />
           </button>
-          {asset.type === 'image' && (
+          <button
+            className="p-1.5 rounded text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+            onClick={(e) => { e.stopPropagation(); zoomOut() }}
+            title="缩小 (滚轮)"
+          >
+            <ZoomOut size={16} />
+          </button>
+          <button
+            className="p-1.5 rounded text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+            onClick={(e) => { e.stopPropagation(); zoomIn() }}
+            title="放大 (滚轮)"
+          >
+            <ZoomIn size={16} />
+          </button>
+          {scale !== 1 && (
             <button
-              className={`p-1.5 rounded text-white/70 hover:text-white hover:bg-white/10 transition-colors ${zoomed ? 'bg-white/10' : ''}`}
-              onClick={(e) => { e.stopPropagation(); setZoomed(v => !v) }}
-              title="全屏/适配 (F)"
+              className="p-1.5 rounded text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              onClick={(e) => { e.stopPropagation(); resetZoom() }}
+              title="重置缩放 (F)"
             >
-              {zoomed ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              <RotateCcw size={16} />
             </button>
           )}
           <button
@@ -188,50 +269,67 @@ export default function MediaViewer({ asset, assetList, onClose, onNavigate }: M
         </div>
 
         {/* Media */}
-        <div className="flex-1 flex items-center justify-center overflow-hidden">
-          {asset.type === 'video' ? (
-            <div className="relative max-w-full max-h-full flex flex-col items-center">
-              <video
-                ref={videoRef}
-                src={asset.path}
-                className={`max-w-full rounded shadow-2xl cursor-pointer ${zoomed ? 'max-h-[95vh]' : 'max-h-[80vh]'}`}
-                onClick={toggleVideoPlay}
-                onTimeUpdate={handleVideoTimeUpdate}
-                onPlay={handleVideoPlay}
-                onPause={handleVideoPause}
-                onEnded={handleVideoEnded}
-                onLoadedMetadata={handleVideoTimeUpdate}
-                autoPlay
-                playsInline
-              />
-              {/* Video controls bar */}
-              <div className="mt-3 w-full max-w-[90%] flex items-center gap-3 text-white/80">
-                <button onClick={toggleVideoPlay} className="p-1 hover:text-white">
-                  {videoPlaying ? <Pause size={20} /> : <Play size={20} />}
-                </button>
-                <span className="text-xs tabular-nums w-[70px]">{formatTime(videoCurrent)}</span>
-                <div
-                  className="flex-1 h-1.5 bg-white/20 rounded-full cursor-pointer group relative"
-                  onClick={handleSeek}
-                >
-                  <div
-                    className="h-full bg-white/80 rounded-full group-hover:bg-accent transition-colors"
-                    style={{ width: `${videoDuration ? (videoCurrent / videoDuration) * 100 : 0}%` }}
-                  />
-                </div>
-                <span className="text-xs tabular-nums w-[70px] text-right">{formatTime(videoDuration)}</span>
-                <button onClick={toggleMute} className="p-1 hover:text-white">
-                  {videoMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-                </button>
-              </div>
+        <div
+          ref={mediaContainerRef}
+          className={`flex-1 flex flex-col items-center justify-center overflow-hidden ${scale > 1 ? 'cursor-grab' : 'cursor-default'} ${isPanning ? 'cursor-grabbing' : ''}`}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
+          <div className="flex-1 flex items-center justify-center">
+            <div
+              className="flex items-center justify-center"
+              style={{
+                transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
+                transition: isPanning ? 'none' : 'transform 0.15s ease-out',
+              }}
+            >
+              {asset.type === 'video' ? (
+                <video
+                  ref={videoRef}
+                  src={asset.path}
+                  className="max-w-[85vw] max-h-[75vh] rounded shadow-2xl"
+                  onClick={(e) => { e.stopPropagation(); toggleVideoPlay() }}
+                  onTimeUpdate={handleVideoTimeUpdate}
+                  onPlay={handleVideoPlay}
+                  onPause={handleVideoPause}
+                  onEnded={handleVideoEnded}
+                  onLoadedMetadata={handleVideoTimeUpdate}
+                  autoPlay
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={asset.path}
+                  alt={asset.name}
+                  className="max-w-[85vw] max-h-[80vh] object-contain rounded shadow-2xl select-none"
+                  draggable={false}
+                />
+              )}
             </div>
-          ) : (
-            <img
-              src={asset.path}
-              alt={asset.name}
-              className={`rounded shadow-2xl transition-all ${zoomed ? 'max-w-[98vw] max-h-[98vh] object-contain' : 'max-w-[85vw] max-h-[80vh] object-contain'}`}
-              onClick={(e) => { e.stopPropagation(); setZoomed(v => !v) }}
-            />
+          </div>
+          {asset.type === 'video' && (
+            <div className="w-full max-w-[90%] flex items-center gap-3 text-white/80 pb-3 shrink-0">
+              <button onClick={toggleVideoPlay} className="p-1 hover:text-white">
+                {videoPlaying ? <Pause size={20} /> : <Play size={20} />}
+              </button>
+              <span className="text-xs tabular-nums w-[70px]">{formatTime(videoCurrent)}</span>
+              <div
+                className="flex-1 h-1.5 bg-white/20 rounded-full cursor-pointer group relative"
+                onClick={handleSeek}
+              >
+                <div
+                  className="h-full bg-white/80 rounded-full group-hover:bg-accent transition-colors"
+                  style={{ width: `${videoDuration ? (videoCurrent / videoDuration) * 100 : 0}%` }}
+                />
+              </div>
+              <span className="text-xs tabular-nums w-[70px] text-right">{formatTime(videoDuration)}</span>
+              <button onClick={toggleMute} className="p-1 hover:text-white">
+                {videoMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+              </button>
+            </div>
           )}
         </div>
 

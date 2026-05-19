@@ -205,9 +205,23 @@ ipcMain.handle('api:fetch', async (_, req: { url: string; method?: string; heade
   return new Promise((resolve, reject) => {
     const r = net.request({ method: req.method||'GET', url: req.url })
     if (req.headers) for (const [k,v] of Object.entries(req.headers)) r.setHeader(k,v)
-    const t = setTimeout(()=>{r.abort();reject(new Error('Timeout'))}, req.timeoutMs||120000)
+    const timeoutMs = req.timeoutMs || 120000
+    const t = setTimeout(()=>{r.abort();reject(new Error(`请求超时 (${Math.round(timeoutMs/1000)}秒)，服务器未响应`))}, timeoutMs)
     r.on('response', resp => { clearTimeout(t); const c: Buffer[]=[]; resp.on('data',chunk=>c.push(chunk as Buffer)); resp.on('end',()=>resolve({status:resp.statusCode,statusText:resp.statusMessage,headers:resp.headers,body:Buffer.concat(c).toString('utf-8')})) })
-    r.on('error',e=>{clearTimeout(t);reject(e)})
+    r.on('error',e=>{
+      clearTimeout(t)
+      let msg = e.message || String(e)
+      if (msg.includes('ERR_TIMED_OUT') || msg.includes('ERR_CONNECTION_TIMED_OUT')) {
+        msg = `网络连接超时：无法连接到服务器\n请检查：\n1. 网络连接是否正常\n2. API 服务地址是否正确: ${req.url}\n3. 是否需要配置代理/VPN`
+      } else if (msg.includes('ERR_NAME_NOT_RESOLVED')) {
+        msg = `DNS 解析失败：无法找到服务器\n请检查 API 服务地址是否正确: ${req.url}`
+      } else if (msg.includes('ERR_CONNECTION_REFUSED')) {
+        msg = `连接被拒绝：服务器拒绝连接\n请检查 API 服务是否正在运行: ${req.url}`
+      } else if (msg.includes('ERR_CERT') || msg.includes('ERR_SSL')) {
+        msg = `SSL 证书验证失败\n请检查：1. 系统时间是否正确\n2. 证书是否有效\n原始错误: ${msg}`
+      }
+      reject(new Error(msg))
+    })
     if (req.body) r.write(req.body); r.end()
   })
 })

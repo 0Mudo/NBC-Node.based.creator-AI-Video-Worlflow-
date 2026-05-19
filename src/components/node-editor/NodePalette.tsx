@@ -27,7 +27,31 @@ export default function NodePalette({ collapsed: externalCollapsed, onToggleColl
   const handleAdd = (type: NodeType) => {
     const id = getId()
     const labelMap: Record<string, string> = { assetInput: '素材输入', characterCard: '角色卡', sceneCard: '场景卡', itemCard: '物品卡', script: '剧本', storyboard: '分镜', prompt: '提示词', gptImage2: 'GPT图像生成', banana: 'Banana图像生成', seedance: 'Seedance视频生成', output: '输出' }
-    addNode({ id, type, position: { x: 250 + Math.random() * 200, y: 150 + Math.random() * 300 }, data: { label: labelMap[type] || type, _nodeId: id } })
+    const sizeMap: Partial<Record<NodeType, { width: number; height: number }>> = {
+      assetInput: { width: 220, height: 160 },
+      characterCard: { width: 220, height: 180 },
+      sceneCard: { width: 220, height: 180 },
+      itemCard: { width: 220, height: 180 },
+      prompt: { width: 280, height: 220 },
+      script: { width: 240, height: 180 },
+      storyboard: { width: 240, height: 180 },
+      gptImage2: { width: 240, height: 180 },
+      banana: { width: 240, height: 180 },
+      seedance: { width: 240, height: 180 },
+      output: { width: 220, height: 140 },
+    }
+    const size = sizeMap[type]
+    addNode({
+      id,
+      type,
+      position: { x: 250 + Math.random() * 200, y: 150 + Math.random() * 300 },
+      data: {
+        label: labelMap[type] || type,
+        _nodeId: id,
+        nodeWidth: size?.width,
+        nodeHeight: size?.height,
+      }
+    })
   }
 
   if (collapsed) return null

@@ -21,6 +21,24 @@ function debouncedAutoSave(nodes: AppNode[], edges: AppEdge[]) {
   }, AUTO_SAVE_DEBOUNCE)
 }
 
+function normalizeNode(node: AppNode): AppNode {
+  const width = typeof node.data?.nodeWidth === 'number' ? node.data.nodeWidth : undefined
+  const height = typeof node.data?.nodeHeight === 'number' ? node.data.nodeHeight : undefined
+  if (!width && !height) return node
+  return {
+    ...node,
+    style: {
+      ...(node.style || {}),
+      ...(width ? { width } : {}),
+      ...(height ? { height } : {}),
+    },
+  }
+}
+
+function edgeKey(edge: Pick<AppEdge, 'source' | 'target' | 'sourceHandle' | 'targetHandle'>): string {
+  return `${edge.source}:${edge.sourceHandle || ''}->${edge.target}:${edge.targetHandle || ''}`
+}
+
 interface FlowStore {
   nodes: AppNode[]
   edges: AppEdge[]
@@ -30,6 +48,7 @@ interface FlowStore {
   onEdgesChange: OnEdgesChange
   onConnect: OnConnect
   addNode: (node: AppNode) => void
+  addEdges: (edges: AppEdge[]) => void
   removeNode: (id: string) => void
   updateNodeData: (id: string, data: Record<string, unknown>) => void
   selectNode: (id: string | null) => void
@@ -47,7 +66,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   selectedNodeId: null,
 
   onNodesChange: (changes) => {
-    const nodes = applyNodeChanges(changes, get().nodes) as AppNode[]
+    const nodes = (applyNodeChanges(changes, get().nodes) as AppNode[]).map(normalizeNode)
     set({ nodes })
     debouncedAutoSave(nodes, get().edges)
   },
@@ -62,7 +81,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     debouncedAutoSave(get().nodes, edges)
   },
   addNode: (node) => {
-    const nodes = [...get().nodes, node]
+    const nodes = [...get().nodes, normalizeNode(node)]
     set({ nodes })
     debouncedAutoSave(nodes, get().edges)
     const pId = useProjectStore.getState().activeProjectId
@@ -72,6 +91,16 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
       nodeType: node.type,
       nodeLabel,
     })
+  },
+  addEdges: (newEdges) => {
+    const existing = get().edges
+    const existingKeys = new Set(existing.map((edge) => edgeKey(edge)))
+    const merged = [
+      ...existing,
+      ...newEdges.filter((edge) => !existingKeys.has(edgeKey(edge))),
+    ]
+    set({ edges: merged })
+    debouncedAutoSave(get().nodes, merged)
   },
   removeNode: (id) => {
     const oldNode = get().nodes.find((n) => n.id === id)
@@ -96,8 +125,9 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   },
   selectNode: (id) => set({ selectedNodeId: id }),
   setNodes: (nodes) => {
-    set({ nodes })
-    debouncedAutoSave(nodes, get().edges)
+    const normalized = nodes.map(normalizeNode)
+    set({ nodes: normalized })
+    debouncedAutoSave(normalized, get().edges)
   },
   setEdges: (edges) => {
     set({ edges })
@@ -105,7 +135,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   },
 
   loadFromProject: (nodes, edges) => {
-    set({ nodes, edges, selectedNodeId: null })
+    set({ nodes: nodes.map(normalizeNode), edges, selectedNodeId: null })
   },
 
   newBlank: () => {
@@ -123,7 +153,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     let inspirationData = null
     if (pId) {
       try {
-        const raw = localStorage.getItem(`nbc_timeline_${pId}`)
+        const raw = localStorage.getItem(`nbc_timeline_v2_${pId}`) || localStorage.getItem(`nbc_timeline_${pId}`)
         if (raw) timelineData = JSON.parse(raw)
       } catch {}
       
@@ -154,14 +184,14 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   },
 
   importFromFile: (file) => {
-    set({ nodes: file.nodes || [], edges: file.edges || [], selectedNodeId: null })
+    set({ nodes: (file.nodes || []).map(normalizeNode), edges: file.edges || [], selectedNodeId: null })
     
     const pId = useProjectStore.getState().activeProjectId
     if (pId) {
       // Import timeline data if it exists in the metadata
       if (file.metadata?.timeline) {
         try {
-          localStorage.setItem(`nbc_timeline_${pId}`, JSON.stringify(file.metadata.timeline))
+          localStorage.setItem(`nbc_timeline_v2_${pId}`, JSON.stringify(file.metadata.timeline))
           window.dispatchEvent(new Event('timeline-imported'))
         } catch {}
       }
