@@ -6,7 +6,7 @@ import { useProjectStore } from '@/store/useProjectStore'
 import { nodeTypes, nodeTypeColors } from '@/nodes'
 import type { NbcFile } from '@/types/project'
 import type { Asset } from '@/types/asset'
-import { Zap, Upload, Download, Trash2, Circle } from 'lucide-react'
+import { Zap, Upload, Download, Trash2, FolderOpen } from 'lucide-react'
 import { executeAll } from '@/store/useExecutionEngine'
 
 let nodeId = 0
@@ -183,33 +183,47 @@ function FlowEditorInner() {
 
   return (
     <div className="w-full h-full flex flex-col">
-      <div className="flex-none flex items-center justify-between bg-bg-secondary border-b border-node-border px-3 py-2 z-10">
+      <div className="flex-none flex items-center justify-between toolbar-glass px-3 py-2 z-10">
         <div className="flex items-center gap-2">
           {activeProject && (
-            <div className="flex items-center gap-1.5 mr-2">
-              <Circle size={8} className={dirty ? 'text-warning' : 'text-success'} />
-              <span className="text-xs font-semibold text-text-primary">{activeProject.name}</span>
+            <div className="flex items-center gap-2 mr-2 px-2.5 py-1 rounded-md bg-node-border/10 border border-node-border/20">
+              <div className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${dirty ? 'bg-warning animate-breathe' : 'bg-success'}`} />
+                <span className="text-xs font-semibold text-text-primary">{activeProject.name}</span>
+              </div>
               {lastSavedAt && (
-                <span className="text-[10px] text-text-secondary ml-1 hidden sm:inline">
-                  {new Date(lastSavedAt).toLocaleTimeString()}
+                <span className="text-[10px] text-text-tertiary hidden sm:inline">
+                  · {new Date(lastSavedAt).toLocaleTimeString()}
                 </span>
               )}
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <button className="btn btn-secondary text-xs flex items-center gap-1" onClick={() => useProjectStore.getState().saveCurrentData(nodes, edges)} title="保存项目"><Upload size={12} /> 保存项目</button>
-          <button className="btn btn-secondary text-xs flex items-center gap-1" onClick={handleSaveToFile} title="导出工作流文件"><Upload size={12} /> 导出文件</button>
-          <button className="btn btn-secondary text-xs flex items-center gap-1" onClick={handleLoadFromFile} title="导入工作流文件"><Download size={12} /> 导入文件</button>
+        <div className="flex items-center gap-1.5">
+          <div className="btn-group">
+            <button className="btn btn-ghost btn-icon text-xs flex items-center gap-1.5" onClick={() => useProjectStore.getState().saveCurrentData(nodes, edges)} title="保存项目">
+              <Upload size={13} />
+            </button>
+            <button className="btn btn-ghost btn-icon text-xs flex items-center gap-1.5" onClick={handleSaveToFile} title="导出工作流文件">
+              <Download size={13} />
+            </button>
+            <button className="btn btn-ghost btn-icon text-xs flex items-center gap-1.5" onClick={handleLoadFromFile} title="导入工作流文件">
+              <FolderOpen size={13} />
+            </button>
+          </div>
           <input ref={fileInputRef} type="file" accept=".json,.nbc.json" className="hidden" onChange={onFileImport} />
-          <div className="w-px h-4 bg-node-border mx-1" />
-          <button className="btn btn-accent text-xs flex items-center gap-1" onClick={() => { if (confirm('确定运行所有生成节点？')) executeAll() }}><Zap size={12} /> 全部运行</button>
-          <button className="btn btn-ghost text-xs flex items-center gap-1 text-text-secondary hover:text-red-400" onClick={() => { if (confirm('确定清空所有节点？此操作不可撤销。')) { useFlowStore.getState().setNodes([]); useFlowStore.getState().setEdges([]); } }}><Trash2 size={12} /> 清空画布</button>
+          <div className="w-px h-5 bg-node-border/30 mx-0.5" />
+          <button className="btn btn-accent text-xs flex items-center gap-1.5 px-3 shadow-md shadow-accent/20 hover:shadow-lg hover:shadow-accent/30 transition-all" onClick={() => { if (confirm('确定运行所有生成节点？')) executeAll() }}>
+            <Zap size={13} className="animate-breathe" /> 全部运行
+          </button>
+          <div className="w-px h-5 bg-node-border/30 mx-0.5" />
+          <button className="btn btn-ghost text-xs flex items-center gap-1.5 text-text-secondary hover:text-danger transition-colors" onClick={() => { if (confirm('确定清空所有节点？此操作不可撤销。')) { useFlowStore.getState().setNodes([]); useFlowStore.getState().setEdges([]); } }}>
+            <Trash2 size={13} /> 清空
+          </button>
           {(selectedNodes.length > 0 || selectedEdges.length > 0) && (
-            <>
-              <div className="w-px h-4 bg-node-border mx-1" />
-              <button className="btn btn-ghost text-xs flex items-center gap-1 text-danger hover:text-danger" onClick={() => deleteElements({ nodes: selectedNodes, edges: selectedEdges })}><Trash2 size={12} /> 删除</button>
-            </>
+            <button className="btn btn-ghost text-xs flex items-center gap-1.5 text-danger hover:text-danger transition-colors" onClick={() => deleteElements({ nodes: selectedNodes, edges: selectedEdges })}>
+              <Trash2 size={13} /> 删除选中
+            </button>
           )}
         </div>
       </div>

@@ -41,30 +41,33 @@ function ProviderCard({ provider }: { provider: ProviderConfig }) {
   const defaultEndpoint = localProvider.endpoints.find((e) => e.isDefault) || localProvider.endpoints[0]
 
   return (
-    <div className="border border-node-border rounded-lg overflow-hidden">
+    <div className="border border-node-border/20 rounded-xl overflow-hidden card-lift bg-bg-primary/60 backdrop-blur-sm">
       <div
-        className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-node-border/50 transition-colors"
+        className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-node-border/15 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
-        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: provider.color }} />
+        <div
+          className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
+          style={{ backgroundColor: provider.color, boxShadow: `0 0 8px ${provider.color}40` }}
+        />
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-medium">{provider.name}</div>
-          <div className="text-[10px] text-text-secondary">
+          <div className="text-xs font-semibold">{provider.name}</div>
+          <div className="text-[10px] text-text-secondary mt-0.5">
             {provider.capabilities.join(' · ')}
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {provider.connected !== undefined && (
-            <div className={`w-1.5 h-1.5 rounded-full ${provider.connected ? 'bg-green-400' : 'bg-red-400'}`} />
+            <div className={`w-2 h-2 rounded-full ${provider.connected ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.4)]' : 'bg-red-400'}`} />
           )}
           <button
             className="btn btn-ghost p-0.5"
             onClick={(e) => { e.stopPropagation(); toggleProvider(provider.id) }}
             title={provider.enabled ? '禁用' : '启用'}
           >
-            {provider.enabled ? <ToggleRight size={16} className="text-accent" /> : <ToggleLeft size={16} className="text-text-secondary" />}
+            {provider.enabled ? <ToggleRight size={17} className="text-accent" /> : <ToggleLeft size={17} className="text-text-secondary" />}
           </button>
-          {expanded ? <ChevronDown size={12} className="text-text-secondary" /> : <ChevronRight size={12} className="text-text-secondary" />}
+          {expanded ? <ChevronDown size={13} className="text-text-secondary" /> : <ChevronRight size={13} className="text-text-secondary" />}
         </div>
       </div>
 
@@ -355,7 +358,10 @@ function FeishuSyncSettings() {
 
   return (
     <div>
-      <h3 className="text-xs font-semibold mb-2 text-text-secondary">飞书多维表格同步</h3>
+      <h3 className="text-[11px] font-semibold mb-3 text-text-secondary uppercase tracking-wider flex items-center gap-2">
+        <span className="w-1 h-3 rounded-full bg-accent/50" />
+        飞书多维表格同步
+      </h3>
       <div className="bg-bg-tertiary/50 p-3 rounded-lg border border-node-border space-y-3">
         <p className="text-[10px] text-text-secondary">将 NBC 操作事件（项目创建、生成开始/完成/失败）自动同步到飞书多维表格。</p>
 
@@ -608,15 +614,24 @@ export default function SettingsPanel({ open, onClose }: Props) {
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings-dialog max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="flex items-center gap-2 text-sm font-semibold"><Key size={16} /> 设置</h2>
-          <button className="btn btn-ghost p-1" onClick={onClose}><X size={16} /></button>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="flex items-center gap-2.5 text-sm font-semibold">
+            <span className="w-8 h-8 rounded-lg flex items-center justify-center shadow-md"
+              style={{ background: 'linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent-secondary)) 100%)' }}>
+              <Key size={15} className="text-bg-primary" />
+            </span>
+            设置
+          </h2>
+          <button className="btn btn-ghost p-1.5" onClick={onClose}><X size={17} /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+        <div className="flex-1 overflow-y-auto space-y-5 pr-1">
           {/* General Settings */}
           <div>
-            <h3 className="text-xs font-semibold mb-2 text-text-secondary">通用设置</h3>
+            <h3 className="text-[11px] font-semibold mb-3 text-text-secondary uppercase tracking-wider flex items-center gap-2">
+              <span className="w-1 h-3 rounded-full bg-accent/50" />
+              通用设置
+            </h3>
             <div className="bg-bg-tertiary p-3 rounded-lg border border-node-border space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -673,8 +688,11 @@ export default function SettingsPanel({ open, onClose }: Props) {
 
           {/* Provider Settings */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-semibold text-text-secondary">API 配置</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                <span className="w-1 h-3 rounded-full bg-accent/50" />
+                API 配置
+              </h3>
               <div className="flex items-center gap-1.5">
                 <button
                   className="btn btn-ghost text-[10px] py-0.5 px-2 flex items-center gap-1 border border-node-border hover:border-accent/50 transition-colors"

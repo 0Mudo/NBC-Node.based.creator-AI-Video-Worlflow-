@@ -50,8 +50,8 @@ export function NodeFrame({
         isVisible={!!selected}
         minWidth={minWidth}
         minHeight={minHeight}
-        lineClassName="!border-accent/60"
-        handleClassName="!w-2.5 !h-2.5 !border !border-accent !bg-bg-primary"
+        lineClassName="!border-accent/40"
+        handleClassName="!w-3 !h-3 !border-2 !border-accent !bg-bg-primary !rounded-md hover:!scale-110 !transition-transform"
         onResizeEnd={(_, params) => {
           updateNodeData(nodeId, {
             nodeWidth: Math.round(params.width),

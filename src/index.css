@@ -3,8 +3,9 @@
 @tailwind utilities;
 
 /* ================================================================
-   NBC · Noir Studio — Cinematic Design System
+   NBC · Noir Studio — Cinematic Design System v2
    A refined dark aesthetic inspired by film production studios.
+   Enhanced with glass morphism, gradient accents, and fluid motion.
    ================================================================ */
 
 /* ── Dark Theme (Default) ── */
@@ -57,18 +58,27 @@
   --radius-lg: 14px;
   --radius-xl: 20px;
 
-  /* Shadows — subtle, refined */
+  /* Shadows — layered depth system */
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
   --shadow-sm: 0 2px 6px rgba(0,0,0,0.4);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.7);
   --shadow-glow: 0 0 20px rgba(232, 168, 80, 0.15);
+  --shadow-glow-strong: 0 0 32px rgba(232, 168, 80, 0.25);
+  --shadow-inner: inset 0 1px 3px rgba(0,0,0,0.3);
+
+  /* Gradient accents */
+  --gradient-brand: linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent-secondary)) 100%);
+  --gradient-subtle: linear-gradient(180deg, rgb(var(--bg-secondary)) 0%, rgb(var(--bg-primary)) 100%);
+  --gradient-glass: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
 
   /* Transitions — cinematic easing */
   --transition-fast: 180ms cubic-bezier(0.22, 0.61, 0.36, 1);
   --transition-base: 280ms cubic-bezier(0.22, 0.61, 0.36, 1);
   --transition-slow: 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
   --transition-reveal: 500ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-bounce: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* ── Light Theme ── */
@@ -94,7 +104,13 @@
   --shadow-sm: 0 2px 6px rgba(0,0,0,0.07);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.15);
   --shadow-glow: 0 0 20px rgba(200, 132, 62, 0.1);
+  --shadow-glow-strong: 0 0 32px rgba(200, 132, 62, 0.18);
+  --shadow-inner: inset 0 1px 3px rgba(0,0,0,0.05);
+  --gradient-brand: linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent-secondary)) 100%);
+  --gradient-subtle: linear-gradient(180deg, rgb(var(--bg-secondary)) 0%, rgb(var(--bg-primary)) 100%);
+  --gradient-glass: linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.3) 100%);
 }
 
 /* ================================================================
@@ -267,15 +283,15 @@ input[type="number"] { -moz-appearance: textfield; }
    ================================================================ */
 
 .node-container {
-  background: linear-gradient(135deg,
+  background: linear-gradient(160deg,
     rgb(var(--node-bg)) 0%,
-    rgb(var(--node-bg)) 100%);
-  border: 1px solid rgb(var(--node-border) / 0.6);
+    rgb(var(--node-bg) / 0.95) 100%);
+  border: 1.5px solid rgb(var(--node-border) / 0.5);
   border-radius: var(--radius-md);
   padding: 12px 16px;
   min-width: 190px;
   font-size: 13px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), 0 0 0 0 rgb(var(--accent) / 0);
   color: rgb(var(--text-primary));
   transition: all var(--transition-base);
   position: relative;
@@ -302,14 +318,15 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 
 .node-container:hover {
-  border-color: rgb(var(--node-border));
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  border-color: rgb(var(--accent) / 0.4);
+  box-shadow: var(--shadow-md), 0 0 20px rgb(var(--accent) / 0.08);
   transform: translateY(-1px);
 }
 
 .node-container.selected {
   border-color: rgb(var(--accent));
-  box-shadow: 0 0 0 1px rgb(var(--accent) / 0.5), 0 0 24px rgb(var(--accent) / 0.12), var(--shadow-md);
+  box-shadow: 0 0 0 1px rgb(var(--accent) / 0.4), 0 0 24px rgb(var(--accent) / 0.15), var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .node-header {
@@ -428,11 +445,40 @@ input[type="number"] { -moz-appearance: textfield; }
   to { opacity: 1; transform: translateX(0) scale(1); }
 }
 
+@keyframes breathe {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes border-glow {
+  0%, 100% { border-color: rgb(var(--node-border) / 0.4); }
+  50% { border-color: rgb(var(--accent) / 0.5); }
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .animate-fade-in { animation: fade-in var(--transition-base) ease-out; }
 .animate-slide-up { animation: slide-up var(--transition-reveal) ease-out; }
 .animate-slide-in-right { animation: slide-in-right var(--transition-base) ease-out; }
 .animate-reveal-scale { animation: reveal-scale var(--transition-reveal) ease-out; }
 .animate-toast-in { animation: toast-in var(--transition-base) ease-out; }
+.animate-breathe { animation: breathe 3s ease-in-out infinite; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-slide-down { animation: slide-down var(--transition-base) ease-out; }
 
 /* Stagger children animations */
 .stagger > * {
@@ -814,25 +860,23 @@ input[type="radio"] {
   position: fixed;
   inset: 0;
   background: var(--overlay-bg);
-  backdrop-filter: blur(12px) saturate(0.8);
-  -webkit-backdrop-filter: blur(12px) saturate(0.8);
+  backdrop-filter: blur(16px) saturate(0.8);
+  -webkit-backdrop-filter: blur(16px) saturate(0.8);
   z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: fade-in 200ms ease-out;
 }
 
 .settings-dialog {
   background: rgb(var(--bg-secondary));
-  border: 1px solid rgb(var(--node-border) / 0.5);
-  border-radius: var(--radius-lg);
+  border: 1px solid rgb(var(--node-border) / 0.4);
+  border-radius: var(--radius-xl);
   padding: 28px;
-  width: 440px;
+  width: 460px;
   max-height: 82vh;
   overflow-y: auto;
-  box-shadow: var(--shadow-lg), var(--shadow-glow);
-  animation: reveal-scale var(--transition-reveal) ease-out;
+  box-shadow: var(--shadow-xl), var(--shadow-glow);
 }
 
 /* ================================================================
@@ -845,17 +889,26 @@ input[type="radio"] {
 }
 
 .nbc-dock-theme .dock-panel {
-  background: rgb(var(--bg-primary));
-  border-color: rgb(var(--node-border) / 0.35);
+  background: rgb(var(--bg-primary) / 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-color: rgb(var(--node-border) / 0.3);
   border-radius: var(--radius-md);
   overflow: hidden;
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-base);
+}
+
+.nbc-dock-theme .dock-panel:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .nbc-dock-theme .dock-bar {
-  background: rgb(var(--bg-secondary));
-  padding: 3px 6px 0 6px;
-  border-bottom: 1px solid rgb(var(--node-border) / 0.3);
+  background: rgb(var(--bg-secondary) / 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 4px 6px 0 6px;
+  border-bottom: 1px solid rgb(var(--node-border) / 0.25);
 }
 
 .nbc-dock-theme .dock-nav {
@@ -869,7 +922,7 @@ input[type="radio"] {
   border: none;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   margin-bottom: -1px;
-  padding: 6px 14px;
+  padding: 7px 14px;
   min-width: 80px;
   max-width: 180px;
   display: flex;
@@ -882,14 +935,15 @@ input[type="radio"] {
 }
 
 .nbc-dock-theme .dock-tab:hover {
-  background: rgb(var(--node-bg) / 0.5);
+  background: rgb(var(--node-bg) / 0.6);
   color: rgb(var(--text-secondary));
 }
 
 .nbc-dock-theme .dock-tab.dock-tab-active {
-  background: rgb(var(--bg-primary));
+  background: rgb(var(--bg-primary) / 0.95);
   color: rgb(var(--text-primary));
   font-weight: 600;
+  box-shadow: 0 -1px 4px rgba(0,0,0,0.1);
 }
 
 .nbc-dock-theme .dock-tab.dock-tab-active::after {
@@ -900,11 +954,12 @@ input[type="radio"] {
   right: 0;
   height: 2px;
   background: linear-gradient(90deg,
-    transparent 8%,
-    rgb(var(--accent)) 40%,
-    rgb(var(--accent)) 60%,
-    transparent 92%);
+    transparent 5%,
+    rgb(var(--accent)) 30%,
+    rgb(var(--accent-secondary)) 70%,
+    transparent 95%);
   border-radius: 1px 1px 0 0;
+  box-shadow: 0 -2px 8px rgb(var(--accent) / 0.3);
 }
 
 .nbc-dock-theme .dock-tab-close-btn {
@@ -938,12 +993,13 @@ input[type="radio"] {
 .nbc-dock-theme .dock-divider {
   background: transparent !important;
   position: relative;
+  transition: background var(--transition-fast);
 }
 
 .nbc-dock-theme .dock-divider::before {
   content: "";
   position: absolute;
-  background: rgb(var(--node-border) / 0.3);
+  background: rgb(var(--node-border) / 0.25);
   transition: all var(--transition-fast);
 }
 
@@ -963,15 +1019,30 @@ input[type="radio"] {
   transform: translateX(-50%);
 }
 
+.nbc-dock-theme .dock-divider:hover {
+  background: rgb(var(--accent) / 0.08) !important;
+}
+
 .nbc-dock-theme .dock-divider:hover::before {
-  background: rgb(var(--accent) / 0.6);
+  background: rgb(var(--accent) / 0.5);
   opacity: 1;
+}
+
+/* Drag preview */
+.nbc-dock-theme .dock-drag-preview {
+  background: rgb(var(--bg-secondary) / 0.9) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgb(var(--accent) / 0.4) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg), var(--shadow-glow) !important;
 }
 
 /* Drop indicator */
 .nbc-dock-theme .dock-drop-indicator {
-  background: rgb(var(--accent) / 0.3) !important;
+  background: rgb(var(--accent) / 0.25) !important;
   border-radius: var(--radius-sm);
+  box-shadow: inset 0 0 0 1px rgb(var(--accent) / 0.4);
 }
 
 /* ================================================================
@@ -1164,4 +1235,168 @@ input[type="radio"] {
 .focus-ring:focus-visible {
   box-shadow: 0 0 0 2px rgb(var(--accent) / 0.4);
   border-radius: var(--radius-xs);
+}
+
+/* ================================================================
+   ENHANCED UTILITY CLASSES — Glass, Glow, Gradients
+   ================================================================ */
+
+/* Glass morphism panel */
+.glass-panel {
+  background: rgb(var(--bg-secondary) / 0.75);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid rgb(var(--node-border) / 0.3);
+  box-shadow: var(--shadow-md), var(--shadow-inner);
+}
+
+/* Gradient border card */
+.gradient-border {
+  position: relative;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgb(var(--accent) / 0.4), transparent 40%, transparent 60%, rgb(var(--accent-secondary) / 0.25));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent-secondary)) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effect on hover */
+.glow-hover {
+  transition: box-shadow var(--transition-base), border-color var(--transition-base);
+}
+
+.glow-hover:hover {
+  box-shadow: var(--shadow-glow-strong);
+  border-color: rgb(var(--accent) / 0.4);
+}
+
+/* Pulse dot indicator */
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgb(var(--accent));
+  box-shadow: 0 0 8px rgb(var(--accent) / 0.5);
+  animation: breathe 2s ease-in-out infinite;
+}
+
+/* Subtle card hover lift */
+.card-lift {
+  transition: all var(--transition-base);
+}
+
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+}
+
+/* Animated gradient background */
+.animated-gradient {
+  background: linear-gradient(
+    270deg,
+    rgb(var(--accent) / 0.1),
+    rgb(var(--accent-secondary) / 0.1),
+    rgb(var(--accent) / 0.1)
+  );
+  background-size: 200% 200%;
+  animation: gradient-shift 4s ease infinite;
+}
+
+/* ================================================================
+   TOOLBAR GLASS — Refined
+   ================================================================ */
+
+.toolbar-glass {
+  background: rgb(var(--bg-secondary) / 0.7);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border-bottom: 1px solid rgb(var(--node-border) / 0.25);
+  position: relative;
+}
+
+.toolbar-glass::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgb(var(--accent) / 0.3) 15%,
+    rgb(var(--accent) / 0.15) 50%,
+    rgb(var(--accent) / 0.3) 85%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* ================================================================
+   GROUPED BUTTONS — Segmented control
+   ================================================================ */
+
+.btn-group {
+  display: inline-flex;
+  align-items: center;
+  background: rgb(var(--node-border) / 0.15);
+  border: 1px solid rgb(var(--node-border) / 0.25);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 1px;
+}
+
+.btn-group .btn {
+  border-radius: calc(var(--radius-sm) - 1px);
+  padding: 5px 8px;
+}
+
+.btn-group .btn:not(:hover) {
+  background: transparent;
+}
+
+/* ================================================================
+   SMOOTH COLLAPSE TRANSITION
+   ================================================================ */
+
+.collapse-enter {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height var(--transition-base), opacity var(--transition-base);
+}
+
+.collapse-enter-active {
+  max-height: 1000px;
+  opacity: 1;
+}
+
+/* ================================================================
+   CUSTOM SELECT STYLING
+   ================================================================ */
+
+.select-custom {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%239e988e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 28px;
 }
