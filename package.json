@@ -1,16 +1,16 @@
 {
   "name": "node-based-creator",
   "private": true,
-  "version": "1.0.5-beta-10",
+  "version": "1.0.5-beta-11",
   "description": "素材节点式图形界面 - Visual Asset Node Editor",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "electron:build-main": "vite build --config vite.electron.config.ts",
-    "electron:dev": "npm run electron:build-main && set VITE_DEV_SERVER_URL=http://localhost:5173 && concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron:prod": "npm run build && npm run electron:build-main && electron .",
-    "electron:build": "npm run build && npm run electron:build-main && electron-builder --win"
+    "electron:dev": "cmd /c \"for /f \\\"tokens=5\\\" %a in ('netstat -ano ^| findstr :5173 ^| findstr LISTENING') do taskkill /f /pid %a 2>nul\" & pnpm run electron:build-main & set VITE_DEV_SERVER_URL=http://localhost:5173 & concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:prod": "pnpm run build && pnpm run electron:build-main && electron .",
+    "electron:build": "pnpm run build && pnpm run electron:build-main && electron-builder --win"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",
