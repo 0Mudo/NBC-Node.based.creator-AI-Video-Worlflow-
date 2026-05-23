@@ -115,6 +115,7 @@ export interface NodeData {
   // Banana
   bananaModel?: string
   bananaAspectRatio?: string
+  bananaImageSize?: '1K' | '2K' | '4K'
   bananaUrls?: string
 
   // Output

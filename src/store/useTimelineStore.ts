@@ -1,7 +1,5 @@
 import { create } from 'zustand'
 import { useProjectStore } from './useProjectStore'
-import { characters } from '@/data/characters'
-import { scenes } from '@/data/scenes'
 import { emitNBCEvent } from '@/utils/nbcEvents'
 import { useAssetStore } from './useAssetStore'
 import { safeGetItem, safeSetItem } from '@/utils/safeStorage'
@@ -186,19 +184,6 @@ function parseLine(text: string): { label: string; shotType: string; duration: n
 
   for (const tr of TRANSITIONS) {
     if (cleaned.includes(tr)) { transition = tr; break }
-  }
-
-  for (const char of characters) {
-    if (cleaned.includes(char.name) || cleaned.includes(char.nameEn)) {
-      characterIds.push(char.id)
-    }
-  }
-
-  for (const scene of scenes) {
-    if (cleaned.includes(scene.name) || cleaned.includes(scene.nameEn)) {
-      sceneId = scene.id
-      break
-    }
   }
 
   const dialogueMatch = cleaned.match(/["""](.+?)[""」]/)

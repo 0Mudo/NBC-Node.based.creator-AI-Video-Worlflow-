@@ -1,13 +1,35 @@
 import React, { useState } from 'react'
-import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus, X, Box, Loader2 } from 'lucide-react'
 import type { ItemProfile } from '@/types/inspiration'
+import { generateBananaImage } from '@/api/banana'
+import { generateGPTImageStream, pollGPTImageResult, sanitizeUrl, buildResultEndpoint } from '@/api/gptImage2'
+import { useProviderStore } from '@/store/useProviderStore'
+import { useCardGenSettingsStore } from '@/store/useCardGenSettingsStore'
 
 interface Props {
   profile: ItemProfile
   onChange: (profile: ItemProfile) => void
 }
 
-type SectionId = 'basic' | 'physical' | 'visual' | 'function' | 'refImages'
+function buildItemDescription(profile: ItemProfile): string {
+  const parts: string[] = []
+  if (profile.name) parts.push(`a ${profile.material || ''} ${profile.color || ''} ${profile.itemType || 'item'} called "${profile.name}"`)
+  else if (profile.itemType) parts.push(`a ${profile.material || ''} ${profile.color || ''} ${profile.itemType}`)
+
+  if (profile.visualFeatures) parts.push(`featuring ${profile.visualFeatures}`)
+
+  if (profile.function) parts.push(`function: ${profile.function}`)
+
+  if (profile.condition) parts.push(`in ${profile.condition} condition`)
+
+  if (profile.dimensions) parts.push(`dimensions: ${profile.dimensions}`)
+
+  if (parts.length === 0) parts.push(profile.nameEn || 'an object')
+
+  return parts.join('. ')
+}
+
+type SectionId = 'basic' | 'physical' | 'visual' | 'function' | 'refImages' | 'itemRef'
 
 const ITEM_TYPE_OPTIONS = ['武器', '道具', '科技设备', '服装', '消耗品', '载具', '文献']
 const CONDITION_OPTIONS = ['完好', '轻微磨损', '明显磨损', '损坏', '老旧']
@@ -63,7 +85,11 @@ export default function ItemProfileForm({ profile, onChange }: Props) {
     visual: false,
     function: false,
     refImages: false,
+    itemRef: true,
   })
+  const [generating, setGenerating] = useState(false)
+  const [genError, setGenError] = useState('')
+  const [genResult, setGenResult] = useState<string | null>(null)
 
   const toggle = (id: SectionId) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
@@ -71,6 +97,79 @@ export default function ItemProfileForm({ profile, onChange }: Props) {
 
   const update = (partial: Partial<ItemProfile>) => {
     onChange({ ...profile, ...partial })
+  }
+
+  const handleGenerateItemRef = async () => {
+    setGenerating(true)
+    setGenError('')
+    setGenResult(null)
+
+    try {
+      const cfg = useCardGenSettingsStore.getState().getSettings('item')
+      const objectDescription = buildItemDescription(profile)
+      const finalPrompt = cfg.promptTemplate.replace('{OBJECT_DESCRIPTION}', objectDescription)
+      const fullPrompt = cfg.negativePrompt
+        ? `${finalPrompt}\n\nNEGATIVE PROMPT (STRICTLY AVOID): ${cfg.negativePrompt}`
+        : finalPrompt
+
+      if (cfg.provider === 'banana') {
+        const provider = useProviderStore.getState().getProvider('banana')
+        const endpoint = provider?.endpoints.find(e => e.isDefault) || provider?.endpoints[0]
+        const apiKey = endpoint?.apiKey || ''
+
+        const result = await generateBananaImage({
+          prompt: fullPrompt,
+          model: cfg.model,
+          aspectRatio: cfg.aspectRatio,
+          imageSize: cfg.imageSize as '1K' | '2K' | '4K',
+          replyType: 'json',
+          apiKey,
+          endpoint: endpoint?.url,
+        })
+
+        if (result.results && result.results.length > 0) {
+          const url = result.results[0].url
+          setGenResult(url)
+          update({ refImages: [...profile.refImages, url] })
+        } else {
+          throw new Error('生成成功但未返回图像链接')
+        }
+      } else {
+        const provider = useProviderStore.getState().getProvider('gptImage2')
+        const endpoint = provider?.endpoints.find(e => e.isDefault) || provider?.endpoints[0]
+        const apiKey = endpoint?.apiKey || ''
+        const endpointUrl = sanitizeUrl(endpoint?.url)
+
+        const results = await generateGPTImageStream({
+          prompt: fullPrompt,
+          model: cfg.model,
+          aspectRatio: cfg.aspectRatio,
+          apiKey,
+          endpoint: endpointUrl,
+        })
+        const first = results[0]
+        if (first?.id && !first?.url) {
+          const resultEndpoint = buildResultEndpoint(endpointUrl)
+          const polled = await pollGPTImageResult(first.id, apiKey, resultEndpoint)
+          if (polled[0]?.url) {
+            setGenResult(polled[0].url)
+            update({ refImages: [...profile.refImages, polled[0].url] })
+            setGenerating(false)
+            return
+          }
+        }
+        if (first?.url) {
+          setGenResult(first.url)
+          update({ refImages: [...profile.refImages, first.url] })
+        } else {
+          throw new Error('生成成功但未返回图像链接')
+        }
+      }
+    } catch (err: any) {
+      setGenError(err.message || '生成失败')
+    } finally {
+      setGenerating(false)
+    }
   }
 
   return (
@@ -212,6 +311,32 @@ export default function ItemProfileForm({ profile, onChange }: Props) {
             <Plus size={12} />
             添加 URL
           </button>
+        </div>
+      </Section>
+
+      <Section id="itemRef" icon="📐" label="物品参考" expanded={expanded.itemRef} onToggle={toggle}>
+        <div className="space-y-2">
+          <p className="text-[11px] text-text-secondary leading-relaxed">
+            基于物品属性自动构建描述，生成专业三视图参考（正视图、侧视图、俯视图）。生成结果将自动添加到参考图中。
+          </p>
+          <button
+            type="button"
+            className="btn btn-primary flex items-center gap-1.5 text-xs"
+            onClick={handleGenerateItemRef}
+            disabled={generating}
+          >
+            {generating ? (
+              <><Loader2 size={14} className="animate-spin" /> 生成中…</>
+            ) : (
+              <><Box size={14} /> 一键生成物品参考</>
+            )}
+          </button>
+          {genError && (
+            <div className="text-[11px] text-red-400 break-words">{genError}</div>
+          )}
+          {genResult && !genError && (
+            <img src={genResult} className="rounded border border-node-border/40 max-h-32 object-cover w-full" alt="物品参考图结果" />
+          )}
         </div>
       </Section>
     </div>

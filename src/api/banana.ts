@@ -6,6 +6,7 @@ export interface BananaImageOptions {
   prompt: string
   model?: string
   aspectRatio?: string
+  imageSize?: '1K' | '2K' | '4K'
   images?: string[]
   replyType?: 'json' | 'stream' | 'async'
   apiKey?: string
@@ -34,12 +35,13 @@ export async function generateBananaImage(
   }
 
   const body: Record<string, unknown> = {
-    model: options.model || 'gpt-image-2',
+    model: options.model || 'nano-banana-2',
     prompt: options.prompt,
-    replyType: options.replyType || 'async', // Default to async for polling
+    replyType: options.replyType || 'json',
   }
   
   if (options.aspectRatio) body.aspectRatio = options.aspectRatio
+  if (options.imageSize) body.imageSize = options.imageSize
   if (options.images?.length) body.images = options.images
 
   const res = await apiFetch(endpoint, {

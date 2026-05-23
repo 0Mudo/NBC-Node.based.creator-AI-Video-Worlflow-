@@ -1,57 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Asset, AssetTag } from '@/types/asset'
-import { characters } from '@/data/characters'
-import { scenes } from '@/data/scenes'
-import { items } from '@/data/items'
 
 function buildPresetAssets(): Asset[] {
-  const now = new Date().toISOString()
-  const presets: Asset[] = []
-
-  for (const c of characters) {
-    presets.push({
-      id: `preset_char_${c.id}`,
-      name: c.name,
-      type: 'text',
-      path: `preset://character/${c.id}`,
-      prompt: c.appearance,
-      tags: ['Character', '预设'],
-      createdAt: now,
-      thumbnailPath: c.refImage || undefined,
-      preset: true
-    })
-  }
-
-  for (const s of scenes) {
-    presets.push({
-      id: `preset_scene_${s.id}`,
-      name: s.name,
-      type: 'text',
-      path: `preset://scene/${s.id}`,
-      prompt: `${s.description}\n\n光照: ${s.lighting}\n氛围: ${s.mood}`,
-      tags: ['Scene', '预设'],
-      createdAt: now,
-      thumbnailPath: s.refImage || undefined,
-      preset: true
-    })
-  }
-
-  for (const it of items) {
-    presets.push({
-      id: `preset_item_${it.id}`,
-      name: it.name,
-      type: 'text',
-      path: `preset://item/${it.id}`,
-      prompt: `${it.description}\n\n材质: ${it.material}\n状态: ${it.status}`,
-      tags: ['Item', '预设'],
-      createdAt: now,
-      thumbnailPath: it.refImage || undefined,
-      preset: true
-    })
-  }
-
-  return presets
+  return []
 }
 
 interface AssetStore {

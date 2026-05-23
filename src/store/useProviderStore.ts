@@ -40,7 +40,7 @@ function getDefaultProviders(): ProviderRegistry {
     },
     banana: {
       id: 'banana',
-      name: 'Banana Image',
+      name: 'Nano Banana',
       capabilities: ['text-to-image'],
       icon: 'Image',
       color: '#f39c12',
@@ -48,7 +48,8 @@ function getDefaultProviders(): ProviderRegistry {
         { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'sk-...', required: true },
       ],
       endpoints: [
-        { id: 'default', name: '默认端点', url: 'https://grsai.dakka.com.cn/v1/api/generate', isDefault: true },
+        { id: 'default', name: '国内节点', url: 'https://grsai.dakka.com.cn/v1/api/generate', isDefault: true },
+        { id: 'global', name: '全球节点', url: 'https://grsaiapi.com/v1/api/generate' },
       ],
       enabled: true,
     },

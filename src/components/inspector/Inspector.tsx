@@ -9,7 +9,7 @@ import { Info, Settings, Trash2, Sparkles } from 'lucide-react'
 import EmptyState from '@/components/shared/EmptyState'
 import { nodeTypeLabels } from '@/nodes'
 import type { Asset, AssetTag } from '@/types/asset'
-import { ASPECT_RATIO_OPTIONS } from '@/utils/constants'
+import { ASPECT_RATIO_OPTIONS, BANANA_ASPECT_RATIO_OPTIONS, BANANA_MODEL_OPTIONS } from '@/utils/constants'
 import { useInspirationStore } from '@/store/useInspirationStore'
 
 function buildAssetOptions(
@@ -496,31 +496,30 @@ export default function Inspector() {
           </>
         )}
 
-        {/* --- Banana Image --- */}
+        {/* --- Banana Image (nano-banana) --- */}
         {node.type === 'banana' && (
           <>
             <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">模型 (Model)</label>
-              <input className="input mt-0.5" value={(node.data.bananaModel as string) || 'gpt-image-2'} onChange={(e) => handleChange('bananaModel', e.target.value)} placeholder="gpt-image-2" />
+              <select className="input mt-0.5" value={(node.data.bananaModel as string) || 'nano-banana-2'} onChange={(e) => handleChange('bananaModel', e.target.value)}>
+                {BANANA_MODEL_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
-            <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">画面比例 / 分辨率</label>
-              <select className="input mt-0.5" value={(node.data.bananaAspectRatio as string) || '1024x1024'} onChange={(e) => handleChange('bananaAspectRatio', e.target.value)}>
-                <optgroup label="预设比例">
-                  {ASPECT_RATIO_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="分辨率 (像素)">
-                  <option value="1024x1024">1024x1024</option>
-                  <option value="2048x2048">2048x2048</option>
-                  <option value="4096x4096">4096x4096</option>
-                  <option value="1774x887">1774x887</option>
-                  <option value="2048x1152">2048x1152</option>
-                  <option value="3840x2160">3840x2160</option>
-                  <option value="887x1774">887x1774</option>
-                  <option value="1152x2048">1152x2048</option>
-                  <option value="2160x3840">2160x3840</option>
-                </optgroup>
-              </select></div>
+            <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">画面比例</label>
+              <select className="input mt-0.5" value={(node.data.bananaAspectRatio as string) || '1:1'} onChange={(e) => handleChange('bananaAspectRatio', e.target.value)}>
+                {BANANA_ASPECT_RATIO_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">分辨率</label>
+              <select className="input mt-0.5" value={(node.data.bananaImageSize as string) || '1K'} onChange={(e) => handleChange('bananaImageSize', e.target.value)}>
+                <option value="1K">1K</option>
+                <option value="2K">2K</option>
+                <option value="4K">4K</option>
+              </select>
+            </div>
             <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">参考图URL（每行一个）</label>
               <textarea className="input mt-0.5" rows={3} value={(node.data.bananaUrls as string) || ''} onChange={(e) => handleChange('bananaUrls', e.target.value)} placeholder="https://example.com/ref1.jpg" /></div>
             <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">并发数量 (Batch Count)</label>

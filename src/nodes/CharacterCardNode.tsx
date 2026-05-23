@@ -3,7 +3,6 @@ import { Handle, Position, type NodeProps } from 'reactflow'
 import { User } from 'lucide-react'
 import { useFlowStore } from '@/store/useFlowStore'
 import { useAssetStore } from '@/store/useAssetStore'
-import { characters } from '@/data/characters'
 import type { NodeData } from '@/types/flow'
 import type { Asset } from '@/types/asset'
 import { MediaThumb, NodeFrame } from './shared'
@@ -18,19 +17,11 @@ function CharacterCardNode({ id, data, selected }: NodeProps<NodeData>) {
   const cardNames = multiNames.length ? multiNames : (data.characterName ? [data.characterName as string] : [])
   const previewImages = Array.from(new Set([refImage, ...multiImages].filter(Boolean) as string[])).slice(0, 4)
 
-  const characterName = data.characterName as string | undefined
-  const knownCharacter = characterName ? characters.find((c) => c.name === characterName) : undefined
   const hasConsistency =
     !!(data.characterFacePrompt) ||
     !!(data.characterBodyPrompt) ||
     !!(data.characterNegativePrompt) ||
     data.characterConsistencySeed != null ||
-    (knownCharacter && (
-      knownCharacter.facePrompt ||
-      knownCharacter.bodyPrompt ||
-      knownCharacter.negativePrompt ||
-      knownCharacter.consistencySeed != null
-    )) ||
     (Array.isArray(data.characterRefImages) && (data.characterRefImages as string[]).length > 0)
 
   const onDrop = (e: React.DragEvent) => {

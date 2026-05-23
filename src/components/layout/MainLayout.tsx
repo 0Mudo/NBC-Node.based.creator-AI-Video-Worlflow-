@@ -9,6 +9,7 @@ import NodePalette from '@/components/node-editor/NodePalette'
 import Inspector from '@/components/inspector/Inspector'
 import GenerationQueue from '@/components/generation-queue/GenerationQueue'
 import FailureLogPanel from '@/components/generation-queue/FailureLogPanel'
+import GenerationLogPanel from '@/components/generation-queue/GenerationLogPanel'
 import ChatPanel from '@/components/chat/ChatPanel'
 import SettingsPanel from '@/components/settings/SettingsPanel'
 import ProjectPanel from '@/components/project/ProjectPanel'
@@ -16,27 +17,29 @@ import WorkflowPanel from '@/components/workflow/WorkflowPanel'
 import TimelineView from '@/components/timeline/TimelineView'
 import TemplateMarket from '@/components/templates/TemplateMarket'
 import InspirationEditor from '@/components/inspiration-editor/InspirationEditor'
-import PromptLibraryPanel from '@/components/prompt-library/PromptLibraryPanel'
-import ExportPanel from '@/components/export/ExportPanel'
-import AnalyticsPanel from '@/components/analytics/AnalyticsPanel'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useFlowStore } from '@/store/useFlowStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
-import { Settings, Workflow, Sun, Moon, LayoutDashboard, Download, BarChart3, X, Library } from 'lucide-react'
+import { Settings, Workflow, Sun, Moon, LayoutDashboard, Clock } from 'lucide-react'
 import { useThemeStore } from '@/store/useThemeStore'
 import ErrorBoundary from '@/components/shared/ErrorBoundary'
 
 export default function MainLayout() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [templateOpen, setTemplateOpen] = useState(false)
-  const [exportOpen, setExportOpen] = useState(false)
-  const [analyticsOpen, setAnalyticsOpen] = useState(false)
-  const [promptLibraryOpen, setPromptLibraryOpen] = useState(false)
+  const [genLogOpen, setGenLogOpen] = useState(false)
   const dockRef = useRef<DockLayout>(null)
 
   const { projects, activeProjectId, autoSaveInterval } = useProjectStore()
   const { loadFromProject, newBlank } = useFlowStore()
   const { theme, toggleTheme, setTheme } = useThemeStore()
+
+  const openSettings = useCallback(() => setSettingsOpen(true), [])
+  const closeSettings = useCallback(() => setSettingsOpen(false), [])
+  const openTemplate = useCallback(() => setTemplateOpen(true), [])
+  const closeTemplate = useCallback(() => setTemplateOpen(false), [])
+  const openGenLog = useCallback(() => setGenLogOpen(true), [])
+  const closeGenLog = useCallback(() => setGenLogOpen(false), [])
 
   // Project auto-save interval logic
   useEffect(() => {
@@ -50,7 +53,6 @@ export default function MainLayout() {
       const json = JSON.stringify(fileData, null, 2)
       
       if (window.electronAPI) {
-        // Save to auto_saves directory quietly
         const filename = `${activeProject.name}_autosave.nbc.json`.replace(/[\\/:"*?<>|]/g, '_')
         const base64Data = btoa(unescape(encodeURIComponent(json)))
         window.electronAPI.saveFile(filename, base64Data, 'H:\\素材库\\auto_saves')
@@ -91,7 +93,6 @@ export default function MainLayout() {
           console.error('Failed to save project on close:', e)
         }
       }
-      // Tell Electron it's okay to close now
       if (window.electronAPI?.confirmAppClose) {
         window.electronAPI.confirmAppClose()
       }
@@ -196,9 +197,6 @@ export default function MainLayout() {
     timeline: <TimelineView />,
     chat: <ChatPanel />,
     inspiration: <InspirationEditor />,
-    promptLibrary: <PromptLibraryPanel />,
-    export: <ExportPanel />,
-    analytics: <AnalyticsPanel />,
   }), [])
 
   const loadTab = useCallback((tab: TabData) => {
@@ -247,10 +245,13 @@ export default function MainLayout() {
 
         {/* Actions */}
         <div className="flex items-center gap-1">
-          <button className="btn btn-ghost btn-icon group" onClick={useCallback(() => setTemplateOpen(true), [])} title="模板市场">
+          <button className="btn btn-ghost btn-icon group" onClick={openGenLog} title="生成日志">
+            <Clock size={16} className="group-hover:text-accent transition-colors" />
+          </button>
+          <button className="btn btn-ghost btn-icon group" onClick={openTemplate} title="模板市场">
             <Workflow size={16} className="group-hover:text-accent transition-colors" />
           </button>
-          <button className="btn btn-ghost btn-icon group" onClick={useCallback(() => handleRestoreLayout(), [handleRestoreLayout])} title="恢复默认布局">
+          <button className="btn btn-ghost btn-icon group" onClick={handleRestoreLayout} title="恢复默认布局">
             <LayoutDashboard size={16} className="group-hover:text-accent transition-colors" />
           </button>
           <button className="btn btn-ghost btn-icon group" onClick={toggleTheme} title="切换主题">
@@ -260,17 +261,8 @@ export default function MainLayout() {
             }
           </button>
           <div className="w-px h-4 bg-node-border/20 mx-0.5" />
-          <button className="btn btn-ghost btn-icon group" onClick={useCallback(() => setSettingsOpen(true), [])} title="API 设置">
+          <button className="btn btn-ghost btn-icon group" onClick={openSettings} title="API 设置">
             <Settings size={16} className="group-hover:text-accent transition-colors" />
-          </button>
-          <button className="btn btn-ghost btn-icon group" onClick={useCallback(() => setPromptLibraryOpen(true), [])} title="提示词库">
-            <Library size={16} className="group-hover:text-accent transition-colors" />
-          </button>
-          <button className="btn btn-ghost btn-icon group" onClick={useCallback(() => setExportOpen(true), [])} title="视频导出">
-            <Download size={16} className="group-hover:text-accent transition-colors" />
-          </button>
-          <button className="btn btn-ghost btn-icon group" onClick={useCallback(() => setAnalyticsOpen(true), [])} title="生成分析">
-            <BarChart3 size={16} className="group-hover:text-accent transition-colors" />
           </button>
         </div>
       </div>
@@ -285,74 +277,9 @@ export default function MainLayout() {
         />
       </div>
 
-      <SettingsPanel open={settingsOpen} onClose={useCallback(() => setSettingsOpen(false), [])} />
-      <TemplateMarket open={templateOpen} onClose={useCallback(() => setTemplateOpen(false), [])} />
-
-      {exportOpen && (
-        <div className="settings-overlay animate-fade-in" onClick={useCallback(() => setExportOpen(false), [])}>
-          <div className="settings-dialog w-[520px] h-[540px] flex flex-col !p-0 animate-reveal-scale" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-node-border/25 flex-shrink-0">
-              <h2 className="text-sm font-semibold flex items-center gap-2.5">
-                <span className="w-8 h-8 rounded-lg flex items-center justify-center shadow-md"
-                  style={{ background: 'linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent-secondary)) 100%)' }}>
-                  <Download size={15} className="text-bg-primary" />
-                </span>
-                视频导出
-              </h2>
-              <button className="btn btn-ghost btn-icon" onClick={useCallback(() => setExportOpen(false), [])}>
-                <X size={16} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <ExportPanel />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {analyticsOpen && (
-        <div className="settings-overlay animate-fade-in" onClick={useCallback(() => setAnalyticsOpen(false), [])}>
-          <div className="settings-dialog w-[580px] h-[520px] flex flex-col !p-0 animate-reveal-scale" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-node-border/25 flex-shrink-0">
-              <h2 className="text-sm font-semibold flex items-center gap-2.5">
-                <span className="w-8 h-8 rounded-lg flex items-center justify-center shadow-md"
-                  style={{ background: 'linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent-secondary)) 100%)' }}>
-                  <BarChart3 size={15} className="text-bg-primary" />
-                </span>
-                生成分析
-              </h2>
-              <button className="btn btn-ghost btn-icon" onClick={useCallback(() => setAnalyticsOpen(false), [])}>
-                <X size={16} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <AnalyticsPanel />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {promptLibraryOpen && (
-        <div className="settings-overlay animate-fade-in" onClick={useCallback(() => setPromptLibraryOpen(false), [])}>
-          <div className="settings-dialog w-[540px] h-[600px] flex flex-col !p-0 animate-reveal-scale" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-node-border/25 flex-shrink-0">
-              <h2 className="text-sm font-semibold flex items-center gap-2.5">
-                <span className="w-8 h-8 rounded-lg flex items-center justify-center shadow-md"
-                  style={{ background: 'linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent-secondary)) 100%)' }}>
-                  <Library size={15} className="text-bg-primary" />
-                </span>
-                提示词库
-              </h2>
-              <button className="btn btn-ghost btn-icon" onClick={useCallback(() => setPromptLibraryOpen(false), [])}>
-                <X size={16} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <PromptLibraryPanel />
-            </div>
-          </div>
-        </div>
-      )}
+      <SettingsPanel open={settingsOpen} onClose={closeSettings} />
+      <TemplateMarket open={templateOpen} onClose={closeTemplate} />
+      <GenerationLogPanel open={genLogOpen} onClose={closeGenLog} />
     </div>
   )
 }

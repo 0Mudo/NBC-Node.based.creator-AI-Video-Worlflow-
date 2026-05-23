@@ -14,3 +14,33 @@ export const ASPECT_RATIO_OPTIONS = [
   { value: '1:3', label: '1:3 (超长)' },
   { value: '21:9', label: '21:9 (电影宽屏)' },
 ]
+
+export const BANANA_ASPECT_RATIO_OPTIONS = [
+  { value: 'auto', label: '自动' },
+  { value: '1:1', label: '1:1 (正方形)' },
+  { value: '16:9', label: '16:9 (宽屏)' },
+  { value: '9:16', label: '9:16 (手机竖版)' },
+  { value: '4:3', label: '4:3 (横版)' },
+  { value: '3:4', label: '3:4 (竖版)' },
+  { value: '3:2', label: '3:2 (横版)' },
+  { value: '2:3', label: '2:3 (竖版)' },
+  { value: '5:4', label: '5:4 (横版)' },
+  { value: '4:5', label: '4:5 (竖版)' },
+  { value: '21:9', label: '21:9 (电影宽屏)' },
+  { value: '1:4', label: '1:4 (超长, 2系列)' },
+  { value: '4:1', label: '4:1 (超宽, 2系列)' },
+  { value: '1:8', label: '1:8 (超长, 2系列)' },
+  { value: '8:1', label: '8:1 (超宽, 2系列)' },
+]
+
+export const BANANA_MODEL_OPTIONS = [
+  { value: 'nano-banana', label: 'Nano Banana' },
+  { value: 'nano-banana-fast', label: 'Nano Banana Fast' },
+  { value: 'nano-banana-2', label: 'Nano Banana 2' },
+  { value: 'nano-banana-2-cl', label: 'Nano Banana 2 CL' },
+  { value: 'nano-banana-2-4k-cl', label: 'Nano Banana 2 4K CL' },
+  { value: 'nano-banana-pro', label: 'Nano Banana Pro' },
+  { value: 'nano-banana-pro-cl', label: 'Nano Banana Pro CL' },
+  { value: 'nano-banana-pro-vip', label: 'Nano Banana Pro VIP' },
+  { value: 'nano-banana-pro-4k-vip', label: 'Nano Banana Pro 4K VIP' },
+]

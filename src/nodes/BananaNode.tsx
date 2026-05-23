@@ -33,8 +33,8 @@ function BananaNode({ data, selected }: NodeProps<NodeData>) {
       </div>
       <div className="node-body">
         <div className="flex justify-between text-[10px]">
-          <span>{data.bananaAspectRatio || '1024x1024'}</span>
-          <span className="text-text-secondary">{data.bananaModel || 'gpt-image-2'}</span>
+          <span>{data.bananaAspectRatio || '1:1'}</span>
+          <span className="text-text-secondary">{data.bananaModel || 'nano-banana-2'}</span>
         </div>
         {resultUrls && resultUrls.length > 0 ? (
           <div className="flex gap-1 overflow-x-auto mt-1 custom-scrollbar pb-1">

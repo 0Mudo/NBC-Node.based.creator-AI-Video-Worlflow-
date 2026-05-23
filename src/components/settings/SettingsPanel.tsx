@@ -4,6 +4,7 @@ import { useProviderStore } from '@/store/useProviderStore'
 import { useAssetStore } from '@/store/useAssetStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
 import type { ProviderConfig } from '@/types/provider'
+import CardGenSettingsPanel from './CardGenSettingsPanel'
 
 interface Props { open: boolean; onClose: () => void }
 
@@ -682,6 +683,9 @@ export default function SettingsPanel({ open, onClose }: Props) {
               </div>
             </div>
           </div>
+
+          {/* Card Gen Settings */}
+          <CardGenSettingsPanel />
 
           {/* Feishu Sync Settings */}
           <FeishuSyncSettings />

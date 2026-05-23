@@ -1,14 +1,32 @@
 import React, { useState } from 'react'
-import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus, X, Globe, Loader2 } from 'lucide-react'
 import type { SceneProfile } from '@/types/inspiration'
 import { useStyleStore } from '@/store/useStyleStore'
+import { generateBananaImage } from '@/api/banana'
+import { generateGPTImageStream, pollGPTImageResult, sanitizeUrl, buildResultEndpoint } from '@/api/gptImage2'
+import { useProviderStore } from '@/store/useProviderStore'
+import { useCardGenSettingsStore } from '@/store/useCardGenSettingsStore'
 
 interface Props {
   profile: SceneProfile
   onChange: (profile: SceneProfile) => void
 }
 
-type SectionId = 'basic' | 'atmosphere' | 'lighting' | 'spatial' | 'style' | 'refImages'
+type SectionId = 'basic' | 'atmosphere' | 'lighting' | 'spatial' | 'style' | 'refImages' | 'panorama'
+
+function buildPanoramaSceneDescription(profile: SceneProfile): string {
+  const parts: string[] = []
+  if (profile.name) parts.push(`${profile.name}${profile.nameEn ? ` (${profile.nameEn})` : ''}`)
+  if (profile.sceneType) parts.push(profile.sceneType)
+  if (profile.timeOfDay) parts.push(`during ${profile.timeOfDay}`)
+  if (profile.weather) parts.push(`weather: ${profile.weather}`)
+  if (profile.mood) parts.push(`mood: ${profile.mood}`)
+  if (profile.lightingDescription) parts.push(`lighting: ${profile.lightingDescription}`)
+  if (profile.spatialType) parts.push(`spatial layout: ${profile.spatialType}`)
+  if (profile.keyElements && profile.keyElements.length > 0) parts.push(`key elements: ${profile.keyElements.join(', ')}`)
+  if (parts.length === 0) parts.push(profile.nameEn || 'a scene')
+  return parts.join('. ')
+}
 
 const SCENE_TYPE_OPTIONS = ['室内', '室外', '城市街道', '自然环境', '地下设施', '太空设施', '废墟']
 const TIME_OF_DAY_OPTIONS = ['黎明', '早晨', '下午', '黄昏', '深夜']
@@ -68,7 +86,11 @@ export default function SceneProfileForm({ profile, onChange }: Props) {
     spatial: false,
     style: false,
     refImages: false,
+    panorama: true,
   })
+  const [panoramaGenerating, setPanoramaGenerating] = useState(false)
+  const [panoramaError, setPanoramaError] = useState('')
+  const [panoramaResult, setPanoramaResult] = useState<string | null>(null)
 
   const toggle = (id: SectionId) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
@@ -76,6 +98,79 @@ export default function SceneProfileForm({ profile, onChange }: Props) {
 
   const update = (partial: Partial<SceneProfile>) => {
     onChange({ ...profile, ...partial })
+  }
+
+  const handleGeneratePanorama = async () => {
+    setPanoramaGenerating(true)
+    setPanoramaError('')
+    setPanoramaResult(null)
+
+    try {
+      const cfg = useCardGenSettingsStore.getState().getSettings('scene')
+      const sceneDescription = buildPanoramaSceneDescription(profile)
+      const finalPrompt = cfg.promptTemplate.replace('{SCENE_DESCRIPTION}', sceneDescription)
+      const fullPrompt = cfg.negativePrompt
+        ? `${finalPrompt}\n\nNEGATIVE PROMPT (STRICTLY AVOID): ${cfg.negativePrompt}`
+        : finalPrompt
+
+      if (cfg.provider === 'banana') {
+        const provider = useProviderStore.getState().getProvider('banana')
+        const endpoint = provider?.endpoints.find(e => e.isDefault) || provider?.endpoints[0]
+        const apiKey = endpoint?.apiKey || ''
+
+        const result = await generateBananaImage({
+          prompt: fullPrompt,
+          model: cfg.model,
+          aspectRatio: cfg.aspectRatio,
+          imageSize: cfg.imageSize as '1K' | '2K' | '4K',
+          replyType: 'json',
+          apiKey,
+          endpoint: endpoint?.url,
+        })
+
+        if (result.results && result.results.length > 0) {
+          const url = result.results[0].url
+          setPanoramaResult(url)
+          update({ refImages: [...profile.refImages, url] })
+        } else {
+          throw new Error('生成成功但未返回图像链接')
+        }
+      } else {
+        const provider = useProviderStore.getState().getProvider('gptImage2')
+        const endpoint = provider?.endpoints.find(e => e.isDefault) || provider?.endpoints[0]
+        const apiKey = endpoint?.apiKey || ''
+        const endpointUrl = sanitizeUrl(endpoint?.url)
+
+        const results = await generateGPTImageStream({
+          prompt: fullPrompt,
+          model: cfg.model,
+          aspectRatio: cfg.aspectRatio,
+          apiKey,
+          endpoint: endpointUrl,
+        })
+        const first = results[0]
+        if (first?.id && !first?.url) {
+          const resultEndpoint = buildResultEndpoint(endpointUrl)
+          const polled = await pollGPTImageResult(first.id, apiKey, resultEndpoint)
+          if (polled[0]?.url) {
+            setPanoramaResult(polled[0].url)
+            update({ refImages: [...profile.refImages, polled[0].url] })
+            setPanoramaGenerating(false)
+            return
+          }
+        }
+        if (first?.url) {
+          setPanoramaResult(first.url)
+          update({ refImages: [...profile.refImages, first.url] })
+        } else {
+          throw new Error('生成成功但未返回图像链接')
+        }
+      }
+    } catch (err: any) {
+      setPanoramaError(err.message || '生成失败')
+    } finally {
+      setPanoramaGenerating(false)
+    }
   }
 
   const styles = useStyleStore((s) => s.styles)
@@ -290,6 +385,32 @@ export default function SceneProfileForm({ profile, onChange }: Props) {
             <Plus size={12} />
             添加 URL
           </button>
+        </div>
+      </Section>
+
+      <Section id="panorama" icon="🌐" label="全景图" expanded={expanded.panorama} onToggle={toggle}>
+        <div className="space-y-2">
+          <p className="text-[11px] text-text-secondary leading-relaxed">
+            基于场景属性自动构建描述，生成 360° VR 全景图。生成结果将自动添加到参考图中。
+          </p>
+          <button
+            type="button"
+            className="btn btn-primary flex items-center gap-1.5 text-xs"
+            onClick={handleGeneratePanorama}
+            disabled={panoramaGenerating}
+          >
+            {panoramaGenerating ? (
+              <><Loader2 size={14} className="animate-spin" /> 生成中…</>
+            ) : (
+              <><Globe size={14} /> 一键生成全景图</>
+            )}
+          </button>
+          {panoramaError && (
+            <div className="text-[11px] text-red-400 break-words">{panoramaError}</div>
+          )}
+          {panoramaResult && !panoramaError && (
+            <img src={panoramaResult} className="rounded border border-node-border/40 max-h-32 object-cover w-full" alt="全景图结果" />
+          )}
         </div>
       </Section>
     </div>

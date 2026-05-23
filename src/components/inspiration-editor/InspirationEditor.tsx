@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useInspirationStore, InspirationCategory } from '@/store/useInspirationStore'
 import { askInspirationAgent } from '@/api/inspirationAgent'
-import { Send, Bot, User, Trash2, FileText, LayoutTemplate, Users, Image as ImageIcon, Box, History, Save, RotateCcw, Clock, ArrowRight, ArrowLeft, Wand2, Upload as UploadIcon, Download, Loader2, Play, Copy, Plus, MessageSquare, X, ToggleLeft, ToggleRight, Split } from 'lucide-react'
+import { Send, Bot, User, Trash2, FileText, LayoutTemplate, Users, Image as ImageIcon, Box, History, Save, RotateCcw, Clock, ArrowRight, ArrowLeft, Wand2, Upload as UploadIcon, Download, Loader2, Play, Copy, Plus, MessageSquare, X, ToggleLeft, ToggleRight, Split, Globe } from 'lucide-react'
 import DiffTextarea from './DiffTextarea'
 import AssetSelectModal from './AssetSelectModal'
 import AssetImagePicker from './AssetImagePicker'
@@ -13,11 +13,14 @@ import StoryboardShotEditor from './StoryboardShotEditor'
 import { useAssetStore } from '@/store/useAssetStore'
 import { useGenerationStore } from '@/store/useGenerationStore'
 import { useLogStore } from '@/store/useLogStore'
-import type { GenerationTask } from '@/types/generation'
+import type { GenerationTask, GenerationType } from '@/types/generation'
 import { useNotificationStore } from '@/store/useNotificationStore'
 import { useProviderStore } from '@/store/useProviderStore'
 import { useProjectStore } from '@/store/useProjectStore'
 import { generateGPTImageStream, pollGPTImageResult, sanitizeUrl, buildResultEndpoint } from '@/api/gptImage2'
+import { generateBananaImage } from '@/api/banana'
+import { useCardGenSettingsStore } from '@/store/useCardGenSettingsStore'
+import { useGenLogStore } from '@/store/useGenLogStore'
 import { saveLocalViaElectron } from '@/api/saveManager'
 import type { Asset, AssetTag } from '@/types/asset'
 import type { CharacterProfile, SceneProfile, ItemProfile, ScriptScene, ScriptDialogue, StoryboardShot } from '@/types/inspiration'
@@ -52,6 +55,7 @@ export default function InspirationEditor() {
   const [generatingImage, setGeneratingImage] = useState(false)
   const [batchGenerating, setBatchGenerating] = useState(false)
   const [batchProgress, setBatchProgress] = useState({ total: 0, current: 0 })
+  const [generatingPanorama, setGeneratingPanorama] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [showSessionHistory, setShowSessionHistory] = useState(false)
   const [copyToast, setCopyToast] = useState<string | null>(null)
@@ -251,7 +255,8 @@ export default function InspirationEditor() {
     useGenerationStore.getState().addTask(task)
     useGenerationStore.getState().setProcessing(true)
     
-    const basePrompt = `专业完整角色参考表，纯白色无缝背景上干净整洁的网格布局，该表包括：主全身体态转面图（正面、3/4 视角、侧面、背面），左侧有主体身份+比例尺（最大），右上角有6-8 色调色板，8 帧情绪进阶，5 帧微表情，多角度头部细节表，中性站姿，姿态变化，1 张特写，底部一排为服装和配饰特写细节（头发质地、外套面料、鞋子、配饰细节），多种手势参考，角色轮廓指南。所有画面中人物的脸部和身体比例一致，完美布局对齐。`
+    const charCfg = useCardGenSettingsStore.getState().getSettings('character')
+    const basePrompt = charCfg.promptTemplate
     let finalPrompt = ''
     
     try {
@@ -272,8 +277,8 @@ export default function InspirationEditor() {
 
       const results = await generateGPTImageStream({
         prompt: finalPrompt,
-        model: endpoint.model || 'gpt-image-2',
-        aspectRatio: '4:3',
+        model: charCfg.model || 'gpt-image-2-vip',
+        aspectRatio: charCfg.aspectRatio,
         urls: urls.length > 0 ? urls : undefined,
         apiKey,
         endpoint: endpointUrl
@@ -671,13 +676,13 @@ export default function InspirationEditor() {
         useGenerationStore.getState().addTask(task)
         
         try {
-          const basePrompt = `专业完整角色参考表，纯白色无缝背景上干净整洁的网格布局，该表包括：主全身体态转面图（正面、3/4 视角、侧面、背面），左侧有主体身份+比例尺（最大），右上角有6-8 色调色板，8 帧情绪进阶，5 帧微表情，多角度头部细节表，中性站姿，姿态变化，1 张特写，底部一排为服装和配饰特写细节（头发质地、外套面料、鞋子、配饰细节），多种手势参考，角色轮廓指南。所有画面中人物的脸部和身体比例一致，完美布局对齐。`
-          const finalPrompt = `为以下角色描述生成${basePrompt}\n\n角色描述：${(card.prompt || '').substring(0, 800)}`
+          const charCfg = useCardGenSettingsStore.getState().getSettings('character')
+          const finalPrompt = `为以下角色描述生成${charCfg.promptTemplate}\n\n角色描述：${(card.prompt || '').substring(0, 800)}`
 
           const results = await generateGPTImageStream({
             prompt: finalPrompt,
-            model: endpoint.model || 'gpt-image-2',
-            aspectRatio: '4:3',
+            model: charCfg.model || 'gpt-image-2-vip',
+            aspectRatio: charCfg.aspectRatio,
             apiKey,
             endpoint: url
           }, (r) => {
@@ -801,6 +806,258 @@ export default function InspirationEditor() {
       title: '批量生成完毕',
       message: `共处理 ${characterCards.length} 个角色，成功 ${successCount} 个，失败 ${failCount} 个。`
     })
+  }
+
+  const handleGenerateScenePanorama = async () => {
+    setGeneratingPanorama(true)
+    const taskId = `gen_inspire_scene_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+    const cfg = useCardGenSettingsStore.getState().getSettings('scene')
+    const genType: GenerationType = cfg.provider === 'banana' ? 'banana' : 'gptImage2'
+
+    const task: GenerationTask = {
+      id: taskId, nodeId: 'inspiration_scene', type: genType, status: 'running',
+      progress: 0, startedAt: new Date().toISOString(), abortController: new AbortController()
+    }
+    useGenerationStore.getState().addTask(task)
+    useGenerationStore.getState().setProcessing(true)
+
+    try {
+      const sceneData = getActiveData('scene')
+      const profile = sceneData.sceneProfile
+      if (!profile || !profile.name) {
+        useNotificationStore.getState().addNotification({
+          type: 'warning',
+          title: '无场景信息',
+          message: '请先在结构化模式中填写场景基本信息，或使用"解析为卡片"从自由文本中提取。'
+        })
+        useGenerationStore.getState().updateTask(taskId, { status: 'failed', error: '无场景信息', completedAt: new Date().toISOString() })
+        setGeneratingPanorama(false)
+        useGenerationStore.getState().setProcessing(false)
+        return
+      }
+
+      const p = profile
+      const parts: string[] = []
+      if (p.name) parts.push(`${p.name}${p.nameEn ? ` (${p.nameEn})` : ''}`)
+      if (p.sceneType) parts.push(p.sceneType)
+      if (p.timeOfDay) parts.push(`during ${p.timeOfDay}`)
+      if (p.weather) parts.push(`weather: ${p.weather}`)
+      if (p.mood) parts.push(`mood: ${p.mood}`)
+      if (p.lightingDescription) parts.push(`lighting: ${p.lightingDescription}`)
+      if (p.spatialType) parts.push(`spatial layout: ${p.spatialType}`)
+      if (p.keyElements && p.keyElements.length > 0) parts.push(`key elements: ${p.keyElements.join(', ')}`)
+      if (parts.length === 0) parts.push(p.nameEn || 'a scene')
+      const sceneDescription = parts.join('. ')
+
+      const finalPrompt = cfg.promptTemplate.replace('{SCENE_DESCRIPTION}', sceneDescription)
+      const fullPrompt = cfg.negativePrompt
+        ? `${finalPrompt}\n\nNEGATIVE PROMPT (STRICTLY AVOID): ${cfg.negativePrompt}`
+        : finalPrompt
+
+      const providerId: 'banana' | 'gptImage2' = cfg.provider
+
+      if (providerId === 'banana') {
+        const provider = useProviderStore.getState().getProvider('banana')
+        const endpoint = provider?.endpoints.find(e => e.isDefault) || provider?.endpoints[0]
+        const apiKey = endpoint?.apiKey || ''
+
+        const result = await generateBananaImage({
+          prompt: fullPrompt,
+          model: cfg.model,
+          aspectRatio: cfg.aspectRatio,
+          imageSize: cfg.imageSize as '1K' | '2K' | '4K',
+          replyType: 'json',
+          apiKey,
+          endpoint: endpoint?.url,
+        })
+
+        if (result.results && result.results.length > 0) {
+          const url = result.results[0].url
+          setImages('scene', undefined, url)
+          useGenerationStore.getState().updateTask(taskId, { status: 'completed', progress: 100, resultUrl: url, completedAt: new Date().toISOString() })
+          useGenLogStore.getState().addEntry({ model: cfg.model, type: 'image', status: 'success', prompt: fullPrompt, negativePrompt: cfg.negativePrompt || undefined, resultUrl: url, source: 'inspiration_editor', nodeLabel: `场景-${profile.name}`, aspectRatio: cfg.aspectRatio, imageSize: cfg.imageSize })
+          useNotificationStore.getState().addNotification({
+            type: 'success',
+            title: '全景图生成完成',
+            message: `场景「${profile.name}」的 360° 全景图已生成。`
+          })
+        } else {
+          throw new Error('生成成功但未返回图像链接')
+        }
+      } else {
+        const provider = useProviderStore.getState().getProvider('gptImage2')
+        const endpoint = provider?.endpoints.find(e => e.isDefault) || provider?.endpoints[0]
+        const apiKey = endpoint?.apiKey || ''
+        const endpointUrl = sanitizeUrl(endpoint?.url)
+
+        const results = await generateGPTImageStream({
+          prompt: fullPrompt,
+          model: cfg.model,
+          aspectRatio: cfg.aspectRatio,
+          apiKey,
+          endpoint: endpointUrl,
+        })
+        const first = results[0]
+        let finalUrl = ''
+        if (first?.id && !first?.url) {
+          const resultEndpoint = buildResultEndpoint(endpointUrl)
+          const polled = await pollGPTImageResult(first.id, apiKey, resultEndpoint)
+          finalUrl = polled[0]?.url || ''
+        } else {
+          finalUrl = first?.url || ''
+        }
+
+        if (finalUrl) {
+          setImages('scene', undefined, finalUrl)
+          useGenerationStore.getState().updateTask(taskId, { status: 'completed', progress: 100, resultUrl: finalUrl, completedAt: new Date().toISOString() })
+          useGenLogStore.getState().addEntry({ model: cfg.model, type: 'image', status: 'success', prompt: fullPrompt, negativePrompt: cfg.negativePrompt || undefined, resultUrl: finalUrl, source: 'inspiration_editor', nodeLabel: `场景-${profile.name}`, aspectRatio: cfg.aspectRatio, imageSize: cfg.imageSize })
+          useNotificationStore.getState().addNotification({
+            type: 'success',
+            title: '全景图生成完成',
+            message: `场景「${profile.name}」的 360° 全景图已生成。`
+          })
+        } else {
+          throw new Error('生成成功但未返回图像链接')
+        }
+      }
+    } catch (err: any) {
+      const errorMsg = err.message || '未知错误'
+      useGenerationStore.getState().updateTask(taskId, { status: 'failed', error: errorMsg, completedAt: new Date().toISOString() })
+      useGenLogStore.getState().addEntry({ model: cfg?.model || 'unknown', type: 'image', status: 'failure', prompt: '', error: errorMsg, source: 'inspiration_editor', nodeLabel: '场景全景图' })
+      useNotificationStore.getState().addNotification({
+        type: 'error',
+        title: '全景图生成失败',
+        message: errorMsg
+      })
+    } finally {
+      setGeneratingPanorama(false)
+      useGenerationStore.getState().setProcessing(false)
+    }
+  }
+
+  const handleGenerateItemReference = async () => {
+    setGeneratingPanorama(true)
+    const taskId = `gen_inspire_item_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+    const cfg = useCardGenSettingsStore.getState().getSettings('item')
+    const genType: GenerationType = cfg.provider === 'banana' ? 'banana' : 'gptImage2'
+
+    const task: GenerationTask = {
+      id: taskId, nodeId: 'inspiration_item', type: genType, status: 'running',
+      progress: 0, startedAt: new Date().toISOString(), abortController: new AbortController()
+    }
+    useGenerationStore.getState().addTask(task)
+    useGenerationStore.getState().setProcessing(true)
+
+    try {
+      const itemData = getActiveData('item')
+      const profile = itemData.itemProfile
+      if (!profile || !profile.name) {
+        useNotificationStore.getState().addNotification({
+          type: 'warning',
+          title: '无物品信息',
+          message: '请先在结构化模式中填写物品基本信息，或使用"解析为卡片"从自由文本中提取。'
+        })
+        useGenerationStore.getState().updateTask(taskId, { status: 'failed', error: '无物品信息', completedAt: new Date().toISOString() })
+        setGeneratingPanorama(false)
+        useGenerationStore.getState().setProcessing(false)
+        return
+      }
+
+      const p = profile
+      const parts: string[] = []
+      if (p.name) parts.push(`a ${p.material || ''} ${p.color || ''} ${p.itemType || 'item'} called "${p.name}"`)
+      else if (p.itemType) parts.push(`a ${p.material || ''} ${p.color || ''} ${p.itemType}`)
+      if (p.visualFeatures) parts.push(`featuring ${p.visualFeatures}`)
+      if (p.function) parts.push(`function: ${p.function}`)
+      if (p.condition) parts.push(`in ${p.condition} condition`)
+      if (p.dimensions) parts.push(`dimensions: ${p.dimensions}`)
+      if (parts.length === 0) parts.push(p.nameEn || 'an object')
+      const objectDescription = parts.join('. ')
+
+      const finalPrompt = cfg.promptTemplate.replace('{OBJECT_DESCRIPTION}', objectDescription)
+      const fullPrompt = cfg.negativePrompt
+        ? `${finalPrompt}\n\nNEGATIVE PROMPT (STRICTLY AVOID): ${cfg.negativePrompt}`
+        : finalPrompt
+
+      const providerId: 'banana' | 'gptImage2' = cfg.provider
+
+      if (providerId === 'banana') {
+        const provider = useProviderStore.getState().getProvider('banana')
+        const endpoint = provider?.endpoints.find(e => e.isDefault) || provider?.endpoints[0]
+        const apiKey = endpoint?.apiKey || ''
+
+        const result = await generateBananaImage({
+          prompt: fullPrompt,
+          model: cfg.model,
+          aspectRatio: cfg.aspectRatio,
+          imageSize: cfg.imageSize as '1K' | '2K' | '4K',
+          replyType: 'json',
+          apiKey,
+          endpoint: endpoint?.url,
+        })
+
+        if (result.results && result.results.length > 0) {
+          const url = result.results[0].url
+          setImages('item', undefined, url)
+          useGenerationStore.getState().updateTask(taskId, { status: 'completed', progress: 100, resultUrl: url, completedAt: new Date().toISOString() })
+          useGenLogStore.getState().addEntry({ model: cfg.model, type: 'image', status: 'success', prompt: fullPrompt, negativePrompt: cfg.negativePrompt || undefined, resultUrl: url, source: 'inspiration_editor', nodeLabel: `物品-${profile.name}`, aspectRatio: cfg.aspectRatio, imageSize: cfg.imageSize })
+          useNotificationStore.getState().addNotification({
+            type: 'success',
+            title: '物品参考图生成完成',
+            message: `物品「${profile.name}」的三视图参考已生成。`
+          })
+        } else {
+          throw new Error('生成成功但未返回图像链接')
+        }
+      } else {
+        const provider = useProviderStore.getState().getProvider('gptImage2')
+        const endpoint = provider?.endpoints.find(e => e.isDefault) || provider?.endpoints[0]
+        const apiKey = endpoint?.apiKey || ''
+        const endpointUrl = sanitizeUrl(endpoint?.url)
+
+        const results = await generateGPTImageStream({
+          prompt: fullPrompt,
+          model: cfg.model,
+          aspectRatio: cfg.aspectRatio,
+          apiKey,
+          endpoint: endpointUrl,
+        })
+        const first = results[0]
+        let finalUrl = ''
+        if (first?.id && !first?.url) {
+          const resultEndpoint = buildResultEndpoint(endpointUrl)
+          const polled = await pollGPTImageResult(first.id, apiKey, resultEndpoint)
+          finalUrl = polled[0]?.url || ''
+        } else {
+          finalUrl = first?.url || ''
+        }
+
+        if (finalUrl) {
+          setImages('item', undefined, finalUrl)
+          useGenerationStore.getState().updateTask(taskId, { status: 'completed', progress: 100, resultUrl: finalUrl, completedAt: new Date().toISOString() })
+          useGenLogStore.getState().addEntry({ model: cfg.model, type: 'image', status: 'success', prompt: fullPrompt, negativePrompt: cfg.negativePrompt || undefined, resultUrl: finalUrl, source: 'inspiration_editor', nodeLabel: `物品-${profile.name}`, aspectRatio: cfg.aspectRatio, imageSize: cfg.imageSize })
+          useNotificationStore.getState().addNotification({
+            type: 'success',
+            title: '物品参考图生成完成',
+            message: `物品「${profile.name}」的三视图参考已生成。`
+          })
+        } else {
+          throw new Error('生成成功但未返回图像链接')
+        }
+      }
+    } catch (err: any) {
+      const errorMsg = err.message || '未知错误'
+      useGenerationStore.getState().updateTask(taskId, { status: 'failed', error: errorMsg, completedAt: new Date().toISOString() })
+      useGenLogStore.getState().addEntry({ model: cfg?.model || 'unknown', type: 'image', status: 'failure', prompt: '', error: errorMsg, source: 'inspiration_editor', nodeLabel: '物品参考图' })
+      useNotificationStore.getState().addNotification({
+        type: 'error',
+        title: '物品参考图生成失败',
+        message: errorMsg
+      })
+    } finally {
+      setGeneratingPanorama(false)
+      useGenerationStore.getState().setProcessing(false)
+    }
   }
 
   useEffect(() => {
@@ -1371,6 +1628,28 @@ export default function InspirationEditor() {
                   >
                     <ArrowLeft size={13} /> 写回文本
                   </button>
+                  {activeCategory === 'scene' && (
+                    <button
+                      onClick={handleGenerateScenePanorama}
+                      disabled={generatingPanorama}
+                      className={`btn btn-ghost text-xs py-1 px-2 flex items-center gap-1 border ${generatingPanorama ? 'border-node-border text-text-tertiary' : 'border-green-400/40 text-green-400 hover:bg-green-400/10'}`}
+                      title="基于当前场景属性生成 360° VR 全景图"
+                    >
+                      {generatingPanorama ? <Loader2 size={13} className="animate-spin" /> : <Globe size={13} />} 
+                      {generatingPanorama ? '生成中…' : '一键生成全景图'}
+                    </button>
+                  )}
+                  {activeCategory === 'item' && (
+                    <button
+                      onClick={handleGenerateItemReference}
+                      disabled={generatingPanorama}
+                      className={`btn btn-ghost text-xs py-1 px-2 flex items-center gap-1 border ${generatingPanorama ? 'border-node-border text-text-tertiary' : 'border-blue-400/40 text-blue-400 hover:bg-blue-400/10'}`}
+                      title="基于当前物品属性生成专业三视图参考"
+                    >
+                      {generatingPanorama ? <Loader2 size={13} className="animate-spin" /> : <Box size={13} />} 
+                      {generatingPanorama ? '生成中…' : '一键生成物品参考'}
+                    </button>
+                  )}
                 </>
               )}
               <div className="flex items-center gap-1.5 bg-bg-tertiary rounded p-0.5 border border-node-border/50">
@@ -1403,6 +1682,28 @@ export default function InspirationEditor() {
                     >
                       {batchGenerating ? <Loader2 size={12} className="animate-spin" /> : <ImageIcon size={12} />} 
                       {batchGenerating ? `生成中 (${batchProgress.current}/${batchProgress.total})` : '一键生成角色形象'}
+                    </button>
+                  )}
+                  {activeCategory === 'scene' && (
+                    <button
+                      onClick={handleGenerateScenePanorama}
+                      disabled={generatingPanorama}
+                      className={`btn btn-ghost text-xs py-1 px-2 flex items-center gap-1 border ${generatingPanorama ? 'border-node-border text-text-tertiary' : 'border-green-400/40 text-green-400 hover:bg-green-400/10'}`}
+                      title="基于当前场景属性生成 360° VR 全景图"
+                    >
+                      {generatingPanorama ? <Loader2 size={12} className="animate-spin" /> : <Globe size={12} />} 
+                      {generatingPanorama ? '生成中…' : '一键生成全景图'}
+                    </button>
+                  )}
+                  {activeCategory === 'item' && (
+                    <button
+                      onClick={handleGenerateItemReference}
+                      disabled={generatingPanorama}
+                      className={`btn btn-ghost text-xs py-1 px-2 flex items-center gap-1 border ${generatingPanorama ? 'border-node-border text-text-tertiary' : 'border-blue-400/40 text-blue-400 hover:bg-blue-400/10'}`}
+                      title="基于当前物品属性生成专业三视图参考"
+                    >
+                      {generatingPanorama ? <Loader2 size={12} className="animate-spin" /> : <Box size={12} />} 
+                      {generatingPanorama ? '生成中…' : '一键生成物品参考'}
                     </button>
                   )}
                   <button
