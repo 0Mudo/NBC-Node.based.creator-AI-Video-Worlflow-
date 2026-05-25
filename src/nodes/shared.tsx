@@ -1,4 +1,5 @@
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties, ReactNode, RefObject } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { NodeResizer } from 'reactflow'
 import { useFlowStore } from '@/store/useFlowStore'
 
@@ -52,7 +53,7 @@ export function NodeFrame({
         minHeight={minHeight}
         lineClassName="!border-accent/40"
         handleClassName="!w-3 !h-3 !border-2 !border-accent !bg-bg-primary !rounded-md hover:!scale-110 !transition-transform"
-        onResizeEnd={(_, params) => {
+        onResize={(_, params) => {
           updateNodeData(nodeId, {
             nodeWidth: Math.round(params.width),
             nodeHeight: Math.round(params.height),
@@ -114,19 +115,55 @@ export function AutoTextArea({
   value,
   onChange,
   placeholder,
+  inputRef,
 }: {
   value: string
   onChange: (value: string) => void
   placeholder?: string
+  inputRef?: RefObject<HTMLTextAreaElement | null>
 }) {
+  const [localValue, setLocalValue] = useState(value)
+  const isComposingRef = useRef(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (!isComposingRef.current && value !== localValue) {
+      setLocalValue(value)
+    }
+  }, [value])
+
+  const flushToStore = useCallback((newValue: string) => {
+    setLocalValue(newValue)
+    onChange(newValue)
+  }, [onChange])
+
+  const setRef = useCallback((el: HTMLTextAreaElement | null) => {
+    (textareaRef as any).current = el
+    if (inputRef && 'current' in inputRef) {
+      (inputRef as any).current = el
+    }
+  }, [inputRef])
+
   return (
     <textarea
-      className="w-full flex-1 min-h-0 bg-bg-tertiary/60 border border-node-border rounded-md px-2 py-1.5 text-[11px] text-text-primary resize-none outline-none focus:border-accent"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
+      ref={setRef}
+      className="nodrag nowheel w-full flex-1 min-h-[40px] bg-bg-tertiary/60 border border-node-border rounded-md px-2 py-1.5 text-[11px] text-text-primary resize-none outline-none focus:border-accent"
+      style={{ caretColor: 'rgb(var(--text-primary))' }}
+      value={localValue}
+      onCompositionStart={() => { isComposingRef.current = true }}
+      onCompositionEnd={(e) => {
+        isComposingRef.current = false
+        flushToStore(e.currentTarget.value)
+      }}
+      onChange={(e) => {
+        const newValue = e.target.value
+        if (isComposingRef.current) {
+          setLocalValue(newValue)
+        } else {
+          flushToStore(newValue)
+        }
+      }}
       placeholder={placeholder}
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
     />
   )
 }

@@ -38,54 +38,61 @@ export async function submitSeedanceTask(options: SeedanceOptions): Promise<stri
   // Add reference images
   if (options.referenceImages) {
     for (const img of options.referenceImages) {
-      content.push({
+      const imageEntry: Record<string, unknown> = {
         type: 'image_url',
         image_url: { url: img.url },
-        role: img.role || 'reference_image',
-      })
+      }
+      if (img.role) {
+        imageEntry.role = img.role
+      }
+      content.push(imageEntry)
     }
   }
 
   // Add reference videos
   if (options.referenceVideos) {
     for (const vid of options.referenceVideos) {
-      content.push({
+      const videoEntry: Record<string, unknown> = {
         type: 'video_url',
         video_url: { url: vid.url },
-        role: vid.role || 'reference_video',
-      })
+      }
+      if (vid.role) {
+        videoEntry.role = vid.role
+      }
+      content.push(videoEntry)
     }
   }
 
   // Add reference audios
   if (options.referenceAudios) {
     for (const aud of options.referenceAudios) {
-      content.push({
+      const audioEntry: Record<string, unknown> = {
         type: 'audio_url',
         audio_url: { url: aud.url },
-        role: aud.role || 'reference_audio',
-      })
+      }
+      if (aud.role) {
+        audioEntry.role = aud.role
+      }
+      content.push(audioEntry)
     }
   }
 
   const body: Record<string, unknown> = {
     model: modelId,
     content,
-    parameters: {
-      resolution: options.resolution || '720p',
-      ratio: options.ratio || '16:9',
-      duration: options.duration || 5,
-      generate_audio: options.generateAudio ?? false,
-      return_last_frame: options.returnLastFrame ?? false,
-    },
+    resolution: options.resolution || '720p',
+    ratio: options.ratio || '16:9',
+    duration: options.duration || 5,
+    generate_audio: options.generateAudio ?? false,
+    return_last_frame: options.returnLastFrame ?? false,
   }
 
   if (options.serviceTier === 'flex') {
-    body.parameters = { ...(body.parameters as object), service_tier: 'flex' }
+    body.service_tier = 'flex'
   }
 
   if (options.webSearch) {
-    ;(body.parameters as Record<string, unknown>).tools = [{ type: 'web_search' }]
+    body.tools = [{ type: 'web_search' }]
   }
 
   const res = await apiFetch(`${endpoint}/contents/generations/tasks`, {

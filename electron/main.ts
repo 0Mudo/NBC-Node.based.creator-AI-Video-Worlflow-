@@ -186,9 +186,15 @@ ipcMain.handle('fs:scanDirectory', async (_, dirPath: string) => {
     return fs.readdirSync(dirPath).filter(f => ['.png','.jpg','.jpeg','.gif','.webp','.mp4','.webm','.mov','.avi'].includes(path.extname(f).toLowerCase())).map(f => {
       const fp = path.join(dirPath, f); const st = fs.statSync(fp)
       const ext = path.extname(f).toLowerCase(); const isV = ['.mp4','.webm','.mov','.avi'].includes(ext)
-      // Use nbc:// protocol to serve local files, escaping the file path
+      const isImage = ['.png','.jpg','.jpeg','.gif','.webp'].includes(ext)
       const fileUrl = `nbc://assets/${encodeURIComponent(f)}?path=${encodeURIComponent(fp)}`
-      return { id: fp, name: f, type: (f.toLowerCase().includes('pano')||f.toLowerCase().includes('360'))?'panorama':isV?'video':'image', path: fileUrl, size: st.size, createdAt: st.birthtime.toISOString(), tags: ['本地'] }
+      return {
+        id: fp, name: f,
+        type: (f.toLowerCase().includes('pano')||f.toLowerCase().includes('360'))?'panorama':isV?'video':'image',
+        path: fileUrl,
+        thumbnailPath: isImage ? fileUrl : undefined,
+        size: st.size, createdAt: st.birthtime.toISOString(), tags: ['本地']
+      }
     })
   } catch { return [] }
 })

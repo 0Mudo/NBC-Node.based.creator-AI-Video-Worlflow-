@@ -86,24 +86,26 @@ export default function AssetBrowser() {
   })
 
   const scanDirectoryPath = useCallback(async (dirPath: string) => {
-    if (!window.electronAPI?.scanDirectory) return
+    if (!window.electronAPI) return
     try {
       const newAssetsRaw = await window.electronAPI.scanDirectory(dirPath)
       if (newAssetsRaw && newAssetsRaw.length > 0) {
         const newAssets = (newAssetsRaw as Asset[]).map(a => ({ ...a, source: 'local' as const }))
-        const existingIds = new Set(assets.map(a => a.id))
-        const added = newAssets.filter(a => !existingIds.has(a.id))
+        const currentAssets = useAssetStore.getState().assets
+        const existingIds = new Set(currentAssets.map(a => a.id))
+        const existingNames = new Set(currentAssets.map(a => a.name.toLowerCase()))
+        const added = newAssets.filter(a => !existingIds.has(a.id) && !existingNames.has(a.name.toLowerCase()))
         if (added.length > 0) {
-          setAssets([...assets, ...added])
+          setAssets([...currentAssets, ...added])
         }
       }
     } catch (e: any) {
       console.error('Failed to scan directory:', e)
     }
-  }, [setAssets, assets])
+  }, [setAssets])
 
   useEffect(() => {
-    if (defaultLocalPath && window.electronAPI?.scanDirectory) {
+    if (defaultLocalPath && window.electronAPI) {
       scanDirectoryPath(defaultLocalPath)
     }
   }, [defaultLocalPath, scanDirectoryPath])
@@ -140,23 +142,30 @@ export default function AssetBrowser() {
           } as Asset
         })
         if (newAssets.length > 0) {
-          const existingIds = new Set(assets.map(a => a.id))
+          const currentAssets = useAssetStore.getState().assets
+          const existingIds = new Set(currentAssets.map(a => a.id))
           const added = newAssets.filter(a => !existingIds.has(a.id))
-          setAssets([...assets, ...added])
+          setAssets([...currentAssets, ...added])
           useNotificationStore.getState().addNotification({ type: 'success', title: 'OSS 加载成功', message: `新增加载了 ${added.length} 个远程素材` })
         } else {
           useNotificationStore.getState().addNotification({ type: 'info', title: '无新素材', message: 'OSS 上没有找到新的素材' })
         }
       } else {
         const resp = await fetch(OSS_MANIFEST_URL)
-        if (resp.ok) { const data = await resp.json(); setAssets(data) }
+        if (resp.ok) {
+          const data = await resp.json()
+          const currentAssets = useAssetStore.getState().assets
+          const existingIds = new Set(currentAssets.map(a => a.id))
+          const added = (Array.isArray(data) ? data : []).filter((a: any) => !existingIds.has(a.id))
+          if (added.length > 0) setAssets([...currentAssets, ...added])
+        }
       }
     } catch (e: any) {
       useNotificationStore.getState().addNotification({ type: 'error', title: 'OSS 加载失败', message: e.message })
     } finally {
       setLoadingOss(false)
     }
-  }, [setAssets, assets])
+  }, [setAssets])
 
   const loadFromFeishu = useCallback(async () => {
     try {
@@ -181,11 +190,12 @@ export default function AssetBrowser() {
         
         if (feishuObjects && feishuObjects.length > 0) {
           const feishuAssets = feishuObjects.map((a: any) => ({ ...a, source: 'feishu' as const }))
-          const existingIds = new Set(assets.map(a => a.id))
+          const currentAssets = useAssetStore.getState().assets
+          const existingIds = new Set(currentAssets.map(a => a.id))
           const added = feishuAssets.filter((a: any) => !existingIds.has(a.id))
           
           if (added.length > 0) {
-            setAssets([...assets, ...added])
+            setAssets([...currentAssets, ...added])
             useNotificationStore.getState().addNotification({ type: 'success', title: '飞书云盘加载成功', message: `新增加载了 ${added.length} 个远程素材` })
           } else {
             useNotificationStore.getState().addNotification({ type: 'info', title: '无新素材', message: '飞书云盘上没有找到新的素材' })
@@ -199,16 +209,30 @@ export default function AssetBrowser() {
     } finally {
       setLoadingFeishu(false)
     }
-  }, [setAssets, assets])
+  }, [setAssets])
 
-  const handleLocalScan = useCallback(() => {
+  const handleLocalScan = useCallback(async () => {
+    if (window.electronAPI) {
+      try {
+        const dirPath = await window.electronAPI.openDirectory()
+        if (!dirPath) return
+        await scanDirectoryPath(dirPath)
+      } catch (e: any) {
+        console.error('Failed to scan directory:', e)
+      }
+      return
+    }
+
     const inp = document.createElement('input')
     inp.type = 'file'; inp.webkitdirectory = true
     inp.onchange = () => {
       const files = Array.from(inp.files || [])
       const validExts = ['.png','.jpg','.jpeg','.gif','.webp','.mp4','.webm','.mov','.avi']
+      const currentAssets = useAssetStore.getState().assets
+      const existingNamesLower = new Set(currentAssets.map(a => a.name.toLowerCase()))
       const newAssets: Asset[] = files
         .filter(f => validExts.includes('.' + f.name.split('.').pop()?.toLowerCase()))
+        .filter(f => !existingNamesLower.has(f.name.toLowerCase()))
         .map(f => {
           const ext = '.' + f.name.split('.').pop()?.toLowerCase()
           const isVideo = ['.mp4','.webm','.mov','.avi'].includes(ext)
@@ -226,10 +250,12 @@ export default function AssetBrowser() {
             source: 'local',
           } as Asset
         })
-      setAssets([...assets, ...newAssets])
+      if (newAssets.length > 0) {
+        setAssets([...currentAssets, ...newAssets])
+      }
     }
     inp.click()
-  }, [assets, setAssets])
+  }, [setAssets, scanDirectoryPath])
 
   const handleDeleteOss = useCallback(async () => {
     if (!ossDeleteAsset) return

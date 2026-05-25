@@ -1,16 +1,30 @@
-import { memo, useState } from 'react'
+import { memo, useState, useRef, useMemo } from 'react'
 import { Handle, Position, type NodeProps } from 'reactflow'
-import { FileText, Loader2, RefreshCw, Sparkles, Check, X } from 'lucide-react'
+import { FileText, Loader2, RefreshCw, Sparkles, Check, X, Image, Film, Plus } from 'lucide-react'
 import type { NodeData } from '@/types/flow'
 import { useFlowStore } from '@/store/useFlowStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
 import { optimizePrompt } from '@/api/promptOptimize'
+import { collectMediaRefsFromUpstream } from '@/engine/promptResolver'
 import { AutoTextArea, NodeFrame } from './shared'
+
+function getFileName(path: string): string {
+  const parts = path.replace(/\\/g, '/').split('/')
+  const name = parts[parts.length - 1] || path
+  return name.length > 28 ? name.slice(0, 26) + '…' : name
+}
 
 function PromptNode({ id, data, selected }: NodeProps<NodeData>) {
   const { nodes, edges, updateNodeData } = useFlowStore()
   const [optimizing, setOptimizing] = useState(false)
   const [optimized, setOptimized] = useState<string | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+
+  const { imageRefs, videoRefs } = useMemo(() => {
+    return collectMediaRefsFromUpstream(id, nodes, edges)
+  }, [id, nodes, edges])
+
+  const hasMediaRefs = imageRefs.length > 0 || videoRefs.length > 0
 
   const handleRefresh = () => {
     const upstreamNodeIds = new Set<string>()
@@ -42,16 +56,45 @@ function PromptNode({ id, data, selected }: NodeProps<NodeData>) {
       }
     }
 
-    if (!parts.length) {
+    if (!parts.length && !hasMediaRefs) {
       useNotificationStore.getState().addNotification({
         type: 'warning',
         title: '无上游信息',
-        message: '请先连入三卡、场次或分镜节点。',
+        message: '请先连入三卡、场次、分镜节点或素材节点。',
       })
       return
     }
 
+    if (hasMediaRefs) {
+      if (imageRefs.length > 0) {
+        const names = imageRefs.map((ref, i) => `{{图片参考${i + 1}}}（${getFileName(ref)}）`).join('\n')
+        parts.push(`【可用图片素材】\n${names}`)
+      }
+      if (videoRefs.length > 0) {
+        const names = videoRefs.map((ref, i) => `{{视频参考${i + 1}}}（${getFileName(ref)}）`).join('\n')
+        parts.push(`【可用视频素材】\n${names}`)
+      }
+    }
+
     updateNodeData(id, { promptText: parts.join('\n\n') })
+  }
+
+  const insertRef = (variableName: string) => {
+    const currentText = (data.promptText as string) || ''
+    const ta = textareaRef.current
+    if (ta) {
+      const start = ta.selectionStart ?? currentText.length
+      const end = ta.selectionEnd ?? currentText.length
+      const newText = currentText.slice(0, start) + variableName + currentText.slice(end)
+      updateNodeData(id, { promptText: newText })
+      requestAnimationFrame(() => {
+        ta.focus()
+        const newPos = start + variableName.length
+        ta.setSelectionRange(newPos, newPos)
+      })
+    } else {
+      updateNodeData(id, { promptText: currentText + variableName })
+    }
   }
 
   const handleOptimize = async () => {
@@ -75,7 +118,7 @@ function PromptNode({ id, data, selected }: NodeProps<NodeData>) {
   }
 
   return (
-    <NodeFrame nodeId={id} selected={selected} borderColor="#a29bfe" minWidth={260} minHeight={180}>
+    <NodeFrame nodeId={id} selected={selected} borderColor="#a29bfe" minWidth={280} minHeight={200}>
       <Handle type="target" position={Position.Left} id="input" />
       <Handle type="source" position={Position.Right} id="output" />
       <div className="node-header">
@@ -99,10 +142,56 @@ function PromptNode({ id, data, selected }: NodeProps<NodeData>) {
             AI 优化
           </button>
         </div>
+
+        {hasMediaRefs && (
+          <div className="flex flex-col gap-1">
+            {imageRefs.length > 0 && (
+              <div className="flex items-center gap-1">
+                <Image size={10} className="text-text-tertiary flex-shrink-0" />
+                <div className="flex flex-wrap gap-0.5">
+                  {imageRefs.map((ref, i) => (
+                    <button
+                      key={`img-${i}`}
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] bg-accent/10 text-accent hover:bg-accent/25 transition-colors cursor-pointer"
+                      title={`插入 {{图片参考${i + 1}}} — ${getFileName(ref)}`}
+                      onClick={() => insertRef(`{{图片参考${i + 1}}}`)}
+                    >
+                      <Plus size={8} />
+                      图{i + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {videoRefs.length > 0 && (
+              <div className="flex items-center gap-1">
+                <Film size={10} className="text-text-tertiary flex-shrink-0" />
+                <div className="flex flex-wrap gap-0.5">
+                  {videoRefs.map((ref, i) => (
+                    <button
+                      key={`vid-${i}`}
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] bg-accent-secondary/10 text-accent-secondary hover:bg-accent-secondary/25 transition-colors cursor-pointer"
+                      title={`插入 {{视频参考${i + 1}}} — ${getFileName(ref)}`}
+                      onClick={() => insertRef(`{{视频参考${i + 1}}}`)}
+                    >
+                      <Plus size={8} />
+                      视{i + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <AutoTextArea
           value={(data.promptText as string) || ''}
           onChange={(value) => updateNodeData(id, { promptText: value })}
-          placeholder="直接在节点内输入提示词..."
+          inputRef={textareaRef}
+          placeholder={hasMediaRefs
+            ? "输入提示词…\n可用变量：{{图片参考1}} {{视频参考1}}（点击上方标签插入）"
+            : "输入提示词…\n可用变量：{{character}} {{scene}} {{图片参考1}} {{视频参考1}}"
+          }
         />
         {optimized && (
           <div className="border border-accent/30 rounded-md p-2 bg-accent/5 text-[10px] text-text-secondary space-y-2">

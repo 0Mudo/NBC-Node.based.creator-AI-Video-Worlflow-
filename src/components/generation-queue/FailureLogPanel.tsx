@@ -4,6 +4,30 @@ import { useGenerationStore } from '@/store/useGenerationStore'
 import { AlertTriangle, Trash2, ClipboardList, Copy, X } from 'lucide-react'
 import EmptyState from '@/components/shared/EmptyState'
 
+function safeCopy(text: string): Promise<void> {
+  if (navigator.clipboard && document.hasFocus()) {
+    return navigator.clipboard.writeText(text)
+  }
+  return new Promise<void>((resolve, reject) => {
+    try {
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.focus()
+      textarea.select()
+      const success = document.execCommand('copy')
+      document.body.removeChild(textarea)
+      if (success) resolve()
+      else reject(new Error('execCommand copy failed'))
+    } catch (e) {
+      reject(e)
+    }
+  })
+}
+
 export default function FailureLogPanel() {
   const { reports, clearAll, exportLogs } = useLogStore()
   const failedTasks = useGenerationStore(s => s.tasks.filter(t => t.status === 'failed'))
@@ -25,7 +49,7 @@ export default function FailureLogPanel() {
 
   const handleCopyReport = (r: typeof allFailures[0]) => {
     const text = `失败报告\n======\n时间: ${new Date(r.timestamp).toLocaleString()}\n类型: ${r.nodeType}\n节点: ${r.nodeLabel}\n错误: ${r.error}\n${r.details ? `详情: ${r.details}\n` : ''}`
-    navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+    safeCopy(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(console.error)
   }
 
   const typeColors: Record<string, string> = { 'GPT图像生成': 'bg-node-gpt', 'Seedance视频生成': 'bg-node-seedance' }
@@ -40,7 +64,7 @@ export default function FailureLogPanel() {
         <div className="flex items-center gap-1">
           {allFailures.length > 0 && (
             <>
-              <button className="btn btn-ghost p-0.5 text-text-secondary hover:text-accent" onClick={() => { navigator.clipboard.writeText(exportLogs()); setCopied(true); setTimeout(() => setCopied(false), 2000) }} title="导出日志">
+              <button className="btn btn-ghost p-0.5 text-text-secondary hover:text-accent" onClick={() => { safeCopy(exportLogs()).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(console.error) }} title="导出日志">
                 {copied ? <Copy size={12} className="text-success" /> : <ClipboardList size={12} />}
               </button>
               <button className="btn btn-ghost p-0.5 text-text-secondary hover:text-accent" onClick={() => { if (confirm('清除所有失败日志？')) clearAll() }}>

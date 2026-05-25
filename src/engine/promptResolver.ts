@@ -9,6 +9,112 @@ function asStringArray(value: unknown): string[] {
   return []
 }
 
+function isVideoRef(ref: string): boolean {
+  const videoExts = ['.mp4', '.mov', '.avi', '.webm', '.mkv', '.flv', '.wmv', '.m4v']
+  const lower = ref.toLowerCase()
+  return videoExts.some(ext => lower.endsWith(ext))
+}
+
+export function collectMediaRefsFromUpstream(
+  promptNodeId: string,
+  nodes: AppNode[],
+  edges: AppEdge[]
+): { imageRefs: string[]; videoRefs: string[] } {
+  const upstream = findUpstream(promptNodeId, nodes, edges)
+  const imageRefs: string[] = []
+  const videoRefs: string[] = []
+  const assets = useAssetStore.getState().assets
+
+  for (const node of upstream) {
+    if (node.type === 'assetInput' && node.data.assetId) {
+      const assetId = node.data.assetId as string
+      const asset = assets.find(a => a.id === assetId || a.path === assetId)
+      if (asset) {
+        if (asset.type === 'video') {
+          videoRefs.push(asset.path || assetId)
+        } else {
+          imageRefs.push(asset.path || assetId)
+        }
+      } else if (isVideoRef(assetId)) {
+        videoRefs.push(assetId)
+      } else {
+        imageRefs.push(assetId)
+      }
+    }
+    if (node.type === 'characterCard') {
+      const single = node.data.characterRefImage as string | undefined
+      if (single) imageRefs.push(single)
+      const multi = node.data.characterRefImages as string[] | undefined
+      if (multi) multi.forEach(r => imageRefs.push(r))
+    }
+    if (node.type === 'sceneCard') {
+      if (node.data.sceneRefImage) imageRefs.push(node.data.sceneRefImage as string)
+      asStringArray(node.data.sceneRefImages).forEach((ref) => imageRefs.push(ref))
+    }
+    if (node.type === 'itemCard') {
+      if (node.data.itemRefImage) imageRefs.push(node.data.itemRefImage as string)
+      asStringArray(node.data.itemRefImages).forEach((ref) => imageRefs.push(ref))
+    }
+  }
+
+  return { imageRefs, videoRefs }
+}
+
+function resolveMediaVariables(
+  text: string,
+  imageRefs: string[],
+  videoRefs: string[]
+): string {
+  let result = text
+
+  for (let i = 0; i < Math.max(imageRefs.length, 10); i++) {
+    const placeholder = `图片参考${i + 1}`
+    if (result.includes(placeholder)) {
+      if (i < imageRefs.length) {
+        const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        result = result.replace(new RegExp(escaped, 'g'), imageRefs[i])
+      }
+    }
+  }
+
+  for (let i = 0; i < Math.max(videoRefs.length, 10); i++) {
+    const placeholder = `视频参考${i + 1}`
+    if (result.includes(placeholder)) {
+      if (i < videoRefs.length) {
+        const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        result = result.replace(new RegExp(escaped, 'g'), videoRefs[i])
+      }
+    }
+  }
+
+  return result
+}
+
+function resolveTemplatesWithMedia(
+  text: string,
+  promptNode: AppNode,
+  nodes: AppNode[],
+  edges: AppEdge[]
+): string {
+  const { imageRefs, videoRefs } = collectMediaRefsFromUpstream(promptNode.id, nodes, edges)
+
+  let result = text
+  for (let i = 0; i < Math.max(imageRefs.length, 10); i++) {
+    const key = `{{图片参考${i + 1}}}`
+    if (result.includes(key)) {
+      result = result.split(key).join(i < imageRefs.length ? imageRefs[i] : '')
+    }
+  }
+  for (let i = 0; i < Math.max(videoRefs.length, 10); i++) {
+    const key = `{{视频参考${i + 1}}}`
+    if (result.includes(key)) {
+      result = result.split(key).join(i < videoRefs.length ? videoRefs[i] : '')
+    }
+  }
+
+  return resolveMediaVariables(result, imageRefs, videoRefs)
+}
+
 export function resolveTemplates(
   text: string,
   promptNode: AppNode,
@@ -37,13 +143,18 @@ export function resolveTemplates(
   const itemDescriptions = asStringArray(itemNode?.data.itemDescriptions).length
     ? asStringArray(itemNode?.data.itemDescriptions).join('\n')
     : ((itemNode?.data.itemDescription as string) || '')
-  return text
+
+  let resolved = text
     .replace(/\{\{character\}\}/g, characterNames)
     .replace(/\{\{characterAppearance\}\}/g, characterAppearances)
     .replace(/\{\{scene\}\}/g, sceneNames)
     .replace(/\{\{sceneDescription\}\}/g, sceneDescriptions)
     .replace(/\{\{item\}\}/g, itemNames)
     .replace(/\{\{itemDescription\}\}/g, itemDescriptions)
+
+  resolved = resolveTemplatesWithMedia(resolved, promptNode, nodes, edges)
+
+  return resolved
 }
 
 export function collectPrompt(
@@ -160,12 +271,15 @@ export function collectNegativePrompt(
 export function collectImageRefs(
   nodeId: string,
   nodes: AppNode[],
-  edges: AppEdge[]
+  edges: AppEdge[],
+  excludeTypes?: string[]
 ): string[] {
   const refs = new Set<string>()
   const upstream = findUpstream(nodeId, nodes, edges)
+  const skip = new Set(excludeTypes || [])
 
   for (const node of upstream) {
+    if (skip.has(node.type || '')) continue
     if (node.type === 'assetInput' && node.data.assetId) {
       refs.add(node.data.assetId as string)
     }

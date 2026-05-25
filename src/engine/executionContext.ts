@@ -32,7 +32,12 @@ export function createExecutionContext(nodeId: string): ExecutionContext | null 
   if (!adapter) return null
 
   const prompt = collectPrompt(nodeId, nodes, edges)
-  const imageRefs = collectImageRefs(nodeId, nodes, edges)
+  const imageRefs = collectImageRefs(
+    nodeId,
+    nodes,
+    edges,
+    type === 'seedance' ? ['characterCard'] : undefined,
+  )
   const negativePrompt = collectNegativePrompt(nodeId, nodes, edges)
   const consistencySeed = collectConsistencySeed(nodeId, nodes, edges)
   const nodeLabel = (node.data.label as string) || type

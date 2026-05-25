@@ -1,5 +1,5 @@
 import React from 'react'
-import { AlertTriangle, RotateCcw } from 'lucide-react'
+import { AlertTriangle, RotateCcw, X } from 'lucide-react'
 
 interface Props {
   children: React.ReactNode
@@ -36,7 +36,14 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center h-full w-full bg-bg-primary p-6 text-center">
+        <div className="flex flex-col items-center justify-center h-full w-full bg-bg-primary p-6 text-center relative">
+          <button
+            onClick={this.handleReset}
+            className="absolute top-3 right-3 p-1.5 rounded text-text-secondary hover:text-text-primary hover:bg-node-border transition-colors"
+            title="关闭"
+          >
+            <X size={16} />
+          </button>
           <div className="w-12 h-12 rounded-full bg-red-400/10 flex items-center justify-center mb-4">
             <AlertTriangle size={24} className="text-red-400" />
           </div>

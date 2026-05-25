@@ -1,4 +1,4 @@
-import type { AppNode, AppEdge } from './flow'
+import type { AppNode, AppEdge, NodeGroup } from './flow'
 
 export interface Project {
   id: string
@@ -11,6 +11,7 @@ export interface Project {
 export interface ProjectData {
   nodes: AppNode[]
   edges: AppEdge[]
+  groups?: NodeGroup[]
 }
 
 export interface NbcFile {
@@ -23,6 +24,7 @@ export interface NbcFile {
     updatedAt: string
     nodeCount: number
     appVersion: string
+    groups?: NodeGroup[]
     timeline?: {
       slots: any[]
       clips: any[]

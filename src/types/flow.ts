@@ -13,6 +13,13 @@ export type NodeType =
   | 'banana'
   | 'output'
 
+export interface NodeGroup {
+  id: string
+  name: string
+  nodeIds: string[]
+  color: string
+}
+
 export interface NodeData {
   label: string
   _nodeId?: string

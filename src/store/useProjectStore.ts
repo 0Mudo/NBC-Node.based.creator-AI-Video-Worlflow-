@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Project, ProjectData } from '@/types/project'
-import type { AppNode, AppEdge } from '@/types/flow'
+import type { AppNode, AppEdge, NodeGroup } from '@/types/flow'
 import { emitNBCEvent } from '@/utils/nbcEvents'
 import { safeGetItem, safeSetItem, safeRemoveItem } from '@/utils/safeStorage'
 
@@ -47,7 +47,7 @@ interface ProjectStore {
   getActiveProject: () => Project | null
   markDirty: () => void
   markSaved: () => void
-  saveCurrentData: (nodes: AppNode[], edges: AppEdge[]) => void
+  saveCurrentData: (nodes: AppNode[], edges: AppEdge[], groups?: NodeGroup[]) => void
   loadCurrentData: () => ProjectData | null
   importProject: (name: string, nodes: AppNode[], edges: AppEdge[]) => string
   setAutoSaveInterval: (minutes: number) => void
@@ -68,7 +68,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set({ projects, activeProjectId: id, dirty: false })
     saveProjects(projects)
     saveActiveId(id)
-    saveProjectData(id, { nodes: [], edges: [] })
+    saveProjectData(id, { nodes: [], edges: [], groups: [] })
     emitNBCEvent('project:create', id, { summary: `创建了项目「${name}」` })
     return id
   },
@@ -110,10 +110,10 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   markDirty: () => set({ dirty: true }),
   markSaved: () => set({ dirty: false, lastSavedAt: new Date().toISOString() }),
 
-  saveCurrentData: (nodes, edges) => {
+  saveCurrentData: (nodes, edges, groups) => {
     const { activeProjectId, projects } = get()
     if (!activeProjectId) return
-    saveProjectData(activeProjectId, { nodes, edges })
+    saveProjectData(activeProjectId, { nodes, edges, groups: groups || [] })
     const updated = projects.map((p) => p.id === activeProjectId ? { ...p, nodeCount: nodes.length, updatedAt: new Date().toISOString() } : p)
     set({ projects: updated, dirty: false, lastSavedAt: new Date().toISOString() })
     saveProjects(updated)
@@ -133,7 +133,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set({ projects, activeProjectId: id, dirty: false })
     saveProjects(projects)
     saveActiveId(id)
-    saveProjectData(id, { nodes, edges })
+    saveProjectData(id, { nodes, edges, groups: [] })
     emitNBCEvent('project:import', id, { summary: `导入了项目「${name}」（${nodes.length} 个节点，${edges.length} 条连线）` })
     return id
   },

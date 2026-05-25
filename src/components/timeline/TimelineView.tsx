@@ -712,7 +712,11 @@ export default function TimelineView() {
                   <textarea
                     className="input text-[11px] w-full min-h-[132px]"
                     value={row.promptText}
-                    onChange={(e) => updateRow(row.id, { promptText: e.target.value, title: e.target.value.slice(0, 24) || row.title })}
+                    onChange={(e) => {
+                      if (!(e.nativeEvent as InputEvent).isComposing) {
+                        updateRow(row.id, { promptText: e.target.value, title: e.target.value.slice(0, 24) || row.title })
+                      }
+                    }}
                     placeholder="这里汇总三卡、场次、分镜和提示词文本..."
                   />
                   <div className="flex items-center gap-2 text-[10px] text-text-secondary">

@@ -112,7 +112,7 @@ function CardAssetFields({
   tag: AssetTag
   config: CardFieldsConfig
   nodeData: Record<string, unknown>
-  handleChange: (field: string, value: unknown) => void
+  handleChange: (field: string, value: unknown, e?: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
   extra?: ReactNode
   assets: Asset[]
   activeProjectId: string | null
@@ -145,18 +145,18 @@ function CardAssetFields({
         </select>
         <div className="text-[10px] text-text-secondary mt-1">可按住 `Ctrl` / `Shift` 多选</div>
       </div>
-      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">{config.nameLabel}</label><input className="input mt-0.5" value={(nodeData[config.nameField] as string) || ''} onChange={(e) => handleChange(config.nameField, e.target.value)} /></div>
-      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">已选名称列表</label><textarea className="input mt-0.5" rows={3} value={Array.isArray(nodeData[config.namesField]) ? (nodeData[config.namesField] as string[]).join('\n') : ''} onChange={(e) => handleChange(config.namesField, e.target.value.split('\n').filter(Boolean))} /></div>
-      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">{config.descLabel}</label><textarea className="input mt-0.5" rows={4} value={(nodeData[config.descField] as string) || ''} onChange={(e) => handleChange(config.descField, e.target.value)} /></div>
-      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">描述列表</label><textarea className="input mt-0.5" rows={4} value={Array.isArray(nodeData[config.descsField]) ? (nodeData[config.descsField] as string[]).join('\n') : ''} onChange={(e) => handleChange(config.descsField, e.target.value.split('\n').filter(Boolean))} /></div>
-      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">参考图片路径</label><input className="input mt-0.5" value={(nodeData[config.refImageField] as string) || ''} onChange={(e) => handleChange(config.refImageField, e.target.value)} placeholder={config.refImagePlaceholder} /></div>
-      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">参考图片列表</label><textarea className="input mt-0.5" rows={3} value={Array.isArray(nodeData[config.refImagesField]) ? (nodeData[config.refImagesField] as string[]).join('\n') : ''} onChange={(e) => handleChange(config.refImagesField, e.target.value.split('\n').filter(Boolean))} /></div>
+      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">{config.nameLabel}</label><input className="input mt-0.5" value={(nodeData[config.nameField] as string) || ''} onChange={(e) => handleChange(config.nameField, e.target.value, e)} /></div>
+      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">已选名称列表</label><textarea className="input mt-0.5" rows={3} value={Array.isArray(nodeData[config.namesField]) ? (nodeData[config.namesField] as string[]).join('\n') : ''} onChange={(e) => handleChange(config.namesField, e.target.value.split('\n').filter(Boolean), e)} /></div>
+      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">{config.descLabel}</label><textarea className="input mt-0.5" rows={4} value={(nodeData[config.descField] as string) || ''} onChange={(e) => handleChange(config.descField, e.target.value, e)} /></div>
+      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">描述列表</label><textarea className="input mt-0.5" rows={4} value={Array.isArray(nodeData[config.descsField]) ? (nodeData[config.descsField] as string[]).join('\n') : ''} onChange={(e) => handleChange(config.descsField, e.target.value.split('\n').filter(Boolean), e)} /></div>
+      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">参考图片路径</label><input className="input mt-0.5" value={(nodeData[config.refImageField] as string) || ''} onChange={(e) => handleChange(config.refImageField, e.target.value, e)} placeholder={config.refImagePlaceholder} /></div>
+      <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">参考图片列表</label><textarea className="input mt-0.5" rows={3} value={Array.isArray(nodeData[config.refImagesField]) ? (nodeData[config.refImagesField] as string[]).join('\n') : ''} onChange={(e) => handleChange(config.refImagesField, e.target.value.split('\n').filter(Boolean), e)} /></div>
       {extra}
     </>
   )
 }
 
-function ScriptInspector({ node, handleChange }: { node: AppNode; handleChange: (field: string, value: unknown) => void }) {
+function ScriptInspector({ node, handleChange }: { node: AppNode; handleChange: (field: string, value: unknown, e?: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void }) {
   const { getActiveData } = useInspirationStore()
   const scriptData = getActiveData('script')
   const scenes = scriptData?.scriptScenes || []
@@ -201,7 +201,7 @@ function ScriptInspector({ node, handleChange }: { node: AppNode; handleChange: 
           className="input mt-0.5"
           rows={8}
           value={(node.data.scriptText as string) || ''}
-          onChange={(e) => handleChange('scriptText', e.target.value)}
+          onChange={(e) => handleChange('scriptText', e.target.value, e)}
           placeholder="选择灵感编辑器场次自动填充，或手动输入剧本内容..."
         />
       </div>
@@ -209,7 +209,7 @@ function ScriptInspector({ node, handleChange }: { node: AppNode; handleChange: 
   )
 }
 
-function StoryboardInspector({ node, handleChange }: { node: AppNode; handleChange: (field: string, value: unknown) => void }) {
+function StoryboardInspector({ node, handleChange }: { node: AppNode; handleChange: (field: string, value: unknown, e?: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void }) {
   const { getActiveData } = useInspirationStore()
   const storyboardData = getActiveData('storyboard')
   const shots = storyboardData?.storyboardShots || []
@@ -297,7 +297,10 @@ export default function Inspector() {
   }
 
   const typeLabel = nodeTypeLabels[node.type || 'assetInput']
-  const handleChange = (field: string, value: unknown) => updateNodeData(node.id, { [field]: value })
+  const handleChange = (field: string, value: unknown, e?: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (e && (e.nativeEvent as InputEvent).isComposing) return
+    updateNodeData(node.id, { [field]: value })
+  }
 
   return (
     <div className="flex flex-col h-full panel">
@@ -315,7 +318,7 @@ export default function Inspector() {
         </div>
         <div>
           <label className="text-[10px] text-text-secondary uppercase tracking-wider">标签</label>
-          <input className="input mt-0.5" value={(node.data.label as string) || ''} onChange={(e) => handleChange('label', e.target.value)} />
+          <input className="input mt-0.5" value={(node.data.label as string) || ''} onChange={(e) => handleChange('label', e.target.value, e)} />
         </div>
 
         {/* --- Character Card --- */}
@@ -342,7 +345,7 @@ export default function Inspector() {
               activeProjectId={activeProjectId}
               projectNameMap={projectNameMap}
               extra={
-                <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">多角色（逗号分隔ID）</label><textarea className="input mt-0.5" rows={2} value={(node.data.characterCards as string) || ''} onChange={(e) => handleChange('characterCards', e.target.value)} placeholder="fade, luna, rush" /></div>
+                <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">多角色（逗号分隔ID）</label><textarea className="input mt-0.5" rows={2} value={(node.data.characterCards as string) || ''} onChange={(e) => handleChange('characterCards', e.target.value, e)} placeholder="fade, luna, rush" /></div>
               }
             />
 
@@ -350,15 +353,15 @@ export default function Inspector() {
               <p className="text-[10px] text-text-secondary mb-2">角色一致性设置</p>
               <div>
                 <label className="text-[10px] text-text-secondary uppercase tracking-wider">面部一致性提示词</label>
-                <textarea className="input mt-0.5 h-16" rows={2} value={(node.data.characterFacePrompt as string) || ''} onChange={(e) => handleChange('characterFacePrompt', e.target.value)} placeholder="描述面部特征以保持一致性..." />
+                <textarea className="input mt-0.5 h-16" rows={2} value={(node.data.characterFacePrompt as string) || ''} onChange={(e) => handleChange('characterFacePrompt', e.target.value, e)} placeholder="描述面部特征以保持一致性..." />
               </div>
               <div>
                 <label className="text-[10px] text-text-secondary uppercase tracking-wider">体型/着装一致性</label>
-                <textarea className="input mt-0.5 h-16" rows={2} value={(node.data.characterBodyPrompt as string) || ''} onChange={(e) => handleChange('characterBodyPrompt', e.target.value)} placeholder="描述体型和着装以保持一致性..." />
+                <textarea className="input mt-0.5 h-16" rows={2} value={(node.data.characterBodyPrompt as string) || ''} onChange={(e) => handleChange('characterBodyPrompt', e.target.value, e)} placeholder="描述体型和着装以保持一致性..." />
               </div>
               <div>
                 <label className="text-[10px] text-text-secondary uppercase tracking-wider">负面提示词</label>
-                <textarea className="input mt-0.5 h-16" rows={2} value={(node.data.characterNegativePrompt as string) || ''} onChange={(e) => handleChange('characterNegativePrompt', e.target.value)} placeholder="要避免的元素..." />
+                <textarea className="input mt-0.5 h-16" rows={2} value={(node.data.characterNegativePrompt as string) || ''} onChange={(e) => handleChange('characterNegativePrompt', e.target.value, e)} placeholder="要避免的元素..." />
               </div>
               <div>
                 <label className="text-[10px] text-text-secondary uppercase tracking-wider">推荐种子</label>
@@ -366,7 +369,7 @@ export default function Inspector() {
               </div>
               <div>
                 <label className="text-[10px] text-text-secondary uppercase tracking-wider">参考图URLs</label>
-                <textarea className="input mt-0.5 h-16" rows={2} value={Array.isArray(node.data.characterRefImages) ? (node.data.characterRefImages as string[]).join('\n') : ((node.data.characterRefImages as string | undefined) || '')} onChange={(e) => handleChange('characterRefImages', e.target.value.split('\n').filter(line => line.trim()))} placeholder="每行一个URL" />
+                <textarea className="input mt-0.5 h-16" rows={2} value={Array.isArray(node.data.characterRefImages) ? (node.data.characterRefImages as string[]).join('\n') : ((node.data.characterRefImages as string | undefined) || '')} onChange={(e) => handleChange('characterRefImages', e.target.value.split('\n').filter(line => line.trim()), e)} placeholder="每行一个URL" />
               </div>
             </div>
 
@@ -374,7 +377,7 @@ export default function Inspector() {
               <p className="text-[10px] text-text-secondary mb-2">TTS 语音设置</p>
               <div>
                 <label className="text-[10px] text-text-secondary uppercase tracking-wider">TTS音色ID</label>
-                <input className="input mt-0.5" value={(node.data.characterTTSVoiceId as string) || ''} onChange={(e) => handleChange('characterTTSVoiceId', e.target.value)} />
+                <input className="input mt-0.5" value={(node.data.characterTTSVoiceId as string) || ''} onChange={(e) => handleChange('characterTTSVoiceId', e.target.value, e)} />
               </div>
               <div>
                 <label className="text-[10px] text-text-secondary uppercase tracking-wider">TTS语速</label>
@@ -480,7 +483,7 @@ export default function Inspector() {
                 <option value="low">低 (Low)</option>
               </select></div>
             <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">参考图URL（每行一个）</label>
-              <textarea className="input mt-0.5" rows={3} value={(node.data.gptImageUrls as string) || ''} onChange={(e) => handleChange('gptImageUrls', e.target.value)} placeholder="https://example.com/ref1.jpg" /></div>
+              <textarea className="input mt-0.5" rows={3} value={(node.data.gptImageUrls as string) || ''} onChange={(e) => handleChange('gptImageUrls', e.target.value, e)} placeholder="https://example.com/ref1.jpg" /></div>
             <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">并发数量 (Batch Count)</label>
               <input className="input mt-0.5" type="number" min={1} max={10} value={(node.data.batchCount as number) || 1} onChange={(e) => handleChange('batchCount', parseInt(e.target.value) || 1)} /></div>
             <div className="pt-1 border-t border-node-border">
@@ -521,7 +524,7 @@ export default function Inspector() {
               </select>
             </div>
             <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">参考图URL（每行一个）</label>
-              <textarea className="input mt-0.5" rows={3} value={(node.data.bananaUrls as string) || ''} onChange={(e) => handleChange('bananaUrls', e.target.value)} placeholder="https://example.com/ref1.jpg" /></div>
+              <textarea className="input mt-0.5" rows={3} value={(node.data.bananaUrls as string) || ''} onChange={(e) => handleChange('bananaUrls', e.target.value, e)} placeholder="https://example.com/ref1.jpg" /></div>
             <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">并发数量 (Batch Count)</label>
               <input className="input mt-0.5" type="number" min={1} max={10} value={(node.data.batchCount as number) || 1} onChange={(e) => handleChange('batchCount', parseInt(e.target.value) || 1)} /></div>
             <div className="pt-1 border-t border-node-border">
@@ -579,7 +582,11 @@ export default function Inspector() {
             </div>
             <div>
               <label className="text-[10px] text-text-secondary uppercase tracking-wider">时长（秒）</label>
-              <input className="input mt-0.5" type="number" min={4} max={15} value={(node.data.seedanceDuration as number) || 5} onChange={(e) => handleChange('seedanceDuration', parseInt(e.target.value) || 5)} />
+              <select className="input mt-0.5" value={(node.data.seedanceDuration as number) || 5} onChange={(e) => handleChange('seedanceDuration', parseInt(e.target.value))}>
+                {Array.from({ length: 11 }, (_, i) => i + 5).map(s => (
+                  <option key={s} value={s}>{s} 秒</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="text-[10px] text-text-secondary uppercase tracking-wider">推理模式</label>

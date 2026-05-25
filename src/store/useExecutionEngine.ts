@@ -112,3 +112,16 @@ export async function executeAll() {
     })
   }
 }
+
+export async function executeNodes(nodeIds: string[]) {
+  const { nodes, edges } = useFlowStore.getState()
+  const idSet = new Set(nodeIds)
+  const genTypes = new Set(generatorRegistry.types)
+  const sorted = topoSort(nodes, edges).filter(id => idSet.has(id))
+  for (const nodeId of sorted) {
+    const node = nodes.find(n => n.id === nodeId)
+    if (node && genTypes.has(node.type || '')) {
+      await executeNode(node.id)
+    }
+  }
+}

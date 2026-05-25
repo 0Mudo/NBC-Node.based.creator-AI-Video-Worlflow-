@@ -99,15 +99,40 @@ const seedanceAdapter: GeneratorAdapter = {
   execute: async (node, prompt, imageRefs, signal) => {
     const provider = getProviderForType('seedance')
     const endpoint = provider?.endpoints.find(e => e.isDefault) || provider?.endpoints[0]
+    const mode = (node.data.seedanceMode as string) || 'text-to-video'
     const resolvedImageRefs = resolveImageRefs(imageRefs)
     const validRefs = resolvedImageRefs
       .filter(img => img && (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('asset://')))
-    const refImages = validRefs
-      .filter(url => !isVideoUrl(url))
-      .map(url => ({ url, role: 'reference_image' as const }))
-    const refVideos = validRefs
-      .filter(url => isVideoUrl(url))
-      .map(url => ({ url, role: 'reference_video' as const }))
+
+    const imageUrls = validRefs.filter(url => !isVideoUrl(url))
+    const videoUrls = validRefs.filter(url => isVideoUrl(url))
+
+    const refImages: Array<{ url: string; role?: string }> = []
+    const refVideos: Array<{ url: string; role?: string }> = []
+
+    if (mode === 'image-to-video-first') {
+      if (imageUrls.length > 0) {
+        refImages.push({ url: imageUrls[0], role: 'first_frame' })
+      }
+    } else if (mode === 'image-to-video-firstlast') {
+      if (imageUrls.length > 0) {
+        refImages.push({ url: imageUrls[0], role: 'first_frame' })
+      }
+      if (imageUrls.length > 1) {
+        refImages.push({ url: imageUrls[1], role: 'last_frame' })
+      }
+    } else if (mode === 'multi-modal') {
+      for (const url of imageUrls) {
+        refImages.push({ url, role: 'reference_image' })
+      }
+      for (const url of videoUrls) {
+        refVideos.push({ url, role: 'reference_video' })
+      }
+    } else if (mode === 'video-edit' || mode === 'video-extend') {
+      for (const url of videoUrls) {
+        refVideos.push({ url, role: 'reference_video' })
+      }
+    }
     const negativePrompt = (node.data._negativePrompt as string) || ''
     const finalPrompt = negativePrompt
       ? `${prompt}\n\nNEGATIVE PROMPT (STRICTLY AVOID): ${negativePrompt}`

@@ -20,6 +20,7 @@ export interface ElectronAPI {
     name: string
     type: string
     path: string
+    thumbnailPath?: string
     size: number
     createdAt: string
     tags: string[]

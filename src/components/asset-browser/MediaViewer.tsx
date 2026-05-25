@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import type { Asset } from '@/types/asset'
 import { ASSET_TAG_CN } from '@/types/asset'
 import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Play, Pause, Volume2, VolumeX, Download, Copy, Check, Info } from 'lucide-react'
@@ -61,6 +62,16 @@ export default function MediaViewer({ asset, assetList, onClose, onNavigate }: M
     if (hasNext) onNavigate(assetList[currentIdx + 1])
   }, [hasNext, currentIdx, assetList, onNavigate])
 
+  const safePlay = (v: HTMLVideoElement) => {
+    const promise = v.play()
+    if (promise !== undefined) {
+      promise.catch((err) => {
+        if (err.name === 'AbortError') return
+        throw err
+      })
+    }
+  }
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -71,7 +82,7 @@ export default function MediaViewer({ asset, assetList, onClose, onNavigate }: M
       if (e.key === ' ' && asset.type === 'video') {
         e.preventDefault()
         const v = videoRef.current
-        if (v) v.paused ? v.play() : v.pause()
+        if (v) v.paused ? safePlay(v) : v.pause()
       }
     }
     window.addEventListener('keydown', handler)
@@ -153,7 +164,7 @@ export default function MediaViewer({ asset, assetList, onClose, onNavigate }: M
   const toggleVideoPlay = () => {
     const v = videoRef.current
     if (!v) return
-    if (v.paused) v.play(); else v.pause()
+    if (v.paused) safePlay(v); else v.pause()
   }
 
   const toggleMute = () => {
@@ -178,10 +189,27 @@ export default function MediaViewer({ asset, assetList, onClose, onNavigate }: M
   }
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
+    if (navigator.clipboard && document.hasFocus()) {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }).catch(console.error)
+    } else {
+      try {
+        const textarea = document.createElement('textarea')
+        textarea.value = text
+        textarea.style.position = 'fixed'
+        textarea.style.opacity = '0'
+        textarea.style.left = '-9999px'
+        document.body.appendChild(textarea)
+        textarea.focus()
+        textarea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textarea)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch {}
+    }
   }
 
   const handleDownload = () => {
@@ -194,7 +222,7 @@ export default function MediaViewer({ asset, assetList, onClose, onNavigate }: M
 
   const scalePct = Math.round(scale * 100)
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col" onClick={onClose}>
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-2 bg-black/60 border-b border-white/10 shrink-0 z-10">
@@ -412,7 +440,8 @@ export default function MediaViewer({ asset, assetList, onClose, onNavigate }: M
           </div>
         ))}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

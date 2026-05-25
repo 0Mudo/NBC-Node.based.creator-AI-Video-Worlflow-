@@ -71,10 +71,11 @@ export default function NodePalette({ collapsed: externalCollapsed, onToggleColl
       output: { width: 220, height: 140 },
     }
     const size = sizeMap[type]
+    const center = useFlowStore.getState().viewportCenter
     addNode({
       id,
       type,
-      position: { x: 250 + Math.random() * 200, y: 150 + Math.random() * 300 },
+      position: { x: center.x + (Math.random() - 0.5) * 100, y: center.y + (Math.random() - 0.5) * 100 },
       data: {
         label: labelMap[type] || type,
         _nodeId: id,

@@ -3,7 +3,7 @@ import {
   type Connection, addEdge, applyNodeChanges, applyEdgeChanges,
   type OnNodesChange, type OnEdgesChange, type OnConnect,
 } from 'reactflow'
-import type { AppNode, AppEdge } from '@/types/flow'
+import type { AppNode, AppEdge, NodeGroup } from '@/types/flow'
 import type { NbcFile } from '@/types/project'
 import { useProjectStore } from './useProjectStore'
 import { emitNBCEvent } from '@/utils/nbcEvents'
@@ -17,7 +17,8 @@ const AUTO_SAVE_DEBOUNCE = 400
 function debouncedAutoSave(nodes: AppNode[], edges: AppEdge[]) {
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
   autoSaveTimer = setTimeout(() => {
-    useProjectStore.getState().saveCurrentData(nodes, edges)
+    const { groups } = useFlowStore.getState()
+    useProjectStore.getState().saveCurrentData(nodes, edges, groups)
   }, AUTO_SAVE_DEBOUNCE)
 }
 
@@ -39,10 +40,30 @@ function edgeKey(edge: Pick<AppEdge, 'source' | 'target' | 'sourceHandle' | 'tar
   return `${edge.source}:${edge.sourceHandle || ''}->${edge.target}:${edge.targetHandle || ''}`
 }
 
+function generateNodeId(): string {
+  return `node_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+}
+
+const GROUP_COLORS = ['#ff6b6b', '#f9ca24', '#4ecdc4', '#a29bfe', '#fd79a8', '#6c5ce7', '#00cec9', '#e67e22']
+
 interface FlowStore {
   nodes: AppNode[]
   edges: AppEdge[]
   selectedNodeId: string | null
+
+  viewportCenter: { x: number; y: number }
+  setViewportCenter: (center: { x: number; y: number }) => void
+
+  clipboardNodes: AppNode[]
+  clipboardEdges: AppEdge[]
+  copySelectedNodes: (nodeIds: string[]) => void
+  pasteNodes: (position: { x: number; y: number }) => void
+
+  groups: NodeGroup[]
+  addGroup: (name: string, nodeIds: string[]) => void
+  removeGroup: (groupId: string) => void
+  updateGroupName: (groupId: string, name: string) => void
+  setGroups: (groups: NodeGroup[]) => void
 
   onNodesChange: OnNodesChange
   onEdgesChange: OnEdgesChange
@@ -50,6 +71,7 @@ interface FlowStore {
   addNode: (node: AppNode) => void
   addEdges: (edges: AppEdge[]) => void
   removeNode: (id: string) => void
+  removeNodes: (ids: string[]) => void
   updateNodeData: (id: string, data: Record<string, unknown>) => void
   selectNode: (id: string | null) => void
   setNodes: (nodes: AppNode[]) => void
@@ -64,6 +86,73 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   nodes: [],
   edges: [],
   selectedNodeId: null,
+
+  viewportCenter: { x: 250, y: 150 },
+  setViewportCenter: (center) => set({ viewportCenter: center }),
+
+  clipboardNodes: [],
+  clipboardEdges: [],
+  copySelectedNodes: (nodeIds) => {
+    const { nodes, edges } = get()
+    const selectedSet = new Set(nodeIds)
+    const copiedNodes = nodes.filter(n => selectedSet.has(n.id))
+    const copiedEdges = edges.filter(
+      e => selectedSet.has(e.source) && selectedSet.has(e.target)
+    )
+    set({ clipboardNodes: copiedNodes, clipboardEdges: copiedEdges })
+  },
+  pasteNodes: (position) => {
+    const { clipboardNodes, clipboardEdges, nodes: existingNodes, edges: existingEdges } = get()
+    if (clipboardNodes.length === 0) return
+
+    const idMap = new Map<string, string>()
+    clipboardNodes.forEach(n => idMap.set(n.id, generateNodeId()))
+
+    const minX = Math.min(...clipboardNodes.map(n => n.position.x))
+    const minY = Math.min(...clipboardNodes.map(n => n.position.y))
+    const offsetX = position.x - minX
+    const offsetY = position.y - minY
+
+    const newNodes: AppNode[] = clipboardNodes.map(n => ({
+      ...JSON.parse(JSON.stringify(n)),
+      id: idMap.get(n.id)!,
+      position: { x: n.position.x + offsetX, y: n.position.y + offsetY },
+      data: { ...n.data, _nodeId: idMap.get(n.id)! },
+      selected: false,
+    }))
+
+    const newEdges: AppEdge[] = clipboardEdges.map(e => ({
+      ...JSON.parse(JSON.stringify(e)),
+      id: `edge_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      source: idMap.get(e.source)!,
+      target: idMap.get(e.target)!,
+    }))
+
+    const allNodes = [...existingNodes, ...newNodes]
+    const allEdges = [...existingEdges, ...newEdges]
+    set({ nodes: allNodes, edges: allEdges })
+    debouncedAutoSave(allNodes, allEdges)
+  },
+
+  groups: [],
+  addGroup: (name, nodeIds) => {
+    const groups = [...get().groups]
+    const colorIndex = groups.length % GROUP_COLORS.length
+    const group: NodeGroup = {
+      id: `group_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      name,
+      nodeIds,
+      color: GROUP_COLORS[colorIndex],
+    }
+    set({ groups: [...groups, group] })
+  },
+  removeGroup: (groupId) => {
+    set({ groups: get().groups.filter(g => g.id !== groupId) })
+  },
+  updateGroupName: (groupId, name) => {
+    set({ groups: get().groups.map(g => g.id === groupId ? { ...g, name } : g) })
+  },
+  setGroups: (groups) => set({ groups }),
 
   onNodesChange: (changes) => {
     const nodes = (applyNodeChanges(changes, get().nodes) as AppNode[]).map(normalizeNode)
@@ -118,6 +207,17 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
       })
     }
   },
+  removeNodes: (ids) => {
+    const idSet = new Set(ids)
+    const nodes = get().nodes.filter((n) => !idSet.has(n.id))
+    const edges = get().edges.filter((e) => !idSet.has(e.source) && !idSet.has(e.target))
+    const groups = get().groups.map(g => ({
+      ...g,
+      nodeIds: g.nodeIds.filter(nid => !idSet.has(nid)),
+    })).filter(g => g.nodeIds.length > 0)
+    set({ nodes, edges, groups })
+    debouncedAutoSave(nodes, edges)
+  },
   updateNodeData: (id, data) => {
     const nodes = get().nodes.map((n) => n.id === id ? { ...n, data: { ...n.data, ...data } } : n)
     set({ nodes })
@@ -135,20 +235,25 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   },
 
   loadFromProject: (nodes, edges) => {
-    set({ nodes: nodes.map(normalizeNode), edges, selectedNodeId: null })
+    const pId = useProjectStore.getState().activeProjectId
+    let groups: NodeGroup[] = []
+    if (pId) {
+      const data = useProjectStore.getState().loadCurrentData()
+      groups = data?.groups || []
+    }
+    set({ nodes: nodes.map(normalizeNode), edges, selectedNodeId: null, groups })
   },
 
   newBlank: () => {
-    set({ nodes: [], edges: [], selectedNodeId: null })
+    set({ nodes: [], edges: [], selectedNodeId: null, groups: [] })
   },
 
   exportToFile: () => {
-    const { nodes, edges } = get()
+    const { nodes, edges, groups } = get()
     const project = useProjectStore.getState().getActiveProject()
     const now = new Date().toISOString()
     const pId = project?.id
     
-    // Save timeline slots with workflow export
     let timelineData = null
     let inspirationData = null
     if (pId) {
@@ -177,6 +282,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
         updatedAt: now,
         nodeCount: nodes.length,
         appVersion: APP_VERSION,
+        groups,
         timeline: timelineData,
         inspiration: inspirationData
       },
@@ -184,11 +290,10 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   },
 
   importFromFile: (file) => {
-    set({ nodes: (file.nodes || []).map(normalizeNode), edges: file.edges || [], selectedNodeId: null })
+    set({ nodes: (file.nodes || []).map(normalizeNode), edges: file.edges || [], selectedNodeId: null, groups: file.metadata?.groups || [] })
     
     const pId = useProjectStore.getState().activeProjectId
     if (pId) {
-      // Import timeline data if it exists in the metadata
       if (file.metadata?.timeline) {
         try {
           localStorage.setItem(`nbc_timeline_v2_${pId}`, JSON.stringify(file.metadata.timeline))
@@ -196,10 +301,8 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
         } catch {}
       }
       
-      // Import inspiration data if it exists in the metadata
       if (file.metadata?.inspiration) {
         try {
-          // Extract source project ID from the key prefix in activeItemIds
           let srcPId = ''
           const itemIdKeys = Object.keys(file.metadata.inspiration.activeItemIds || {})
           if (itemIdKeys.length > 0) {
