@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="940" viewBox="0 0 1600 940">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/>
+    </marker>
+    <style>
+      .title { font: 700 28px 'Microsoft YaHei','SimSun',sans-serif; fill:#111; }
+      .subtitle { font: 400 16px 'Microsoft YaHei','SimSun',sans-serif; fill:#444; }
+      .text { font: 400 16px 'Microsoft YaHei','SimSun',sans-serif; fill:#111; }
+      .small { font: 400 13px 'Microsoft YaHei','SimSun',sans-serif; fill:#222; }
+      .tiny { font: 400 11px 'Microsoft YaHei','SimSun',sans-serif; fill:#333; }
+      .box { fill:#fff; stroke:#111; stroke-width:2; rx:10; ry:10; }
+      .group { fill:#fafafa; stroke:#111; stroke-width:2.2; rx:16; ry:16; }
+      .panel { fill:#f6f6f6; stroke:#111; stroke-width:2; rx:14; ry:14; }
+      .dashed { fill:#fcfcfc; stroke:#111; stroke-width:2; stroke-dasharray:8 6; rx:16; ry:16; }
+      .line { stroke:#111; stroke-width:2; fill:none; marker-end:url(#arrow); }
+      .plain { stroke:#111; stroke-width:2; fill:none; }
+      .soft { fill:#f1f1f1; stroke:#111; stroke-width:1.6; rx:8; ry:8; }
+      .chip { fill:#fff; stroke:#111; stroke-width:1.5; rx:12; ry:12; }
+    </style>
+  </defs>
+  
+  
+  <text x="56" y="54" class="title">图 1  NBC 系统整体架构图</text>
+  <text x="56" y="82" class="subtitle">渲染进程、预加载桥、主进程与外部服务的结构关系</text>
+  
+  <rect x="48" y="110" width="1504" height="250" class="group"/>
+  <text x="800" y="140" text-anchor="middle" class="text">渲染进程（Renderer）</text>
+  <rect x="90" y="170" width="210" height="82" class="box"/><text x="195" y="198" text-anchor="middle" class="text">React 18</text><text x="195" y="222" text-anchor="middle" class="text">组件界面</text><text x="195" y="244" text-anchor="middle" class="text">Hooks 交互</text>
+  <rect x="330" y="170" width="210" height="82" class="box"/><text x="435" y="198" text-anchor="middle" class="text">ReactFlow 11</text><text x="435" y="222" text-anchor="middle" class="text">节点画布</text><text x="435" y="244" text-anchor="middle" class="text">连线编排</text>
+  <rect x="570" y="170" width="210" height="82" class="box"/><text x="675" y="198" text-anchor="middle" class="text">Zustand 4</text><text x="675" y="222" text-anchor="middle" class="text">项目/执行/时间线</text><text x="675" y="244" text-anchor="middle" class="text">多 Store 状态</text>
+  <rect x="810" y="170" width="210" height="82" class="box"/><text x="915" y="198" text-anchor="middle" class="text">TailwindCSS 3</text><text x="915" y="222" text-anchor="middle" class="text">界面样式</text><text x="915" y="244" text-anchor="middle" class="text">布局系统</text>
+  <rect x="1060" y="160" width="430" height="110" class="box"/><text x="1275" y="188" text-anchor="middle" class="text">统一 API 调用层</text><text x="1275" y="212" text-anchor="middle" class="small">src/api/client.ts</text><text x="1275" y="230" text-anchor="middle" class="small">Vite Dev Proxy（开发）</text><text x="1275" y="248" text-anchor="middle" class="small">window.electronAPI.apiFetch（桌面）</text>
+  <path d="M 195 252 L 195 292" class="line"/>
+  <path d="M 435 252 L 435 292" class="line"/>
+  <path d="M 675 252 L 675 292" class="line"/>
+  <path d="M 915 252 L 915 292" class="line"/>
+  <rect x="210" y="292" width="860" height="46" class="box"/><text x="640" y="316" text-anchor="middle" class="small">前端组件与状态统一经 API/IPC 适配层访问本地能力与外部服务</text>
+  <rect x="48" y="406" width="1504" height="140" class="group"/>
+  <text x="800" y="438" text-anchor="middle" class="text">预加载桥（Preload）</text>
+  <rect x="150" y="458" width="1300" height="58" class="panel"/><text x="800" y="486" text-anchor="middle" class="text">contextBridge.exposeInMainWorld()</text><text x="800" y="510" text-anchor="middle" class="small">openDirectory / scanDirectory / readFile / apiFetch / save:local / save:oss / save:feishu / shell:open 等 30+ 能力</text>
+  <path d="M 800 360 L 800 406" class="plain"/>
+  <text x="820" y="390" class="small">contextBridge</text>
+  <rect x="48" y="592" width="1504" height="302" class="group"/>
+  <text x="800" y="624" text-anchor="middle" class="text">主进程（Main Process）</text>
+  <rect x="520" y="646" width="560" height="54" class="panel"/><text x="800" y="674" text-anchor="middle" class="text">ipcMain.handle()</text><text x="800" y="698" text-anchor="middle" class="small">处理渲染进程调用并分发本地能力</text>
+  <path d="M 800 546 L 800 592" class="plain"/>
+  <text x="820" y="571" class="small">ipcRenderer.invoke</text>
+  <rect x="110" y="744" width="180" height="92" class="box"/><text x="200" y="772" text-anchor="middle" class="text">fs 模块</text><text x="200" y="796" text-anchor="middle" class="text">文件 IO</text><text x="200" y="818" text-anchor="middle" class="text">目录扫描</text>
+  <rect x="332" y="744" width="180" height="92" class="box"/><text x="422" y="772" text-anchor="middle" class="text">dialog</text><text x="422" y="796" text-anchor="middle" class="text">目录选择</text><text x="422" y="818" text-anchor="middle" class="text">导入导出</text>
+  <rect x="554" y="744" width="180" height="92" class="box"/><text x="644" y="772" text-anchor="middle" class="text">net</text><text x="644" y="796" text-anchor="middle" class="text">API 代理</text><text x="644" y="818" text-anchor="middle" class="text">请求转发</text>
+  <rect x="776" y="744" width="180" height="92" class="box"/><text x="866" y="772" text-anchor="middle" class="text">protocol</text><text x="866" y="796" text-anchor="middle" class="text">nbc:// 协议</text><text x="866" y="818" text-anchor="middle" class="text">资源分发</text>
+  <rect x="998" y="744" width="180" height="92" class="box"/><text x="1088" y="772" text-anchor="middle" class="text">BrowserWindow</text><text x="1088" y="796" text-anchor="middle" class="text">窗口管理</text><text x="1088" y="818" text-anchor="middle" class="text">生命周期</text>
+  <rect x="1220" y="732" width="250" height="118" class="panel"/><text x="1345" y="760" text-anchor="middle" class="text">外部服务与资源</text><text x="1345" y="784" text-anchor="middle" class="small">GrsAI / Ark / ComfyUI</text><text x="1345" y="802" text-anchor="middle" class="small">OSS / 飞书 / 本地媒体</text>
+  <path d="M 800 700 L 200 744" class="line"/>
+  <path d="M 800 700 L 422 744" class="line"/>
+  <path d="M 800 700 L 644 744" class="line"/>
+  <path d="M 800 700 L 866 744" class="line"/>
+  <path d="M 800 700 L 1088 744" class="line"/>
+  <path d="M 1180 790 L 1220 790" class="line"/>
+  
+</svg>

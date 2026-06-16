@@ -1,7 +1,7 @@
 {
   "name": "node-based-creator",
   "private": true,
-  "version": "1.0.5-beta-12",
+  "version": "1.0.5-beta-13",
   "description": "素材节点式图形界面 - Visual Asset Node Editor",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -47,6 +47,7 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",
     "vite": "^5.0.12",
+    "vitest": "^4.1.8",
     "wait-on": "^7.2.0"
   },
   "build": {

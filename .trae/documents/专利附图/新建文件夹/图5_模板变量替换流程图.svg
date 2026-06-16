@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/>
+    </marker>
+    <style>
+      .title { font: 700 28px 'Microsoft YaHei','SimSun',sans-serif; fill:#111; }
+      .subtitle { font: 400 16px 'Microsoft YaHei','SimSun',sans-serif; fill:#444; }
+      .text { font: 400 16px 'Microsoft YaHei','SimSun',sans-serif; fill:#111; }
+      .small { font: 400 13px 'Microsoft YaHei','SimSun',sans-serif; fill:#222; }
+      .tiny { font: 400 11px 'Microsoft YaHei','SimSun',sans-serif; fill:#333; }
+      .box { fill:#fff; stroke:#111; stroke-width:2; rx:10; ry:10; }
+      .group { fill:#fafafa; stroke:#111; stroke-width:2.2; rx:16; ry:16; }
+      .panel { fill:#f6f6f6; stroke:#111; stroke-width:2; rx:14; ry:14; }
+      .dashed { fill:#fcfcfc; stroke:#111; stroke-width:2; stroke-dasharray:8 6; rx:16; ry:16; }
+      .line { stroke:#111; stroke-width:2; fill:none; marker-end:url(#arrow); }
+      .plain { stroke:#111; stroke-width:2; fill:none; }
+      .soft { fill:#f1f1f1; stroke:#111; stroke-width:1.6; rx:8; ry:8; }
+      .chip { fill:#fff; stroke:#111; stroke-width:1.5; rx:12; ry:12; }
+    </style>
+  </defs>
+  
+  
+  <text x="56" y="54" class="title">图 5  模板变量替换流程图</text>
+  
+  
+  <rect x="400" y="120" width="800" height="76" class="box"/><text x="800" y="148" text-anchor="middle" class="text">输入</text><text x="800" y="172" text-anchor="middle" class="text">原始提示词 promptText、上游节点 upstreamNodes、imageRefs、videoRefs</text>
+  <rect x="470" y="250" width="660" height="110" class="box"/><text x="800" y="278" text-anchor="middle" class="text">阶段一：查找标准上游节点</text><text x="800" y="302" text-anchor="middle" class="text">定位角色卡、场景卡、物品卡等节点</text><text x="800" y="324" text-anchor="middle" class="text">提取名称、外观、描述等结构化字段</text>
+  <rect x="470" y="412" width="660" height="140" class="box"/><text x="800" y="440" text-anchor="middle" class="text">阶段二：标准模板替换</text><text x="800" y="464" text-anchor="middle" class="text">{{character}} → 角色名</text><text x="800" y="486" text-anchor="middle" class="text">{{characterAppearance}} → 外观描述</text><text x="800" y="508" text-anchor="middle" class="text">{{sceneDescription}} / {{itemDescription}} → 对应文本</text>
+  <rect x="470" y="604" width="660" height="130" class="box"/><text x="800" y="632" text-anchor="middle" class="text">阶段三：双大括号引用替换</text><text x="800" y="656" text-anchor="middle" class="text">遍历 imageRefs / videoRefs</text><text x="800" y="678" text-anchor="middle" class="text">{{图片参考1}}、{{视频参考1}} → 对应实际路径或 URL</text>
+  <rect x="470" y="786" width="660" height="130" class="box"/><text x="800" y="814" text-anchor="middle" class="text">阶段四：纯文本语法替换</text><text x="800" y="838" text-anchor="middle" class="text">图片参考1 / 视频参考1 → 实际引用值</text><text x="800" y="860" text-anchor="middle" class="text">兼容未使用 {{}} 语法的自然语言提示</text>
+  <rect x="470" y="968" width="660" height="90" class="box"/><text x="800" y="996" text-anchor="middle" class="text">输出 resolvedPrompt</text><text x="800" y="1020" text-anchor="middle" class="text">所有变量均被替换为可直接提交给模型的最终提示词</text>
+  <path d="M 800 196 L 800 250" class="line"/>
+  <path d="M 800 360 L 800 412" class="line"/>
+  <path d="M 800 552 L 800 604" class="line"/>
+  <path d="M 800 734 L 800 786" class="line"/>
+  <path d="M 800 916 L 800 968" class="line"/>
+  
+</svg>

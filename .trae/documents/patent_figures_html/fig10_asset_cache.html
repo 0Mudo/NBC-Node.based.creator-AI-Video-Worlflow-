@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>图10 素材库多源加载与缩略图双层缓存示意图</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: #0f172a;
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+    }
+    .page {
+      width: 1600px;
+      min-height: 900px;
+      padding: 28px 32px 24px;
+      background: #ffffff;
+    }
+    .title {
+      text-align: center;
+      font-size: 34px;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 18px;
+      color: #475569;
+      margin: 8px 0 16px;
+    }
+    svg { width: 100%; height: 780px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1 class="title">图10 素材库多源加载与缩略图双层缓存示意图</h1>
+    <div class="subtitle">本地、OSS、云盘素材统一加载，以及视频缩略图缓存机制</div>
+    <svg viewBox="0 0 1600 980" width="1600" height="780" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569" />
+        </marker>
+      </defs>
+      
+      
+    <rect x="60" y="140" width="420" height="500" rx="24" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+    <rect x="78" y="120" width="180" height="44" rx="22" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
+    <text x="96" y="150" fill="#0f172a" font-size="24" font-weight="700" font-family="Microsoft YaHei, Arial">素材来源</text>
+    
+        
+    <rect x="110" y="220" width="320" height="52" rx="26" fill="#eff6ff" stroke="#3b82f6" stroke-width="3"  />
+    <text text-anchor="middle" font-size="22" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="270" y="246">本地文件夹扫描</tspan></text>
+  
+        
+    <rect x="110" y="320" width="320" height="52" rx="26" fill="#dcfce7" stroke="#16a34a" stroke-width="3"  />
+    <text text-anchor="middle" font-size="22" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="270" y="346">OSS manifest 加载</tspan></text>
+  
+        
+    <rect x="110" y="420" width="320" height="52" rx="26" fill="#fef3c7" stroke="#d97706" stroke-width="3"  />
+    <text text-anchor="middle" font-size="22" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="270" y="446">协作平台云盘素材列表</tspan></text>
+  
+        
+    <rect x="110" y="520" width="320" height="90" rx="18" fill="#f8fafc" stroke="#64748b" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="270" y="548.8">统一写入素材管理状态</tspan><tspan x="270" y="581.1999999999999">name / path / type / thumbnail</tspan></text>
+  
+      
+  
+      
+    <rect x="560" y="140" width="460" height="500" rx="24" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+    <rect x="578" y="120" width="312" height="44" rx="22" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
+    <text x="596" y="150" fill="#0f172a" font-size="24" font-weight="700" font-family="Microsoft YaHei, Arial">视频缩略图生成与双层缓存</text>
+    
+        
+    <rect x="620" y="210" width="340" height="72" rx="18" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="790" y="246">创建隐藏 video 元素并加载 metadata</tspan></text>
+  
+        
+    <rect x="620" y="320" width="340" height="72" rx="18" fill="#cffafe" stroke="#0891b2" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="790" y="339.8">seek 到预设时间点并截帧</tspan><tspan x="790" y="372.20000000000005">Canvas 绘制为 JPEG DataURL</tspan></text>
+  
+        
+    <rect x="620" y="430" width="160" height="92" rx="18" fill="#dcfce7" stroke="#16a34a" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="700" y="459.8">内存缓存</tspan><tspan x="700" y="492.20000000000005">frameCache Map</tspan></text>
+  
+        
+    <rect x="800" y="430" width="160" height="92" rx="18" fill="#ecfccb" stroke="#65a30d" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="880" y="459.8">sessionStorage</tspan><tspan x="880" y="492.20000000000005">nbc_vthumb_*</tspan></text>
+  
+        
+    <rect x="620" y="560" width="340" height="60" rx="18" fill="#f8fafc" stroke="#64748b" stroke-width="3"  />
+    <text text-anchor="middle" font-size="20" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="790" y="590">渲染时按 frameCache → sessionStorage → 重新截帧 顺序命中</tspan></text>
+  
+      
+  
+      
+    <rect x="1100" y="140" width="430" height="500" rx="24" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+    <rect x="1118" y="120" width="182" height="44" rx="22" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
+    <text x="1136" y="150" fill="#0f172a" font-size="24" font-weight="700" font-family="Microsoft YaHei, Arial">素材浏览器界面</text>
+    
+        
+    <rect x="1160" y="220" width="310" height="90" rx="18" fill="#fee2e2" stroke="#dc2626" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="1315" y="248.8">图片素材直接展示缩略图</tspan><tspan x="1315" y="281.20000000000005">视频素材展示缓存帧预览</tspan></text>
+  
+        
+    <rect x="1160" y="370" width="310" height="90" rx="18" fill="#eff6ff" stroke="#3b82f6" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="1315" y="398.8">支持拖入画布与时间线槽位</tspan><tspan x="1315" y="431.20000000000005">减少重复加载和卡顿</tspan></text>
+  
+      
+  
+      <line x1="480" y1="390" x2="560" y2="390" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="1020" y1="390" x2="1100" y2="390" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+    
+    </svg>
+  </div>
+</body>
+</html>

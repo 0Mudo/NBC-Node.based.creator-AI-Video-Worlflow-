@@ -23,6 +23,10 @@ function getProviderForType(type: string) {
     seedance: { capability: 'text-to-video', fallbackId: 'seedance' },
   }
   const { capability, fallbackId } = typeMap[type] || { capability: '', fallbackId: type }
+  const exactProvider = ps.getProvider(fallbackId)
+  if (exactProvider?.enabled) {
+    return exactProvider
+  }
   const enabled = ps.getEnabledProviders().filter(p => p.capabilities.includes(capability))
   return enabled.find(p => p.endpoints.some(e => !!e.apiKey))
     || enabled[0]

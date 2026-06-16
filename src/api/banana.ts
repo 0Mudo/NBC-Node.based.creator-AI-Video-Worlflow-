@@ -44,6 +44,9 @@ export async function generateBananaImage(
   if (options.imageSize) body.imageSize = options.imageSize
   if (options.images?.length) body.images = options.images
 
+  console.log('[Banana] 请求 URL:', endpoint)
+  console.log('[Banana] 请求体:', JSON.stringify({ ...body, prompt: body.prompt ? String(body.prompt).slice(0, 100) + '...' : '' }))
+
   const res = await apiFetch(endpoint, {
     method: 'POST',
     headers: {
@@ -53,6 +56,9 @@ export async function generateBananaImage(
     body: JSON.stringify(body),
     timeoutMs: 300000,
   })
+
+  console.log('[Banana] 响应状态:', res.status)
+  console.log('[Banana] 响应体:', res.body?.slice(0, 500))
 
   if (signal?.aborted) throw new Error('AbortError')
 
@@ -65,8 +71,17 @@ export async function generateBananaImage(
     throw new Error(`请求失败: ${res.status}\n${rawBody.slice(0, 200)}`)
   }
 
+  if (!rawBody.trim()) {
+    throw new Error('API 返回了空响应，请检查 endpoint 和 API Key 是否正确')
+  }
+
   try {
     const json = JSON.parse(rawBody)
+    
+    // Handle error responses with code/msg format: {"code":-1,"data":null,"msg":"..."}
+    if (json.code !== undefined && json.code !== 0) {
+      throw new Error(`API错误: ${json.msg || json.message || JSON.stringify(json)}`)
+    }
     if (json.error) throw new Error(`API错误: ${typeof json.error === 'string' ? json.error : json.error.message || JSON.stringify(json.error)}`)
     
     // If we used json replyType and it returned results directly
@@ -91,9 +106,9 @@ export async function generateBananaImage(
       return await pollBananaImageResult(taskId, apiKey, pollEndpoint, onProgress, signal)
     }
 
-    throw new Error('未找到任务 ID 或图片 URL')
+    throw new Error(`未找到任务 ID 或图片 URL\n响应内容: ${rawBody.slice(0, 500)}`)
   } catch (e: any) {
-    if (e.message === '未找到任务 ID 或图片 URL' || e.message.startsWith('API错误') || e.message === 'AbortError') throw e
+    if (e.message.startsWith('未找到任务 ID') || e.message.startsWith('API错误') || e.message === 'AbortError') throw e
     throw new Error(`无法解析 API 响应: ${e.message}\n${rawBody.slice(0, 200)}`)
   }
 }
@@ -130,6 +145,11 @@ export async function pollBananaImageResult(
     }
 
     const json = JSON.parse(res.body)
+    
+    // Handle error responses with code/msg format
+    if (json.code !== undefined && json.code !== 0) {
+      throw new Error(`API错误: ${json.msg || json.message || JSON.stringify(json)}`)
+    }
     
     if (json.error) {
       throw new Error(`API错误: ${typeof json.error === 'string' ? json.error : json.error.message || JSON.stringify(json.error)}`)
