@@ -264,37 +264,36 @@ export async function generateGPTImageStream(
   console.log('GPT Image 2 Response body:', res.body?.slice(0, 500) || '(empty)')
 
   // Quick path: try parse as direct JSON with optional {code, data} wrapper
-  let directResult: GPTImageResult[] | null = null
   try {
     const json = JSON.parse(res.body)
     // Handle { code: 0, data: { id, status, results } } wrapper
     const payload = json.code !== undefined ? (json.data || json) : json
+    const extractedUrl = pickUrl(
+      payload.url,
+      payload.results?.[0]?.url,
+      payload.data?.[0]?.url,
+      payload.data?.url,
+      payload.data?.image_url,
+      payload.data?.results?.[0]?.url,
+      payload.result?.url,
+      payload.output_url,
+    )
+
+    // Async mode: status=running with a task ID → start polling
+    if ((payload.status === 'running' || payload.status === 'pending') && !extractedUrl && payload.id) {
+      console.log('[GPTImage] async task detected, starting poll for:', payload.id)
+      const resultEndpoint = buildResultEndpoint(requestUrl)
+      return await pollGPTImageResult(payload.id, apiKey, resultEndpoint, onProgress, signal)
+    }
+
+    // Sync success or explicit failure
     if (payload.status === 'succeeded' || payload.status === 'failed') {
-      const extractedUrl = pickUrl(
-        payload.url,
-        payload.results?.[0]?.url,
-        payload.data?.[0]?.url,
-        payload.data?.url,
-        payload.data?.image_url,
-        payload.data?.results?.[0]?.url,
-        payload.result?.url,
-        payload.output_url,
-      )
-      directResult = [{
-        id: payload.id || json.id || '',
-        url: extractedUrl,
-        progress: payload.progress ?? 100,
-        status: payload.status,
-        failureReason: payload.failure_reason || payload.error,
-        results: payload.results || payload.data,
-        raw: payload,
-      }]
       if (payload.status === 'failed') {
         throw new Error(`生成失败: ${payload.failure_reason || payload.error || '未知原因'}`)
       }
       if (extractedUrl) {
-        onProgress?.(directResult[0])
-        return directResult
+        onProgress?.({ id: payload.id, url: extractedUrl, progress: 100, status: 'succeeded' })
+        return [{ id: payload.id, url: extractedUrl, progress: 100, status: 'succeeded', results: payload.results }]
       }
       console.warn('[GPTImage] parsed response but URL empty, payload:', JSON.stringify(payload).slice(0, 300))
     }
@@ -375,7 +374,9 @@ export async function pollGPTImageResult(
   onProgress?: (result: GPTImageResult) => void,
   signal?: AbortSignal
 ): Promise<GPTImageResult[]> {
-  while (true) {
+  console.log(`[GPTImage] polling task ${taskId} at ${endpoint}`)
+  const maxAttempts = 60 // 3 min at 3s intervals
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     if (signal?.aborted) throw new Error('AbortError')
     
     // GRS AI docs say GET /v1/api/result?id=taskId
@@ -404,20 +405,21 @@ export async function pollGPTImageResult(
       throw new Error(`API错误: code=${json.code} msg=${json.msg}`)
     }
 
-    // GRS AI result API can return flat structure or nested in data
-    const data = json.data || json
+    // API may return {code:0, data:{...}} or flat {...}
+    const data = (json.code === 0 ? json.data : null) || json
     if (!data || (Object.keys(data).length === 0)) throw new Error('获取结果失败，返回数据为空')
 
-    // Depending on GRS API format, it could be `data.results[0].url` or flat `data.url`
     const extractedUrl = pickUrl(
       data.url,
       data.results?.[0]?.url,
       data.image_url,
       data.result?.url,
       data.output_url,
-      data[0]?.url
+      data[0]?.url,
     )
     
+    console.log(`[GPTImage] poll #${attempt + 1} status=${data.status} progress=${data.progress} hasUrl=${!!extractedUrl}`)
+
     const result: GPTImageResult = {
       id: data.id || taskId,
       url: extractedUrl,
@@ -431,11 +433,8 @@ export async function pollGPTImageResult(
     onProgress?.(result)
 
     if (result.status === 'succeeded') {
-      if (extractedUrl) {
-        return [result]
-      } else {
-        throw new Error(`任务已完成，但未找到图片URL。\n返回数据: ${JSON.stringify(data).substring(0, 200)}`)
-      }
+      if (extractedUrl) return [result]
+      throw new Error(`任务已完成，但未找到图片URL。\n返回数据: ${JSON.stringify(data).substring(0, 200)}`)
     }
     
     if (result.status === 'failed' || result.failureReason) {
@@ -445,4 +444,6 @@ export async function pollGPTImageResult(
     // Wait before next poll
     await new Promise(r => setTimeout(r, 3000))
   }
+  
+  throw new Error(`轮询超时（${maxAttempts}次），任务未完成`)
 }
