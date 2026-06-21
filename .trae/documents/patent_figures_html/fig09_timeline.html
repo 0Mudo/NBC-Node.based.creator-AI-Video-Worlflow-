@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>图9 时间线分镜系统的数据结构与数据流图</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: #0f172a;
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+    }
+    .page {
+      width: 1600px;
+      min-height: 900px;
+      padding: 28px 32px 24px;
+      background: #ffffff;
+    }
+    .title {
+      text-align: center;
+      font-size: 34px;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 18px;
+      color: #475569;
+      margin: 8px 0 16px;
+    }
+    svg { width: 100%; height: 780px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1 class="title">图9 时间线分镜系统的数据结构与数据流图</h1>
+    <div class="subtitle">生成结果自动绑定到对应分镜行槽位的过程</div>
+    <svg viewBox="0 0 1600 980" width="1600" height="780" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569" />
+        </marker>
+      </defs>
+      
+      
+    <rect x="70" y="120" width="360" height="480" rx="24" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+    <rect x="88" y="100" width="180" height="44" rx="22" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
+    <text x="106" y="130" fill="#0f172a" font-size="24" font-weight="700" font-family="Microsoft YaHei, Arial">执行上下文</text>
+    
+        
+    <rect x="120" y="220" width="260" height="90" rx="18" fill="#eff6ff" stroke="#3b82f6" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="250" y="248.8">timelineRowId</tspan><tspan x="250" y="281.20000000000005">timelineMediaType</tspan></text>
+  
+        
+    <rect x="120" y="380" width="260" height="110" rx="18" fill="#dcfce7" stroke="#16a34a" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="250" y="418.8">生成结果</tspan><tspan x="250" y="451.20000000000005">本地路径 / 云端 URL / 缩略图 / 元数据</tspan></text>
+  
+      
+  
+      
+    <rect x="520" y="120" width="520" height="480" rx="24" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+    <rect x="538" y="100" width="572" height="44" rx="22" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
+    <text x="556" y="130" fill="#0f172a" font-size="24" font-weight="700" font-family="Microsoft YaHei, Arial">时间线存储 useTimelineStore</text>
+    
+        
+    <rect x="580" y="200" width="400" height="90" rx="18" fill="#fef3c7" stroke="#d97706" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="780" y="228.8">rows[]</tspan><tspan x="780" y="261.20000000000005">分镜行、槽位、排序、绑定关系</tspan></text>
+  
+        
+    <rect x="580" y="350" width="400" height="90" rx="18" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="780" y="378.8">bindMediaToRow()</tspan><tspan x="780" y="411.20000000000005">按 rowId + mediaType 写入结果素材</tspan></text>
+  
+        
+    <rect x="580" y="500" width="400" height="70" rx="18" fill="#f8fafc" stroke="#64748b" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="780" y="518.8">setRowGenerating()</tspan><tspan x="780" y="551.1999999999999">生成中状态同步</tspan></text>
+  
+      
+  
+      
+    <rect x="1130" y="120" width="380" height="480" rx="24" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+    <rect x="1148" y="100" width="180" height="44" rx="22" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
+    <text x="1166" y="130" fill="#0f172a" font-size="24" font-weight="700" font-family="Microsoft YaHei, Arial">时间线界面</text>
+    
+        
+    <rect x="1180" y="220" width="280" height="90" rx="18" fill="#cffafe" stroke="#0891b2" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="1320" y="248.8">分镜行槽位</tspan><tspan x="1320" y="281.20000000000005">图片槽位 / 视频槽位</tspan></text>
+  
+        
+    <rect x="1180" y="380" width="280" height="110" rx="18" fill="#ecfccb" stroke="#65a30d" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="1320" y="418.8">自动显示绑定素材</tspan><tspan x="1320" y="451.20000000000005">支持激活、替换、删除、拖拽</tspan></text>
+  
+      
+  
+      <line x1="430" y1="360" x2="520" y2="360" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="1040" y1="360" x2="1130" y2="360" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <text x="690" y="660" fill="#334155" font-size="24" font-weight="600" text-anchor="middle" font-family="Microsoft YaHei, Arial">生成完成后根据 timelineRowId 自动填充对应分镜行，减少手工导入和对齐操作</text>
+    
+    </svg>
+  </div>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>图3 拓扑排序引擎算法流程图</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: #0f172a;
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+    }
+    .page {
+      width: 1600px;
+      min-height: 900px;
+      padding: 28px 32px 24px;
+      background: #ffffff;
+    }
+    .title {
+      text-align: center;
+      font-size: 34px;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 18px;
+      color: #475569;
+      margin: 8px 0 16px;
+    }
+    svg { width: 100%; height: 780px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1 class="title">图3 拓扑排序引擎算法流程图</h1>
+    <div class="subtitle">Kahn 算法实现执行顺序规划的流程</div>
+    <svg viewBox="0 0 1600 980" width="1600" height="780" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569" />
+        </marker>
+      </defs>
+      
+      
+    <rect x="660" y="40" width="280" height="56" rx="28" fill="#dbeafe" stroke="#2563eb" stroke-width="3"  />
+    <text text-anchor="middle" font-size="22" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="68">开始</tspan></text>
+  
+      
+    <rect x="560" y="125" width="480" height="70" rx="18" fill="#eff6ff" stroke="#3b82f6" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="143.8">读取当前节点集合与边集合</tspan><tspan x="800" y="176.20000000000002">初始化各节点入度计数器</tspan></text>
+  
+      
+    <rect x="560" y="235" width="480" height="70" rx="18" fill="#f8fafc" stroke="#64748b" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="253.8">遍历所有边</tspan><tspan x="800" y="286.20000000000005">统计每个目标节点的入度</tspan></text>
+  
+      
+    <rect x="560" y="345" width="480" height="70" rx="18" fill="#dcfce7" stroke="#16a34a" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="363.8">将所有入度为 0 的节点加入队列</tspan><tspan x="800" y="396.20000000000005">同时初始化排序结果数组</tspan></text>
+  
+      
+    <rect x="560" y="455" width="480" height="70" rx="18" fill="#fef3c7" stroke="#d97706" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="473.8">循环出队当前节点</tspan><tspan x="800" y="506.20000000000005">加入排序结果</tspan></text>
+  
+      
+    <rect x="560" y="565" width="480" height="70" rx="18" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="583.8">遍历当前节点的邻居</tspan><tspan x="800" y="616.1999999999999">邻居入度减 1，若为 0 则入队</tspan></text>
+  
+      
+    <rect x="220" y="685" width="320" height="72" rx="18" fill="#fee2e2" stroke="#dc2626" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="380" y="721">队列是否为空？</tspan></text>
+  
+      
+    <rect x="760" y="685" width="340" height="72" rx="18" fill="#cffafe" stroke="#0891b2" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="930" y="704.8">对排序序列中的生成节点执行模型调用</tspan><tspan x="930" y="737.1999999999999">非生成节点仅保留顺序</tspan></text>
+  
+      
+    <rect x="810" y="800" width="240" height="56" rx="28" fill="#ecfccb" stroke="#65a30d" stroke-width="3"  />
+    <text text-anchor="middle" font-size="22" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="930" y="828">输出拓扑序列</tspan></text>
+  
+      <line x1="800" y1="96" x2="800" y2="125" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="800" y1="195" x2="800" y2="235" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="800" y1="305" x2="800" y2="345" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="800" y1="415" x2="800" y2="455" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="800" y1="525" x2="800" y2="565" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <polyline points="800,635 800,720 540,720" fill="none" stroke="#475569" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" />
+      <polyline points="540,720 540,600 560,600" fill="none" stroke="#475569" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" />
+      <text x="470" y="670" fill="#dc2626" font-size="20" font-weight="700" text-anchor="start" font-family="Microsoft YaHei, Arial">否</text>
+      <polyline points="540,720 760,720" fill="none" stroke="#475569" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" />
+      <text x="640" y="705" fill="#16a34a" font-size="20" font-weight="700" text-anchor="start" font-family="Microsoft YaHei, Arial">是</text>
+      <line x1="930" y1="757" x2="930" y2="800" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+    
+    </svg>
+  </div>
+</body>
+</html>

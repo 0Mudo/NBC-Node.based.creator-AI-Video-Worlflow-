@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>NBC · Node-Based Creator</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root { --bg: #0A0A0E; --bg2: #121218; --gold: #E8A850; --copper: #C48060; --t1: #EBE8E2; --t2: #9E988E; --t3: #66625A; --n1: #4ECDC4; --n2: #FF6B6B; --n3: #5EEAD4; --n4: #FACC15; --n5: #A78BFA; --n6: #F472B6; --n7: #8B5CF6; --n8: #FB7185; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #0A0A0E; font-family: "DM Sans", sans-serif; color: #EBE8E2; }
+      .scene { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; overflow: hidden; }
+      #scene1 { z-index: 1; background: #0A0A0E; }
+      #scene2 { z-index: 2; background: #0A0A0E; opacity: 0; }
+      #scene3 { z-index: 3; background: #0A0A0E; opacity: 0; }
+      #scene4 { z-index: 4; background: #0A0A0E; opacity: 0; }
+      #scene5 { z-index: 5; background: #0A0A0E; opacity: 0; }
+      #scene6 { z-index: 6; background: #0A0A0E; opacity: 0; }
+      .headline { font-family: "DM Serif Display", serif; font-size: 80px; font-weight: 700; line-height: 1.05; }
+      .subtitle { font-family: "DM Sans", sans-serif; font-size: 28px; font-weight: 350; color: #9E988E; letter-spacing: 0.04em; }
+      .label { font-family: "JetBrains Mono", monospace; font-size: 14px; font-weight: 400; color: #66625A; letter-spacing: 0.12em; text-transform: uppercase; }
+      .tag { font-family: "DM Sans", sans-serif; font-size: 18px; font-weight: 350; color: #C48060; letter-spacing: 0.06em; }
+      .bg-grid { position: absolute; inset: 0; opacity: 0.04; background-image: linear-gradient(rgba(232,168,80,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(232,168,80,0.3) 1px, transparent 1px); background-size: 80px 80px; }
+      .bg-glow { position: absolute; width: 900px; height: 900px; border-radius: 50%; filter: blur(180px); opacity: 0.12; background: radial-gradient(circle, #E8A850 0%, rgba(232,168,80,0) 70%); }
+      .bg-grain { position: absolute; inset: 0; opacity: 0.03; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E"); background-size: 256px 256px; }
+      .divider { position: absolute; height: 1px; background: rgba(232,168,80,0.15); }
+      .accent-dot { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #E8A850; opacity: 0.5; }
+      .s1-nbc { font-family: "DM Serif Display", serif; font-size: 160px; font-weight: 700; color: #EBE8E2; line-height: 0.9; letter-spacing: 0.02em; }
+      .s2-card { position: absolute; background: #121218; border: 1px solid rgba(232,168,80,0.12); border-radius: 12px; padding: 24px; display: block; }
+      .s3-avatar { position: absolute; width: 100px; height: 100px; border-radius: 50%; background: #121218; border: 2px solid rgba(232,168,80,0.25); display: flex; align-items: center; justify-content: center; }
+      .s4-node { position: absolute; background: #161620; border: 2px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 18px 24px; display: block; }
+      .s4-edge { position: absolute; height: 2px; background: rgba(232,168,80,0.3); transform-origin: left center; }
+      .s5-stage { width: 340px; height: 340px; background: #121218; border: 1px solid rgba(232,168,80,0.12); border-radius: 16px; padding: 28px; display: block; position: relative; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-width="1920" data-height="1080" data-start="0" data-duration="60">
+
+      <!-- SCENE 1: TITLE (0-8s) -->
+      <div id="scene1" class="scene">
+        <div class="bg-grain"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-glow" style="left: 510px; top: 90px;"></div>
+        <svg style="position:absolute;top:60px;left:80px;width:40px;height:40px;opacity:0.25" viewBox="0 0 40 40"><path d="M0 0 L30 0 M0 0 L0 30" stroke="#E8A850" stroke-width="2" fill="none"/></svg>
+        <svg style="position:absolute;top:60px;right:80px;width:40px;height:40px;opacity:0.25" viewBox="0 0 40 40"><path d="M40 0 L10 0 M40 0 L40 30" stroke="#E8A850" stroke-width="2" fill="none"/></svg>
+        <svg style="position:absolute;bottom:60px;left:80px;width:40px;height:40px;opacity:0.25" viewBox="0 0 40 40"><path d="M0 40 L30 40 M0 40 L0 10" stroke="#E8A850" stroke-width="2" fill="none"/></svg>
+        <svg style="position:absolute;bottom:60px;right:80px;width:40px;height:40px;opacity:0.25" viewBox="0 0 40 40"><path d="M40 40 L10 40 M40 40 L40 10" stroke="#E8A850" stroke-width="2" fill="none"/></svg>
+        <div class="divider" style="top:200px;left:120px;width:200px;"></div>
+        <div class="divider" style="bottom:200px;right:120px;width:300px;"></div>
+        <div class="accent-dot" style="left:200px;top:180px;"></div>
+        <div class="accent-dot" style="right:260px;bottom:220px;"></div>
+        <div class="accent-dot" style="left:400px;bottom:170px;"></div>
+        <div style="position:absolute;left:160px;top:340px;" id="s1-title-block">
+          <div class="s1-nbc" id="s1-nbc">N<span style="color:#E8A850">B</span>C</div>
+        </div>
+        <div style="position:absolute;left:168px;top:560px;" id="s1-subtitle-block">
+          <div class="subtitle">Node-Based Creator · 节点式素材创作器</div>
+        </div>
+        <div style="position:absolute;left:168px;top:630px;font-family:'DM Sans',sans-serif;font-size:22px;font-weight:350;color:#66625A;letter-spacing:0.18em;" id="s1-tagline">灵感创作 · 节点编排 · AI 驱动</div>
+        <div style="position:absolute;right:120px;bottom:80px;text-align:right;" id="s1-meta">
+          <div class="label">Noir Studio</div>
+          <div style="margin-top:6px" class="tag">v2.0</div>
+        </div>
+      </div>
+
+      <!-- SCENE 2: CLOUD ASSET (8-18s) -->
+      <div id="scene2" class="scene">
+        <div class="bg-grain"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-glow" style="left: -100px; top: 300px; opacity: 0.08;"></div>
+        <div style="position:absolute;left:140px;top:100px;" id="s2-headline">
+          <div class="headline" style="font-size:72px">云端素材管理</div>
+          <div style="margin-top:12px" class="subtitle">Cloud Asset Management</div>
+          <div class="divider" style="position:static;margin-top:20px;width:120px;"></div>
+        </div>
+        <div style="position:absolute;right:140px;top:140px;" id="s2-cloud">
+          <div style="display:flex;align-items:center;gap:12px;background:#121218;border:1px solid rgba(232,168,80,0.15);border-radius:10px;padding:12px 20px;">
+            <div style="width:12px;height:12px;border-radius:50%;background:#4ECDC4;"></div>
+            <span class="label" style="font-size:13px">OSS · 已同步</span>
+          </div>
+        </div>
+        <div style="position:absolute;left:140px;top:340px;width:1640px;height:520px;" id="s2-cards">
+          <div class="s2-card" id="s2-card1" style="left:0;top:20px;width:360px;height:200px;">
+            <div style="width:44px;height:44px;border-radius:10px;background:rgba(78,205,196,0.12);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px;">🖼</div>
+            <div style="font-family:'DM Sans',sans-serif;font-size:20px;font-weight:500;color:#EBE8E2;margin-bottom:6px;">角色立绘集</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#66625A;">12 files · 24.6 MB</div>
+          </div>
+          <div class="s2-card" id="s2-card2" style="left:400px;top:60px;width:360px;height:200px;">
+            <div style="width:44px;height:44px;border-radius:10px;background:rgba(167,139,250,0.12);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px;">🎬</div>
+            <div style="font-family:'DM Sans',sans-serif;font-size:20px;font-weight:500;color:#EBE8E2;margin-bottom:6px;">场景概念图</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#66625A;">8 files · 18.2 MB</div>
+          </div>
+          <div class="s2-card" id="s2-card3" style="left:800px;top:20px;width:360px;height:200px;">
+            <div style="width:44px;height:44px;border-radius:10px;background:rgba(244,114,182,0.12);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px;">📹</div>
+            <div style="font-family:'DM Sans',sans-serif;font-size:20px;font-weight:500;color:#EBE8E2;margin-bottom:6px;">Seedance 视频</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#66625A;">5 files · 142.3 MB</div>
+          </div>
+          <div class="s2-card" id="s2-card4" style="left:1200px;top:60px;width:360px;height:200px;">
+            <div style="width:44px;height:44px;border-radius:10px;background:rgba(250,204,21,0.12);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px;">📝</div>
+            <div style="font-family:'DM Sans',sans-serif;font-size:20px;font-weight:500;color:#EBE8E2;margin-bottom:6px;">剧本分镜稿</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#66625A;">3 files · 1.4 MB</div>
+          </div>
+        </div>
+        <div style="position:absolute;left:140px;bottom:80px;height:48px;display:flex;gap:40px;align-items:center;" id="s2-stats">
+          <div style="font-family:'DM Sans',sans-serif;font-size:16px;color:#9E988E;"><span style="font-family:'DM Serif Display',serif;font-size:32px;color:#E8A850;margin-right:8px;">28</span>素材文件</div>
+          <div style="width:1px;height:24px;background:rgba(232,168,80,0.15);"></div>
+          <div style="font-family:'DM Sans',sans-serif;font-size:16px;color:#9E988E;"><span style="font-family:'DM Serif Display',serif;font-size:32px;color:#E8A850;margin-right:8px;">186</span>MB 总量</div>
+          <div style="width:1px;height:24px;background:rgba(232,168,80,0.15);"></div>
+          <div style="font-family:'DM Sans',sans-serif;font-size:16px;color:#9E988E;"><span style="font-family:'DM Serif Display',serif;font-size:32px;color:#E8A850;margin-right:8px;">3</span>路保存</div>
+          <div style="width:1px;height:24px;background:rgba(232,168,80,0.15);"></div>
+          <div style="font-family:'DM Sans',sans-serif;font-size:16px;color:#4ECDC4;">本地 · OSS · 飞书</div>
+        </div>
+      </div>
+
+      <!-- SCENE 3: FEISHU COLLAB (18-28s) -->
+      <div id="scene3" class="scene">
+        <div class="bg-grain"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-glow" style="left: 600px; top: 100px; opacity: 0.08;"></div>
+        <div style="position:absolute;left:140px;top:100px;" id="s3-headline">
+          <div class="headline" style="font-size:72px">飞书团队协作</div>
+          <div style="margin-top:12px" class="subtitle">Feishu Team Collaboration</div>
+          <div class="divider" style="position:static;margin-top:20px;width:120px;"></div>
+        </div>
+        <div style="position:absolute;inset:300px 200px 120px 200px;" id="s3-collab">
+          <div class="s3-avatar" id="s3-av1" style="left:200px;top:160px;"><div style="font-family:'DM Sans',sans-serif;font-size:32px;font-weight:500;color:#E8A850;">美</div></div>
+          <div class="s3-avatar" id="s3-av2" style="left:660px;top:60px;"><div style="font-family:'DM Sans',sans-serif;font-size:32px;font-weight:500;color:#E8A850;">策</div></div>
+          <div class="s3-avatar" id="s3-av3" style="left:660px;top:320px;"><div style="font-family:'DM Sans',sans-serif;font-size:32px;font-weight:500;color:#E8A850;">开</div></div>
+          <div class="s3-connector" id="s3-edge1" style="left:300px;top:210px;width:360px;transform:rotate(-16deg);"></div>
+          <div class="s3-connector" id="s3-edge2" style="left:300px;top:210px;width:370px;transform:rotate(16deg);"></div>
+          <div class="s3-connector" id="s3-edge3" style="left:760px;top:160px;width:1px;height:160px;background:rgba(232,168,80,0.2);"></div>
+          <div class="s3-sync-dot" id="s3-sync1" style="left:480px;top:206px;"></div>
+          <div class="s3-sync-dot" id="s3-sync2" style="left:480px;top:224px;"></div>
+          <div class="s3-feishu-badge" id="s3-badge1" style="right:200px;top:100px;">素材实时同步</div>
+          <div class="s3-feishu-badge" id="s3-badge2" style="right:200px;top:200px;">文档协作编辑</div>
+          <div class="s3-feishu-badge" id="s3-badge3" style="right:200px;top:300px;">即时沟通反馈</div>
+        </div>
+      </div>
+
+      <!-- SCENE 4: NODE EDITOR (28-40s) -->
+      <div id="scene4" class="scene">
+        <div class="bg-grain"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-glow" style="left: 400px; top: 150px; opacity: 0.08;"></div>
+        <div style="position:absolute;left:140px;top:100px;" id="s4-headline">
+          <div class="headline" style="font-size:72px">节点编辑器</div>
+          <div style="margin-top:12px" class="subtitle">灵感编排 · 可视化创作流程</div>
+          <div class="divider" style="position:static;margin-top:20px;width:120px;"></div>
+        </div>
+        <div style="position:absolute;left:100px;top:280px;width:1720px;height:640px;" id="s4-canvas">
+          <div class="s4-node" id="s4-n1" style="left:60px;top:140px;border-color:rgba(78,205,196,0.6);">
+            <div style="font-family:'DM Sans',sans-serif;font-size:18px;font-weight:500;color:#4ECDC4;margin-bottom:6px;">素材输入</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66625A;">Asset Input</div>
+            <div style="position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;border:2px solid #121218;background:#4ECDC4;"></div>
+          </div>
+          <div class="s4-node" id="s4-n2" style="left:330px;top:40px;border-color:rgba(255,107,107,0.6);">
+            <div style="font-family:'DM Sans',sans-serif;font-size:18px;font-weight:500;color:#FF6B6B;margin-bottom:6px;">角色卡</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66625A;">Character Card</div>
+            <div style="position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;border:2px solid #121218;background:#FF6B6B;"></div>
+          </div>
+          <div class="s4-node" id="s4-n3" style="left:330px;top:260px;border-color:rgba(250,204,21,0.6);">
+            <div style="font-family:'DM Sans',sans-serif;font-size:18px;font-weight:500;color:#FACC15;margin-bottom:6px;">场景卡</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66625A;">Scene Card</div>
+            <div style="position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;border:2px solid #121218;background:#FACC15;"></div>
+          </div>
+          <div class="s4-node" id="s4-n4" style="left:600px;top:140px;border-color:rgba(167,139,250,0.6);">
+            <div style="font-family:'DM Sans',sans-serif;font-size:18px;font-weight:500;color:#A78BFA;margin-bottom:6px;">提示词</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66625A;">Prompt Template</div>
+            <div style="position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;border:2px solid #121218;background:#A78BFA;"></div>
+          </div>
+          <div class="s4-node" id="s4-n5" style="left:880px;top:40px;border-color:rgba(244,114,182,0.6);">
+            <div style="font-family:'DM Sans',sans-serif;font-size:18px;font-weight:500;color:#F472B6;margin-bottom:6px;">GPT 图像</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66625A;">GPT Image 2</div>
+            <div style="position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;border:2px solid #121218;background:#F472B6;"></div>
+          </div>
+          <div class="s4-node" id="s4-n6" style="left:880px;top:260px;border-color:rgba(139,92,246,0.6);">
+            <div style="font-family:'DM Sans',sans-serif;font-size:18px;font-weight:500;color:#8B5CF6;margin-bottom:6px;">Seedance</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66625A;">Video Gen 2.0</div>
+            <div style="position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;border:2px solid #121218;background:#8B5CF6;"></div>
+          </div>
+          <div class="s4-node" id="s4-n7" style="left:1160px;top:140px;border-color:rgba(251,113,133,0.6);">
+            <div style="font-family:'DM Sans',sans-serif;font-size:18px;font-weight:500;color:#FB7185;margin-bottom:6px;">输出</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66625A;">Output / Save</div>
+          </div>
+          <div class="s4-edge" id="s4-e1" style="left:210px;top:200px;width:130px;"></div>
+          <div class="s4-edge" id="s4-e2" style="left:210px;top:218px;width:130px;transform:rotate(20deg);"></div>
+          <div class="s4-edge" id="s4-e3" style="left:480px;top:108px;width:128px;transform:rotate(-24deg);"></div>
+          <div class="s4-edge" id="s4-e4" style="left:480px;top:310px;width:128px;transform:rotate(8deg);"></div>
+          <div class="s4-edge" id="s4-e5" style="left:752px;top:196px;width:137px;"></div>
+          <div class="s4-edge" id="s4-e6" style="left:752px;top:222px;width:137px;transform:rotate(18deg);"></div>
+          <div class="s4-edge" id="s4-e7" style="left:1032px;top:108px;width:137px;transform:rotate(-14deg);"></div>
+          <div class="s4-edge" id="s4-e8" style="left:1032px;top:310px;width:137px;transform:rotate(8deg);"></div>
+          <div style="position:absolute;width:6px;height:6px;border-radius:50%;background:#E8A850;left:210px;top:199px;" id="s4-dot1"></div>
+          <div style="position:absolute;width:6px;height:6px;border-radius:50%;background:#E8A850;left:752px;top:195px;" id="s4-dot2"></div>
+          <div style="position:absolute;width:6px;height:6px;border-radius:50%;background:#E8A850;left:1032px;top:309px;" id="s4-dot3"></div>
+        </div>
+        <div style="position:absolute;right:140px;bottom:100px;text-align:right;" id="s4-inspo">
+          <div class="tag" style="font-size:20px;">✦ 灵感编辑器</div>
+          <div style="margin-top:8px;font-family:'DM Sans',sans-serif;font-size:14px;color:#66625A;">从素材到创作 · 一气呵成</div>
+        </div>
+      </div>
+
+      <!-- SCENE 5: AI CREATION (40-52s) -->
+      <div id="scene5" class="scene">
+        <div class="bg-grain"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-glow" style="left: 200px; top: 40px; opacity: 0.10;"></div>
+        <div class="bg-glow" style="left: 800px; top: 300px; opacity: 0.06;width:700px;height:700px;"></div>
+        <div style="position:absolute;left:140px;top:100px;" id="s5-headline">
+          <div class="headline" style="font-size:72px">AI 图文视频创作</div>
+          <div style="margin-top:12px" class="subtitle">Prompt → Image → Video · 全链路 AI 驱动</div>
+          <div class="divider" style="position:static;margin-top:20px;width:120px;"></div>
+        </div>
+        <div style="position:absolute;left:120px;top:280px;width:1680px;height:520px;display:flex;align-items:center;gap:0;" id="s5-pipeline">
+          <div class="s5-stage" id="s5-stage1">
+            <div style="font-size:40px;margin-bottom:16px;">✏️</div>
+            <div style="font-family:'DM Serif Display',serif;font-size:28px;color:#EBE8E2;margin-bottom:8px;">AI 提示词</div>
+            <div style="font-family:'DM Sans',sans-serif;font-size:15px;color:#9E988E;line-height:1.4;"><div>智能优化提示词</div><div>上下文感知角色/场景</div><div>模板变量自动填充</div></div>
+            <div style="position:absolute;bottom:0;left:0;right:0;height:3px;display:block;background:linear-gradient(90deg,rgba(167,139,250,0) 0%,#A78BFA 50%,rgba(167,139,250,0) 100%);"></div>
+          </div>
+          <div style="font-family:'DM Serif Display',serif;font-size:48px;color:rgba(232,168,80,0.3);width:80px;text-align:center;flex-shrink:0;">→</div>
+          <div class="s5-stage" id="s5-stage2">
+            <div style="font-size:40px;margin-bottom:16px;">🖼</div>
+            <div style="font-family:'DM Serif Display',serif;font-size:28px;color:#EBE8E2;margin-bottom:8px;">GPT Image 2</div>
+            <div style="font-family:'DM Sans',sans-serif;font-size:15px;color:#9E988E;line-height:1.4;"><div>GrsAI 代理生成</div><div>多比例/质量控制</div><div>参考图融合</div></div>
+            <div style="position:absolute;bottom:0;left:0;right:0;height:3px;display:block;background:linear-gradient(90deg,rgba(244,114,182,0) 0%,#F472B6 50%,rgba(244,114,182,0) 100%);"></div>
+          </div>
+          <div style="font-family:'DM Serif Display',serif;font-size:48px;color:rgba(232,168,80,0.3);width:80px;text-align:center;flex-shrink:0;">→</div>
+          <div class="s5-stage" id="s5-stage3">
+            <div style="font-size:40px;margin-bottom:16px;">🎥</div>
+            <div style="font-family:'DM Serif Display',serif;font-size:28px;color:#EBE8E2;margin-bottom:8px;">Seedance 2.0</div>
+            <div style="font-family:'DM Sans',sans-serif;font-size:15px;color:#9E988E;line-height:1.4;"><div>视频生成引擎</div><div>多模型/分辨率</div><div>有声/尾帧/联网搜索</div></div>
+            <div style="position:absolute;bottom:0;left:0;right:0;height:3px;display:block;background:linear-gradient(90deg,rgba(139,92,246,0) 0%,#8B5CF6 50%,rgba(139,92,246,0) 100%);"></div>
+          </div>
+          <div style="font-family:'DM Serif Display',serif;font-size:48px;color:rgba(232,168,80,0.3);width:80px;text-align:center;flex-shrink:0;">→</div>
+          <div class="s5-stage" id="s5-stage4">
+            <div style="font-size:40px;margin-bottom:16px;">📦</div>
+            <div style="font-family:'DM Serif Display',serif;font-size:28px;color:#EBE8E2;margin-bottom:8px;">三路保存</div>
+            <div style="font-family:'DM Sans',sans-serif;font-size:15px;color:#9E988E;line-height:1.4;"><div>本地 + OSS + 飞书</div><div>一键发布到素材库</div><div>时间线自动归档</div></div>
+            <div style="position:absolute;bottom:0;left:0;right:0;height:3px;display:block;background:linear-gradient(90deg,rgba(52,211,153,0) 0%,#34D399 50%,rgba(52,211,153,0) 100%);"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 6: CTA (52-60s) -->
+      <div id="scene6" class="scene">
+        <div class="bg-grain"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-glow" style="left: 510px; top: 90px;opacity:0.10;"></div>
+        <div class="bg-glow" style="left: 300px; top: 500px; opacity: 0.05; width:1200px;height:600px;"></div>
+        <div id="s6-bg-nodes" style="position:absolute;inset:0;">
+          <div style="position:absolute;left:200px;top:200px;width:8px;height:8px;border-radius:50%;background:#4ECDC4;opacity:0.25;"></div>
+          <div style="position:absolute;right:300px;top:180px;width:6px;height:6px;border-radius:50%;background:#FF6B6B;opacity:0.25;"></div>
+          <div style="position:absolute;left:400px;bottom:250px;width:7px;height:7px;border-radius:50%;background:#FACC15;opacity:0.25;"></div>
+          <div style="position:absolute;right:180px;bottom:300px;width:6px;height:6px;border-radius:50%;background:#A78BFA;opacity:0.25;"></div>
+          <div style="position:absolute;left:500px;top:300px;width:9px;height:9px;border-radius:50%;background:#F472B6;opacity:0.25;"></div>
+          <div style="position:absolute;right:500px;top:350px;width:7px;height:7px;border-radius:50%;background:#8B5CF6;opacity:0.25;"></div>
+        </div>
+        <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;" id="s6-center">
+          <div style="font-family:'DM Serif Display',serif;font-size:120px;font-weight:700;color:#EBE8E2;letter-spacing:0.03em;" id="s6-logo">N<span style="color:#E8A850">B</span>C</div>
+          <div style="margin-top:16px;font-family:'DM Sans',sans-serif;font-size:22px;color:#9E988E;letter-spacing:0.1em;" id="s6-subtitle">Node-Based Creator</div>
+          <div style="display:inline-block;margin-top:48px;padding:18px 56px;border-radius:12px;background:#E8A850;color:#0A0A0E;font-family:'DM Sans',sans-serif;font-size:24px;font-weight:600;letter-spacing:0.08em;" id="s6-cta">开始创作</div>
+          <div style="margin-top:32px;font-family:'DM Sans',sans-serif;font-size:18px;color:#9E988E;letter-spacing:0.12em;" id="s6-tagline">灵感创作 · 节点编排 · AI 驱动</div>
+        </div>
+        <div style="position:absolute;bottom:60px;left:50%;" id="s6-bottom-meta">
+          <div class="label" style="text-align:center;">Noir Studio · Feishu Integrated · AI Powered</div>
+        </div>
+      </div>
+
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      /* ═══ SCENE 1: Title (0-7.6s) ═══ */
+      tl.from(".bg-glow", { opacity: 0, duration: 1.2, ease: "power2.out" }, 0);
+
+      tl.from("#s1-title-block", { y: 60, opacity: 0, duration: 0.8, ease: "power3.out" }, 0.4);
+
+      tl.from("#s1-subtitle-block", { y: 40, opacity: 0, duration: 0.7, ease: "power2.out" }, 0.9);
+
+      tl.from("#s1-tagline", { opacity: 0, duration: 0.6, ease: "sine.out" }, 1.4);
+
+      tl.from("#scene1 svg", { opacity: 0, duration: 0.5, ease: "power2.out", stagger: 0.1 }, 0.3);
+
+      tl.from("#s1-meta", { opacity: 0, y: 20, duration: 0.6, ease: "power2.out" }, 1.8);
+
+      tl.from(".accent-dot", { scale: 0, opacity: 0, duration: 0.4, ease: "back.out(1.4)", stagger: 0.15 }, 1.2);
+
+      tl.from(".divider", { scaleX: 0, transformOrigin: "left center", duration: 0.7, ease: "power3.out", stagger: 0.1 }, 0.8);
+
+      /* ═══ TRANSITION 1→2: Push slide right (T=7.6, 0.4s) ═══ */
+      tl.to("#scene1", { x: -1920, duration: 0.4, ease: "power3.inOut" }, 7.6);
+      tl.fromTo("#scene2", { x: 1920, opacity: 1 }, { x: 0, duration: 0.4, ease: "power3.inOut" }, 7.6);
+
+      /* ═══ SCENE 2: Cloud Asset (8-17.6s) ═══ */
+      tl.from("#s2-headline", { x: -80, opacity: 0, duration: 0.6, ease: "power3.out" }, 8.2);
+      tl.from("#s2-cloud", { scale: 0.8, opacity: 0, duration: 0.5, ease: "back.out(1.4)" }, 8.5);
+
+      tl.from("#s2-card1", { y: 60, opacity: 0, duration: 0.5, ease: "power3.out" }, 9.0);
+      tl.from("#s2-card2", { y: 60, opacity: 0, duration: 0.5, ease: "power3.out" }, 9.2);
+      tl.from("#s2-card3", { y: 60, opacity: 0, duration: 0.5, ease: "power3.out" }, 9.4);
+      tl.from("#s2-card4", { y: 60, opacity: 0, duration: 0.5, ease: "power3.out" }, 9.6);
+
+      tl.from("#s2-stats", { y: 40, opacity: 0, duration: 0.6, ease: "power2.out" }, 10.0);
+
+      /* ═══ TRANSITION 2→3: Push slide right (T=17.6, 0.4s) ═══ */
+      tl.to("#scene2", { x: -1920, duration: 0.4, ease: "power3.inOut" }, 17.6);
+      tl.fromTo("#scene3", { x: 1920, opacity: 1 }, { x: 0, duration: 0.4, ease: "power3.inOut" }, 17.6);
+
+      /* ═══ SCENE 3: Feishu Collab (18-27.7s) ═══ */
+      tl.from("#s3-headline", { x: -80, opacity: 0, duration: 0.6, ease: "power3.out" }, 18.2);
+
+      tl.from("#s3-av1", { scale: 0, opacity: 0, duration: 0.5, ease: "back.out(1.6)" }, 18.8);
+      tl.from("#s3-av2", { scale: 0, opacity: 0, duration: 0.5, ease: "back.out(1.6)" }, 19.1);
+      tl.from("#s3-av3", { scale: 0, opacity: 0, duration: 0.5, ease: "back.out(1.6)" }, 19.4);
+
+      tl.from("#s3-edge1", { scaleX: 0, transformOrigin: "left center", duration: 0.5, ease: "power2.inOut" }, 19.6);
+      tl.from("#s3-edge2", { scaleX: 0, transformOrigin: "left center", duration: 0.5, ease: "power2.inOut" }, 19.7);
+      tl.from("#s3-edge3", { scaleY: 0, transformOrigin: "top center", duration: 0.4, ease: "power2.inOut" }, 19.8);
+
+      tl.from("#s3-sync1", { scale: 0, opacity: 0, duration: 0.3, ease: "back.out(1.4)" }, 20.0);
+      tl.from("#s3-sync2", { scale: 0, opacity: 0, duration: 0.3, ease: "back.out(1.4)" }, 20.2);
+
+      tl.from("#s3-badge1", { x: 100, opacity: 0, duration: 0.5, ease: "power3.out" }, 20.5);
+      tl.from("#s3-badge2", { x: 100, opacity: 0, duration: 0.5, ease: "power3.out" }, 20.8);
+      tl.from("#s3-badge3", { x: 100, opacity: 0, duration: 0.5, ease: "power3.out" }, 21.1);
+
+      /* ═══ TRANSITION 3→4: Push slide right, snappier (T=27.7, 0.3s) ═══ */
+      tl.to("#scene3", { x: -1920, duration: 0.3, ease: "power4.inOut" }, 27.7);
+      tl.fromTo("#scene4", { x: 1920, opacity: 1 }, { x: 0, duration: 0.3, ease: "power4.inOut" }, 27.7);
+
+      /* ═══ SCENE 4: Node Editor (28-39.5s) ═══ */
+      tl.from("#s4-headline", { x: -80, opacity: 0, duration: 0.6, ease: "power3.out" }, 28.2);
+
+      tl.from("#s4-n1", { scale: 0.7, opacity: 0, duration: 0.5, ease: "back.out(1.4)" }, 28.8);
+      tl.from("#s4-n2", { scale: 0.7, opacity: 0, duration: 0.5, ease: "back.out(1.4)" }, 29.1);
+      tl.from("#s4-n3", { scale: 0.7, opacity: 0, duration: 0.5, ease: "back.out(1.4)" }, 29.2);
+      tl.from("#s4-n4", { scale: 0.7, opacity: 0, duration: 0.5, ease: "back.out(1.4)" }, 29.5);
+      tl.from("#s4-n5", { scale: 0.7, opacity: 0, duration: 0.5, ease: "back.out(1.4)" }, 29.8);
+      tl.from("#s4-n6", { scale: 0.7, opacity: 0, duration: 0.5, ease: "back.out(1.4)" }, 30.0);
+      tl.from("#s4-n7", { scale: 0.7, opacity: 0, duration: 0.5, ease: "back.out(1.4)" }, 30.3);
+
+      tl.from("#s4-e1", { scaleX: 0, transformOrigin: "left center", duration: 0.35, ease: "power2.inOut" }, 30.6);
+      tl.from("#s4-e2", { scaleX: 0, transformOrigin: "left center", duration: 0.35, ease: "power2.inOut" }, 30.7);
+      tl.from("#s4-e3", { scaleX: 0, transformOrigin: "left center", duration: 0.35, ease: "power2.inOut" }, 30.8);
+      tl.from("#s4-e4", { scaleX: 0, transformOrigin: "left center", duration: 0.35, ease: "power2.inOut" }, 30.9);
+      tl.from("#s4-e5", { scaleX: 0, transformOrigin: "left center", duration: 0.35, ease: "power2.inOut" }, 31.0);
+      tl.from("#s4-e6", { scaleX: 0, transformOrigin: "left center", duration: 0.35, ease: "power2.inOut" }, 31.1);
+      tl.from("#s4-e7", { scaleX: 0, transformOrigin: "left center", duration: 0.35, ease: "power2.inOut" }, 31.2);
+      tl.from("#s4-e8", { scaleX: 0, transformOrigin: "left center", duration: 0.35, ease: "power2.inOut" }, 31.3);
+
+      tl.from("#s4-dot1", { scale: 0, duration: 0.3, ease: "back.out(1.4)" }, 31.5);
+      tl.from("#s4-dot2", { scale: 0, duration: 0.3, ease: "back.out(1.4)" }, 31.7);
+      tl.from("#s4-dot3", { scale: 0, duration: 0.3, ease: "back.out(1.4)" }, 31.9);
+
+      tl.from("#s4-inspo", { x: 40, opacity: 0, duration: 0.6, ease: "power2.out" }, 32.5);
+
+      /* ═══ TRANSITION 4→5: Zoom through (T=39.5, 0.5s) — CLIMAX ═══ */
+      tl.to("#scene4", { scale: 2.5, opacity: 0, filter: "blur(8px)", duration: 0.4, ease: "power3.in" }, 39.5);
+      tl.fromTo("#scene5", { scale: 0.5, opacity: 0, filter: "blur(8px)" }, { scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.4, ease: "power3.out" }, 39.65);
+      tl.set("#scene4", { visibility: "hidden" }, 39.9);
+
+      /* ═══ SCENE 5: AI Creation (40-51.4s) ═══ */
+      tl.from("#s5-headline", { x: -80, opacity: 0, duration: 0.6, ease: "power3.out" }, 40.3);
+
+      tl.from("#s5-stage1", { y: -60, opacity: 0, duration: 0.6, ease: "power3.out" }, 41.0);
+      tl.from("#s5-stage2", { y: -60, opacity: 0, duration: 0.6, ease: "power3.out" }, 41.3);
+      tl.from("#s5-stage3", { y: -60, opacity: 0, duration: 0.6, ease: "power3.out" }, 41.6);
+      tl.from("#s5-stage4", { y: -60, opacity: 0, duration: 0.6, ease: "power3.out" }, 41.9);
+
+      tl.from("#s5-pipeline > div:nth-child(even)", { opacity: 0, scale: 0.5, duration: 0.4, ease: "power2.out", stagger: 0.15 }, 42.3);
+
+      /* ═══ TRANSITION 5→6: Blur crossfade (T=51.4, 0.6s) — WIND-DOWN ═══ */
+      tl.to("#scene5", { filter: "blur(10px)", scale: 1.03, opacity: 0, duration: 0.5, ease: "power2.inOut" }, 51.4);
+      tl.fromTo("#scene6", { filter: "blur(10px)", scale: 0.97, opacity: 0 }, { filter: "blur(0px)", scale: 1, opacity: 1, duration: 0.5, ease: "power2.inOut" }, 51.5);
+      tl.set("#scene5", { visibility: "hidden" }, 51.9);
+
+      /* ═══ SCENE 6: CTA (52-60s) ═══ */
+      tl.from("#s6-logo", { y: 30, opacity: 0, duration: 0.7, ease: "power3.out" }, 52.2);
+      tl.from("#s6-subtitle", { y: 20, opacity: 0, duration: 0.5, ease: "power2.out" }, 52.6);
+      tl.from("#s6-cta", { scale: 0.8, opacity: 0, duration: 0.5, ease: "back.out(1.6)" }, 53.0);
+      tl.from("#s6-tagline", { opacity: 0, duration: 0.5, ease: "sine.out" }, 53.5);
+      tl.from("#s6-bottom-meta", { opacity: 0, y: 20, xPercent: -50, duration: 0.6, ease: "power2.out" }, 53.8);
+
+      /* ═══ OUTRO: Fade to black (T=57.5) ═══ */
+      tl.to("#s6-center", { opacity: 0, duration: 1.0, ease: "power2.in" }, 57.5);
+      tl.to("#s6-bg-nodes", { opacity: 0, duration: 0.8, ease: "power2.in" }, 57.5);
+      tl.to("#s6-bottom-meta", { opacity: 0, xPercent: -50, duration: 0.8, ease: "power2.in" }, 57.5);
+      tl.to("#scene6", { opacity: 0, duration: 1.0, ease: "power2.in" }, 58.5);
+      tl.set("#scene6", { visibility: "hidden" }, 59.5);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

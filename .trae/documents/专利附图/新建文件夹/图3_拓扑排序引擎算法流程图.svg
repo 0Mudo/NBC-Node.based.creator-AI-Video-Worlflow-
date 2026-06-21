@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1220" viewBox="0 0 1600 1220">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/>
+    </marker>
+    <style>
+      .title { font: 700 28px 'Microsoft YaHei','SimSun',sans-serif; fill:#111; }
+      .subtitle { font: 400 16px 'Microsoft YaHei','SimSun',sans-serif; fill:#444; }
+      .text { font: 400 16px 'Microsoft YaHei','SimSun',sans-serif; fill:#111; }
+      .small { font: 400 13px 'Microsoft YaHei','SimSun',sans-serif; fill:#222; }
+      .tiny { font: 400 11px 'Microsoft YaHei','SimSun',sans-serif; fill:#333; }
+      .box { fill:#fff; stroke:#111; stroke-width:2; rx:10; ry:10; }
+      .group { fill:#fafafa; stroke:#111; stroke-width:2.2; rx:16; ry:16; }
+      .panel { fill:#f6f6f6; stroke:#111; stroke-width:2; rx:14; ry:14; }
+      .dashed { fill:#fcfcfc; stroke:#111; stroke-width:2; stroke-dasharray:8 6; rx:16; ry:16; }
+      .line { stroke:#111; stroke-width:2; fill:none; marker-end:url(#arrow); }
+      .plain { stroke:#111; stroke-width:2; fill:none; }
+      .soft { fill:#f1f1f1; stroke:#111; stroke-width:1.6; rx:8; ry:8; }
+      .chip { fill:#fff; stroke:#111; stroke-width:1.5; rx:12; ry:12; }
+    </style>
+  </defs>
+  
+  
+  <text x="56" y="54" class="title">图 3  拓扑排序引擎算法流程图</text>
+  <text x="56" y="82" class="subtitle">基于 Kahn 算法的入度统计与队列遍历</text>
+  
+  <rect x="680" y="110" width="240" height="56" class="box"/><text x="800" y="138" text-anchor="middle" class="text">开始</text>
+  <rect x="540" y="206" width="520" height="88" class="box"/><text x="800" y="234" text-anchor="middle" class="text">初始化图结构</text><text x="800" y="258" text-anchor="middle" class="text">创建入度计数 Map 与邻接表 Map</text>
+  <rect x="540" y="332" width="520" height="88" class="box"/><text x="800" y="360" text-anchor="middle" class="text">遍历所有边 E</text><text x="800" y="384" text-anchor="middle" class="text">adjacency[source].push(target)</text><text x="800" y="406" text-anchor="middle" class="text">inDegree[target]++</text>
+  <rect x="540" y="458" width="520" height="88" class="box"/><text x="800" y="486" text-anchor="middle" class="text">入度为 0 的节点入队</text><text x="800" y="510" text-anchor="middle" class="text">queue = [deg == 0]</text><text x="800" y="532" text-anchor="middle" class="text">sorted = []</text>
+  <rect x="640" y="586" width="320" height="64" class="panel"/><text x="800" y="614" text-anchor="middle" class="text">队列是否为空？</text><text x="800" y="638" text-anchor="middle" class="small">queue.empty ?</text>
+  <rect x="160" y="708" width="360" height="88" class="box"/><text x="340" y="736" text-anchor="middle" class="text">结束并返回结果</text><text x="340" y="760" text-anchor="middle" class="text">返回 sorted[]</text><text x="340" y="782" text-anchor="middle" class="text">作为执行引擎的节点顺序</text>
+  <rect x="1040" y="708" width="360" height="88" class="box"/><text x="1220" y="736" text-anchor="middle" class="text">出队当前节点</text><text x="1220" y="760" text-anchor="middle" class="text">current = queue.shift()</text><text x="1220" y="782" text-anchor="middle" class="text">sorted.push(current)</text>
+  <rect x="1040" y="840" width="360" height="88" class="box"/><text x="1220" y="868" text-anchor="middle" class="text">遍历当前节点邻居</text><text x="1220" y="892" text-anchor="middle" class="text">对每个 neighbor 执行 inDegree[neighbor]--</text>
+  <rect x="1090" y="968" width="260" height="64" class="panel"/><text x="1220" y="996" text-anchor="middle" class="text">neighbor 入度为 0？</text><text x="1220" y="1020" text-anchor="middle" class="small">deg == 0</text>
+  <rect x="1040" y="1098" width="360" height="88" class="box"/><text x="1220" y="1126" text-anchor="middle" class="text">邻居入队</text><text x="1220" y="1150" text-anchor="middle" class="text">queue.push(neighbor)</text>
+  <path d="M 800 166 L 800 206" class="line"/>
+  <path d="M 800 294 L 800 332" class="line"/>
+  <path d="M 800 420 L 800 458" class="line"/>
+  <path d="M 800 546 L 800 586" class="line"/>
+  <path d="M 640 618 L 520 752" class="line"/>
+  <path d="M 960 618 L 1040 752" class="line"/>
+  <path d="M 1220 796 L 1220 840" class="line"/>
+  <path d="M 1220 928 L 1220 968" class="line"/>
+  <path d="M 1220 1032 L 1220 1098" class="line"/>
+  <path d="M 1040 1000 L 900 1000 L 900 618" class="line"/>
+  <text x="560" y="694" text-anchor="start" class="small">是</text>
+  <text x="984" y="694" text-anchor="start" class="small">否</text>
+  <text x="1242" y="1082" text-anchor="start" class="small">是</text>
+  <text x="912" y="980" text-anchor="start" class="small">否，继续判断下一邻居</text>
+  
+</svg>

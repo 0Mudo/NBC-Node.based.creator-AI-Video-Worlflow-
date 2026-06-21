@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>图7 节点组独立运行流程图</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: #0f172a;
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+    }
+    .page {
+      width: 1600px;
+      min-height: 900px;
+      padding: 28px 32px 24px;
+      background: #ffffff;
+    }
+    .title {
+      text-align: center;
+      font-size: 34px;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 18px;
+      color: #475569;
+      margin: 8px 0 16px;
+    }
+    svg { width: 100%; height: 780px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1 class="title">图7 节点组独立运行流程图</h1>
+    <div class="subtitle">节点组创建、包围盒渲染、子图过滤与独立执行过程</div>
+    <svg viewBox="0 0 1600 980" width="1600" height="780" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569" />
+        </marker>
+      </defs>
+      
+      
+    <rect x="650" y="50" width="300" height="58" rx="29" fill="#dbeafe" stroke="#2563eb" stroke-width="3"  />
+    <text text-anchor="middle" font-size="22" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="79">用户框选或累积选择多个节点</tspan></text>
+  
+      
+    <rect x="575" y="150" width="450" height="78" rx="18" fill="#eff6ff" stroke="#3b82f6" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="172.8">创建节点组对象</tspan><tspan x="800" y="205.20000000000002">groupId / groupName / nodeIds / color</tspan></text>
+  
+      
+    <rect x="575" y="270" width="450" height="78" rx="18" fill="#dcfce7" stroke="#16a34a" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="292.8">计算组成员包围盒</tspan><tspan x="800" y="325.20000000000005">minX / minY / maxX / maxY + padding</tspan></text>
+  
+      
+    <rect x="575" y="390" width="450" height="78" rx="18" fill="#fef3c7" stroke="#d97706" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="412.8">依据 viewport 缩放和平移</tspan><tspan x="800" y="445.20000000000005">转换为屏幕坐标并渲染可视框</tspan></text>
+  
+      
+    <rect x="575" y="510" width="450" height="78" rx="18" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="532.8">接收组运行指令</tspan><tspan x="800" y="565.1999999999999">点击运行按钮或双击组标签</tspan></text>
+  
+      
+    <rect x="575" y="630" width="450" height="78" rx="18" fill="#fee2e2" stroke="#dc2626" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="652.8">按 nodeIds 过滤全图节点和边</tspan><tspan x="800" y="685.1999999999999">仅构建组内子图</tspan></text>
+  
+      
+    <rect x="575" y="750" width="450" height="78" rx="18" fill="#ecfccb" stroke="#65a30d" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="772.8">对子图执行拓扑排序并运行组内生成节点</tspan><tspan x="800" y="805.1999999999999">同步保存到 localStorage 与 .nbc.json</tspan></text>
+  
+      <line x1="800" y1="108" x2="800" y2="150" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="800" y1="228" x2="800" y2="270" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="800" y1="348" x2="800" y2="390" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="800" y1="468" x2="800" y2="510" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="800" y1="588" x2="800" y2="630" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="800" y1="708" x2="800" y2="750" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      
+    <rect x="1100" y="390" width="310" height="138" rx="18" fill="#f8fafc" stroke="#64748b" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="1255" y="410.4">界面可视元素</tspan><tspan x="1255" y="442.79999999999995">虚线边框</tspan><tspan x="1255" y="475.2">半透明背景</tspan><tspan x="1255" y="507.6">组名 / 数量 / 运行 / 解散</tspan></text>
+  
+      <line x1="1025" y1="430" x2="1100" y2="430" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+    
+    </svg>
+  </div>
+</body>
+</html>

@@ -45,15 +45,11 @@ async function fetchWithRetry(
 export interface GPTImageOptions {
   prompt: string
   model?: string
-  size?: string
   aspectRatio?: string
-  quality?: string
-  n?: number
-  urls?: string[]
-  webHook?: string
-  shutProgress?: boolean
+  images?: string[]
   apiKey?: string
   endpoint?: string
+  replyType?: 'json' | 'stream' | 'async'
 }
 
 export interface GPTImageResult {
@@ -178,7 +174,7 @@ export async function generateGPTImageStream(
 ): Promise<GPTImageResult[]> {
   if (signal?.aborted) throw new Error('AbortError')
   const apiKey = options.apiKey || ''
-  const endpoint = options.endpoint || `${API_BASE}/v1/draw/completions`
+  const endpoint = options.endpoint || `${API_BASE}/v1/api/generate`
 
   if (!apiKey) {
     throw new Error('未设置 GPT Image 2 API Key\n请在设置面板(⚙️)中填入 Key')
@@ -192,10 +188,10 @@ export async function generateGPTImageStream(
     const body: Record<string, unknown> = {
       model: options.model || 'gpt-image-2',
       prompt: options.prompt,
-      size: options.size || options.aspectRatio || '1024x1024',
+      size: options.aspectRatio || '1024x1024',
     }
     // 注意：官方兼容接口参考图参数为 image
-    if (options.urls?.length) body.image = options.urls
+    if (options.images?.length) body.image = options.images
 
     const res = await fetchWithRetry(requestUrl, {
       method: 'POST',
@@ -234,10 +230,13 @@ export async function generateGPTImageStream(
     }
   }
 
-  // 2. 否则，使用原有的 /draw/completions 接口
-  if (!requestUrl.endsWith('/draw/completions') && requestUrl.endsWith('/v1')) {
+  // 2. GrsAI /v1/api/generate 接口（官方 gpt-image-2 规范）
+  const hasFullPath = requestUrl.includes('/v1/api/generate') || requestUrl.endsWith('/generate')
+  if (hasFullPath) {
+    // /v1/api/generate 是完整端点，不追加路径
+  } else if (!requestUrl.endsWith('/draw/completions') && requestUrl.endsWith('/v1')) {
     requestUrl = requestUrl + '/draw/completions'
-  } else if (!requestUrl.includes('/draw/') && !requestUrl.includes('/images/')) {
+  } else if (!requestUrl.includes('/draw/') && !requestUrl.includes('/images/') && !requestUrl.includes('/generate')) {
     requestUrl = requestUrl.replace(/\/+$/, '') + '/v1/draw/completions'
   }
 
@@ -246,21 +245,9 @@ export async function generateGPTImageStream(
     prompt: options.prompt,
   }
   
-  if (body.model === 'dall-e-3') {
-    body.size = options.size || '1024x1024'
-    body.quality = options.quality || 'standard'
-    body.n = options.n || 1
-  } else {
-    if (options.aspectRatio) body.aspectRatio = options.aspectRatio
-    if (options.quality && options.quality !== 'auto') body.quality = options.quality
-    if (options.size) body.size = options.size
-    if (options.n) body.n = options.n
-  }
-  
-  // Custom properties for proxy (if any)
-  if (options.urls?.length) body.urls = options.urls
-  if (options.webHook) body.webHook = options.webHook
-  if (options.shutProgress !== undefined) body.shutProgress = options.shutProgress
+  if (options.aspectRatio) body.aspectRatio = options.aspectRatio
+  if (options.images?.length) body.images = options.images
+  body.replyType = options.replyType || 'json'
 
   const res = await fetchWithRetry(requestUrl, {
     method: 'POST',

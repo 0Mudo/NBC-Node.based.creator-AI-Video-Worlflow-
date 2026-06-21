@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>图5 模板变量替换流程图</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: #0f172a;
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+    }
+    .page {
+      width: 1600px;
+      min-height: 900px;
+      padding: 28px 32px 24px;
+      background: #ffffff;
+    }
+    .title {
+      text-align: center;
+      font-size: 34px;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 18px;
+      color: #475569;
+      margin: 8px 0 16px;
+    }
+    svg { width: 100%; height: 780px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1 class="title">图5 模板变量替换流程图</h1>
+    <div class="subtitle">标准变量与媒体变量的统一替换机制</div>
+    <svg viewBox="0 0 1600 980" width="1600" height="780" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569" />
+        </marker>
+      </defs>
+      
+      
+    <rect x="80" y="120" width="420" height="90" rx="18" fill="#eff6ff" stroke="#3b82f6" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="290" y="148.8">输入提示词文本</tspan><tspan x="290" y="181.20000000000002">{{character}}在{{scene}}中执行任务，参考{{图片参考1}}</tspan></text>
+  
+      
+    <rect x="590" y="70" width="420" height="90" rx="18" fill="#dcfce7" stroke="#16a34a" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="98.8">标准变量解析</tspan><tspan x="800" y="131.2">character / scene / item / description</tspan></text>
+  
+      
+    <rect x="590" y="220" width="420" height="90" rx="18" fill="#fef3c7" stroke="#d97706" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="232.6">媒体变量解析</tspan><tspan x="800" y="265">{{图片参考N}} / {{视频参考N}}</tspan><tspan x="800" y="297.4">同时支持纯文本变量</tspan></text>
+  
+      
+    <rect x="1100" y="70" width="380" height="90" rx="18" fill="#ecfccb" stroke="#65a30d" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="1290" y="98.8">上游结构化语义数据</tspan><tspan x="1290" y="131.2">角色名、场景名、描述信息</tspan></text>
+  
+      
+    <rect x="1100" y="220" width="380" height="90" rx="18" fill="#cffafe" stroke="#0891b2" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="1290" y="248.8">分类排序后的媒体引用列表</tspan><tspan x="1290" y="281.20000000000005">imageRefs[] / videoRefs[]</tspan></text>
+  
+      
+    <rect x="420" y="410" width="760" height="120" rx="18" fill="#f8fafc" stroke="#64748b" stroke-width="3"  />
+    <text text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="453.8">生成替换后的完整提示词</tspan><tspan x="800" y="486.20000000000005">角色「蜂医」在场景「航天基地」中执行任务，参考 H:\素材库\角色参考图.png</tspan></text>
+  
+      
+    <rect x="620" y="620" width="360" height="60" rx="30" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"  />
+    <text text-anchor="middle" font-size="22" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="800" y="650">输出给执行引擎</tspan></text>
+  
+      <line x1="500" y1="165" x2="590" y2="115" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="500" y1="165" x2="590" y2="265" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="1010" y1="115" x2="1100" y2="115" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="1010" y1="265" x2="1100" y2="265" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <polyline points="800,160 800,360 800,360 800,410" fill="none" stroke="#475569" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" />
+      <polyline points="800,310 800,360 800,360 800,410" fill="none" stroke="#475569" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" />
+      <line x1="800" y1="530" x2="800" y2="620" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+    
+    </svg>
+  </div>
+</body>
+</html>

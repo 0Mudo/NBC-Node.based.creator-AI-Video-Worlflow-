@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>图11 节点编辑器画布界面示例图</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: #0f172a;
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+    }
+    .page {
+      width: 1600px;
+      min-height: 900px;
+      padding: 28px 32px 24px;
+      background: #ffffff;
+    }
+    .title {
+      text-align: center;
+      font-size: 34px;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 18px;
+      color: #475569;
+      margin: 8px 0 16px;
+    }
+    svg { width: 100%; height: 780px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1 class="title">图11 节点编辑器画布界面示例图</h1>
+    <div class="subtitle">完整工作流在节点编辑器中的典型布局示意</div>
+    <svg viewBox="0 0 1600 980" width="1600" height="780" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569" />
+        </marker>
+      </defs>
+      
+      <rect x="40" y="60" width="1520" height="680" rx="26" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+      <rect x="40" y="60" width="1520" height="56" rx="26" fill="#1e293b" />
+      <text x="80" y="95" fill="#ffffff" font-size="24" font-weight="700" text-anchor="start" font-family="Microsoft YaHei, Arial">NBC 节点式素材创作器</text>
+      <rect x="40" y="116" width="240" height="624" fill="#e2e8f0"/>
+      <rect x="1280" y="116" width="280" height="624" fill="#e2e8f0"/>
+      <text x="80" y="155" fill="#334155" font-size="22" font-weight="700" text-anchor="start" font-family="Microsoft YaHei, Arial">素材 / 项目面板</text>
+      <text x="1310" y="155" fill="#334155" font-size="22" font-weight="700" text-anchor="start" font-family="Microsoft YaHei, Arial">节点面板 / 属性检查器</text>
+      <rect x="280" y="116" width="1000" height="624" fill="#f1f5f9"/>
+      
+    <rect x="340" y="260" width="170" height="96" rx="18" fill="#cffafe" stroke="#0891b2" stroke-width="3"  />
+    <text text-anchor="middle" font-size="22" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="425" y="293.15">素材输入</tspan><tspan x="425" y="322.84999999999997">角色参考图</tspan></text>
+  
+      
+    <rect x="340" y="430" width="170" height="96" rx="18" fill="#dcfce7" stroke="#16a34a" stroke-width="3"  />
+    <text text-anchor="middle" font-size="22" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="425" y="463.15">角色卡</tspan><tspan x="425" y="492.84999999999997">蜂医</tspan></text>
+  
+      
+    <rect x="340" y="600" width="170" height="96" rx="18" fill="#fef3c7" stroke="#d97706" stroke-width="3"  />
+    <text text-anchor="middle" font-size="22" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="425" y="633.15">场景卡</tspan><tspan x="425" y="662.85">航天基地</tspan></text>
+  
+      
+    <rect x="650" y="430" width="220" height="120" rx="18" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"  />
+    <text text-anchor="middle" font-size="20" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="760" y="463">提示词节点</tspan><tspan x="760" y="490">{{character}} 在 {{scene}} 中</tspan><tspan x="760" y="517">参考 {{图片参考1}}</tspan></text>
+  
+      
+    <rect x="1000" y="340" width="200" height="110" rx="18" fill="#fee2e2" stroke="#dc2626" stroke-width="3"  />
+    <text text-anchor="middle" font-size="20" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="1100" y="381.5">GPT 图像生成</tspan><tspan x="1100" y="408.5">质量 / 比例 / 参考图</tspan></text>
+  
+      
+    <rect x="1000" y="550" width="200" height="110" rx="18" fill="#f3e8ff" stroke="#9333ea" stroke-width="3"  />
+    <text text-anchor="middle" font-size="20" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="1100" y="591.5">Seedance 视频生成</tspan><tspan x="1100" y="618.5">时长 / 分辨率</tspan></text>
+  
+      
+    <rect x="1290" y="340" width="150" height="90" rx="18" fill="#ecfccb" stroke="#65a30d" stroke-width="3"  />
+    <text text-anchor="middle" font-size="22" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="1365" y="370.15">输出</tspan><tspan x="1365" y="399.84999999999997">图像</tspan></text>
+  
+      
+    <rect x="1290" y="560" width="150" height="90" rx="18" fill="#ecfccb" stroke="#65a30d" stroke-width="3"  />
+    <text text-anchor="middle" font-size="22" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="1365" y="590.15">输出</tspan><tspan x="1365" y="619.85">视频</tspan></text>
+  
+      <line x1="510" y1="308" x2="650" y2="470" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="510" y1="478" x2="650" y2="490" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="510" y1="648" x2="650" y2="510" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="870" y1="485" x2="1000" y2="395" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="870" y1="505" x2="1000" y2="605" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="1200" y1="395" x2="1290" y2="385" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      <line x1="1200" y1="605" x2="1290" y2="605" stroke="#475569" stroke-width="3"   marker-end="url(#arrow)" />
+      
+    <rect x="1320" y="220" width="200" height="86" rx="18" fill="#ffffff" stroke="#94a3b8" stroke-width="3"  />
+    <text text-anchor="middle" font-size="18" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="1420" y="250.85">检查器</tspan><tspan x="1420" y="275.15">当前节点参数与状态</tspan></text>
+  
+      
+    <rect x="80" y="200" width="160" height="72" rx="18" fill="#ffffff" stroke="#94a3b8" stroke-width="3"  />
+    <text text-anchor="middle" font-size="18" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="160" y="223.85">素材库</tspan><tspan x="160" y="248.15">图片 / 视频</tspan></text>
+  
+      
+    <rect x="80" y="300" width="160" height="72" rx="18" fill="#ffffff" stroke="#94a3b8" stroke-width="3"  />
+    <text text-anchor="middle" font-size="18" font-weight="600" fill="#0f172a" font-family="Microsoft YaHei, Arial"><tspan x="160" y="323.85">项目列表</tspan><tspan x="160" y="348.15000000000003">导入 / 导出</tspan></text>
+  
+    
+    </svg>
+  </div>
+</body>
+</html>

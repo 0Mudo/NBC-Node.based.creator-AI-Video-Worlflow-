@@ -34,7 +34,7 @@ function getDefaultProviders(): ProviderRegistry {
         { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'sk-...', required: true },
       ],
       endpoints: [
-        { id: 'default', name: '默认端点', url: 'https://grsai.dakka.com.cn/v1/draw/completions', isDefault: true },
+        { id: 'default', name: '默认端点', url: 'https://grsai.dakka.com.cn/v1/api/generate', isDefault: true },
       ],
       enabled: true,
     },

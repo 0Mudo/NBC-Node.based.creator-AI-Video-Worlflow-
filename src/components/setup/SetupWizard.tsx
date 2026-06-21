@@ -25,7 +25,7 @@ export default function SetupWizard({ onComplete }: Props) {
   const handleFinish = () => {
     if (grsaiKey.trim()) {
       updateProvider('gptImage2', {
-        endpoints: [{ id: 'default', name: '默认端点', url: 'https://grsai.dakka.com.cn/api/jimeng/generate', apiKey: grsaiKey.trim(), isDefault: true }],
+        endpoints: [{ id: 'default', name: '默认端点', url: 'https://grsai.dakka.com.cn/v1/api/generate', apiKey: grsaiKey.trim(), isDefault: true }],
       })
     }
     if (arkKey.trim()) {

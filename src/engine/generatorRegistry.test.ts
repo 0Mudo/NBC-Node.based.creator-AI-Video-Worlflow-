@@ -31,7 +31,7 @@ vi.mock('@/store/useProviderStore', () => ({
           endpoints: [
             {
               id: 'default',
-              url: 'https://grsai.dakka.com.cn/v1/draw/completions',
+              url: 'https://grsai.dakka.com.cn/v1/api/generate',
               apiKey: 'gpt-key',
               isDefault: true,
             },
@@ -60,7 +60,7 @@ vi.mock('@/store/useProviderStore', () => ({
             endpoints: [
               {
                 id: 'default',
-                url: 'https://grsai.dakka.com.cn/v1/draw/completions',
+                url: 'https://grsai.dakka.com.cn/v1/api/generate',
                 apiKey: 'gpt-key',
                 isDefault: true,
               },

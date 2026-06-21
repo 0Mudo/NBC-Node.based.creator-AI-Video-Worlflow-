@@ -64,10 +64,7 @@ const gptImage2Adapter: GeneratorAdapter = {
       prompt: finalPrompt,
       model: (node.data.gptImageModel as string) || 'gpt-image-2-vip',
       aspectRatio: (node.data.gptImageAspectRatio as string) || '1:1',
-      quality: (node.data.gptImageQuality as 'auto' | 'low' | 'medium' | 'high') || 'auto',
-      urls: combinedUrls.length ? combinedUrls : undefined,
-      shutProgress: true,
-      webHook: '-1',
+      images: combinedUrls.length ? combinedUrls : undefined,
       apiKey: endpoint?.apiKey || '',
       endpoint: endpoint?.url,
     }, () => {}, signal)

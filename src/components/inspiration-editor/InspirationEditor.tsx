@@ -279,7 +279,7 @@ export default function InspirationEditor() {
         prompt: finalPrompt,
         model: charCfg.model || 'gpt-image-2-vip',
         aspectRatio: charCfg.aspectRatio,
-        urls: urls.length > 0 ? urls : undefined,
+        images: urls.length > 0 ? urls : undefined,
         apiKey,
         endpoint: endpointUrl
       }, (r) => {
