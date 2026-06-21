@@ -69,8 +69,13 @@ const gptImage2Adapter: GeneratorAdapter = {
       endpoint: endpoint?.url,
     }, () => {}, signal)
     const result = results[0]
-    if (!result?.url) throw new Error('生成成功但未返回图像链接，请检查 API 响应')
-    return result.url
+    const fallbackUrl = result?.results?.[0]?.url
+    const finalUrl = result?.url || fallbackUrl
+    if (!finalUrl) {
+      const preview = result?.raw ? JSON.stringify(result.raw).slice(0, 200) : 'null'
+      throw new Error(`生成成功但未返回图像链接（状态=${result?.status}，raw=${preview}），请检查 API 响应`)
+    }
+    return finalUrl
   },
 }
 

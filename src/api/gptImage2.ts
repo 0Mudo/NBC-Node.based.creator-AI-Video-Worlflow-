@@ -261,9 +261,48 @@ export async function generateGPTImageStream(
 
   // Log raw response for debugging
   console.log('GPT Image 2 Status:', res.status)
-  console.log('GPT Image 2 Response length:', res.body?.length || 0)
+  console.log('GPT Image 2 Response body:', res.body?.slice(0, 500) || '(empty)')
 
-  // First try parsing as stream or direct final result
+  // Quick path: try parse as direct JSON with optional {code, data} wrapper
+  let directResult: GPTImageResult[] | null = null
+  try {
+    const json = JSON.parse(res.body)
+    // Handle { code: 0, data: { id, status, results } } wrapper
+    const payload = json.code !== undefined ? (json.data || json) : json
+    if (payload.status === 'succeeded' || payload.status === 'failed') {
+      const extractedUrl = pickUrl(
+        payload.url,
+        payload.results?.[0]?.url,
+        payload.data?.[0]?.url,
+        payload.data?.url,
+        payload.data?.image_url,
+        payload.data?.results?.[0]?.url,
+        payload.result?.url,
+        payload.output_url,
+      )
+      directResult = [{
+        id: payload.id || json.id || '',
+        url: extractedUrl,
+        progress: payload.progress ?? 100,
+        status: payload.status,
+        failureReason: payload.failure_reason || payload.error,
+        results: payload.results || payload.data,
+        raw: payload,
+      }]
+      if (payload.status === 'failed') {
+        throw new Error(`生成失败: ${payload.failure_reason || payload.error || '未知原因'}`)
+      }
+      if (extractedUrl) {
+        onProgress?.(directResult[0])
+        return directResult
+      }
+      console.warn('[GPTImage] parsed response but URL empty, payload:', JSON.stringify(payload).slice(0, 300))
+    }
+  } catch (e) {
+    if (e instanceof Error && (e.message.startsWith('生成失败') || e.message.startsWith('API错误'))) throw e
+  }
+
+  // Fallback: try the full parseResponse flow for SSE or other formats
   let preliminaryResults: GPTImageResult[] | null = null
   try {
     const results = parseResponse(res.body)
