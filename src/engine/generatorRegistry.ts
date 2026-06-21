@@ -56,6 +56,32 @@ const gptImage2Adapter: GeneratorAdapter = {
     const combinedUrls = Array.from(new Set(
       [...refUrls, ...httpRefs, ...dataUris].filter(u => u.startsWith('http://') || u.startsWith('https://') || u.startsWith('data:'))
     ))
+    // #region debug-point E:image-input-summary
+    globalThis.fetch?.('http://127.0.0.1:7777/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'gptimage-running-url',
+        runId: 'post-fix',
+        hypothesisId: 'E',
+        location: 'src/engine/generatorRegistry.ts:gptImage2Adapter:execute:image-input-summary',
+        msg: '[DEBUG] prepared gpt image references',
+        data: {
+          refUrlCount: refUrls.length,
+          httpRefCount: httpRefs.length,
+          dataUriCount: dataUris.length,
+          combinedCount: combinedUrls.length,
+          combinedKinds: combinedUrls.map((value) =>
+            value.startsWith('data:') ? `data:${value.slice(5, 20)}` :
+            value.startsWith('https://') ? 'https' :
+            value.startsWith('http://') ? 'http' :
+            'other'
+          ),
+        },
+        ts: Date.now(),
+      }),
+    }).catch(() => {})
+    // #endregion
     const negativePrompt = (node.data._negativePrompt as string) || ''
     const finalPrompt = negativePrompt
       ? `${prompt}\n\nNEGATIVE PROMPT (DO NOT INCLUDE, STRICTLY AVOID): ${negativePrompt}`
@@ -73,6 +99,26 @@ const gptImage2Adapter: GeneratorAdapter = {
     const finalUrl = result?.url || fallbackUrl
     if (!finalUrl) {
       const preview = result?.raw ? JSON.stringify(result.raw).slice(0, 200) : 'null'
+      // #region debug-point D:registry-no-url
+      globalThis.fetch?.('http://127.0.0.1:7777/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'gptimage-running-url',
+          runId: 'pre-fix',
+          hypothesisId: 'D',
+          location: 'src/engine/generatorRegistry.ts:gptImage2Adapter:execute',
+          msg: '[DEBUG] registry is throwing no-url error',
+          data: {
+            resultStatus: result?.status,
+            hasResultUrl: !!result?.url,
+            hasFallbackUrl: !!fallbackUrl,
+            rawPreview: preview,
+          },
+          ts: Date.now(),
+        }),
+      }).catch(() => {})
+      // #endregion
       throw new Error(`生成成功但未返回图像链接（状态=${result?.status}，raw=${preview}），请检查 API 响应`)
     }
     return finalUrl

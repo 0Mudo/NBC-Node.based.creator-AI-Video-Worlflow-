@@ -5,6 +5,29 @@ const API_BASE = import.meta.env.DEV ? '/api/grsai' : 'https://grsai.dakka.com.c
 const MAX_RETRIES = 3
 const RETRY_DELAY_MS = 2000
 
+// #region debug-point A:report-helper
+function reportDebugEvent(
+  hypothesisId: string,
+  location: string,
+  msg: string,
+  data: Record<string, unknown>
+) {
+  globalThis.fetch?.('http://127.0.0.1:7777/event', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessionId: 'gptimage-running-url',
+      runId: 'pre-fix',
+      hypothesisId,
+      location,
+      msg: `[DEBUG] ${msg}`,
+      data,
+      ts: Date.now(),
+    }),
+  }).catch(() => {})
+}
+// #endregion
+
 function isNetworkError(err: Error): boolean {
   const msg = err.message || ''
   return (
@@ -76,6 +99,15 @@ function pickUrl(...candidates: unknown[]): string {
     if (u) return u
   }
   return ''
+}
+
+function normalizeParsedResults(results: GPTImageResult[]): GPTImageResult[] {
+  if (!results.length) return results
+  const withUrl = [...results].reverse().find((result) => !!result.url)
+  if (withUrl) return [withUrl]
+  const succeeded = [...results].reverse().find((result) => result.status === 'succeeded')
+  if (succeeded) return [succeeded]
+  return [results[results.length - 1]]
 }
 
 function parseResponse(rawBody: string): GPTImageResult[] {
@@ -182,6 +214,17 @@ export async function generateGPTImageStream(
 
   let requestUrl = sanitizeUrl(endpoint)
   const isOpenAIFormat = requestUrl.endsWith('/images/generations')
+  // #region debug-point A:entry
+  reportDebugEvent('A', 'src/api/gptImage2.ts:generateGPTImageStream:entry', 'enter generateGPTImageStream', {
+    endpoint,
+    requestUrl,
+    isOpenAIFormat,
+    model: options.model || 'gpt-image-2',
+    aspectRatio: options.aspectRatio,
+    imageCount: options.images?.length || 0,
+    replyType: options.replyType || 'json',
+  })
+  // #endregion
 
   // 1. 如果是兼容 OpenAI 的 /images/generations 接口
   if (isOpenAIFormat) {
@@ -236,6 +279,10 @@ export async function generateGPTImageStream(
     console.warn('[GPTImage] legacy /api/jimeng/ endpoint detected, migrating to /v1/api/generate')
     requestUrl = requestUrl.replace(/\/api\/jimeng\/generate\/?$/, '/v1/api/generate')
   }
+  if (requestUrl.includes('/v1/draw/completions')) {
+    console.warn('[GPTImage] legacy /v1/draw/completions endpoint detected, migrating to /v1/api/generate')
+    requestUrl = requestUrl.replace(/\/v1\/draw\/completions\/?$/, '/v1/api/generate')
+  }
   const hasFullPath = requestUrl.includes('/v1/api/generate') || requestUrl.endsWith('/generate')
   if (hasFullPath) {
     // /v1/api/generate 是完整端点，不追加路径
@@ -253,20 +300,53 @@ export async function generateGPTImageStream(
   if (options.aspectRatio) body.aspectRatio = options.aspectRatio
   if (options.images?.length) body.images = options.images
   body.replyType = options.replyType || 'json'
-
-  const res = await fetchWithRetry(requestUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(body),
-    timeoutMs: 300000,
+  // #region debug-point E:submit-request-summary
+  reportDebugEvent('E', 'src/api/gptImage2.ts:generateGPTImageStream:submit-request-summary', 'prepared submit request body', {
+    requestUrl,
+    imageCount: options.images?.length || 0,
+    imageKinds: (options.images || []).map((value) =>
+      value.startsWith('https://') ? 'https' :
+      value.startsWith('http://') ? 'http' :
+      value.startsWith('data:') ? `data:${value.slice(5, 20)}` :
+      'other'
+    ),
+    aspectRatio: options.aspectRatio,
+    replyType: body.replyType,
   })
+  // #endregion
+
+  let res
+  try {
+    res = await fetchWithRetry(requestUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+      timeoutMs: 300000,
+    })
+  } catch (error: any) {
+    // #region debug-point E:submit-request-failed
+    reportDebugEvent('E', 'src/api/gptImage2.ts:generateGPTImageStream:submit-request-failed', 'submit request failed before response parsing', {
+      requestUrl,
+      message: error instanceof Error ? error.message : String(error),
+      imageCount: options.images?.length || 0,
+    })
+    // #endregion
+    throw error
+  }
 
   // Log raw response for debugging
   console.log('GPT Image 2 Status:', res.status)
   console.log('GPT Image 2 Response body:', res.body?.slice(0, 500) || '(empty)')
+  // #region debug-point A:submit-response
+  reportDebugEvent('A', 'src/api/gptImage2.ts:generateGPTImageStream:submit-response', 'received submit response', {
+    requestUrl,
+    status: res.status,
+    bodyPreview: res.body?.slice(0, 300) || '',
+  })
+  // #endregion
 
   // Quick path: try parse as direct JSON with optional {code, data} wrapper
   try {
@@ -288,6 +368,15 @@ export async function generateGPTImageStream(
     if ((payload.status === 'running' || payload.status === 'pending') && !extractedUrl && payload.id) {
       console.log('[GPTImage] async task detected, starting poll for:', payload.id)
       const resultEndpoint = buildResultEndpoint(requestUrl)
+      // #region debug-point A:running-branch
+      reportDebugEvent('A', 'src/api/gptImage2.ts:generateGPTImageStream:running-branch', 'submit response entered async polling branch', {
+        payloadId: payload.id,
+        payloadStatus: payload.status,
+        extractedUrl,
+        requestUrl,
+        resultEndpoint,
+      })
+      // #endregion
       return await pollGPTImageResult(payload.id, apiKey, resultEndpoint, onProgress, signal)
     }
 
@@ -297,6 +386,13 @@ export async function generateGPTImageStream(
         throw new Error(`生成失败: ${payload.failure_reason || payload.error || '未知原因'}`)
       }
       if (extractedUrl) {
+        // #region debug-point C:sync-success
+        reportDebugEvent('C', 'src/api/gptImage2.ts:generateGPTImageStream:sync-success', 'submit response returned sync url', {
+          payloadId: payload.id,
+          payloadStatus: payload.status,
+          extractedUrl,
+        })
+        // #endregion
         onProgress?.({ id: payload.id, url: extractedUrl, progress: 100, status: 'succeeded' })
         return [{ id: payload.id, url: extractedUrl, progress: 100, status: 'succeeded', results: payload.results }]
       }
@@ -311,6 +407,14 @@ export async function generateGPTImageStream(
   try {
     const results = parseResponse(res.body)
     preliminaryResults = results
+    // #region debug-point A:parse-response-summary
+    reportDebugEvent('A', 'src/api/gptImage2.ts:generateGPTImageStream:parse-response-summary', 'parsed preliminary response summary', {
+      resultsLength: results.length,
+      firstId: results[0]?.id || '',
+      firstStatus: results[0]?.status || '',
+      firstUrl: results[0]?.url || '',
+    })
+    // #endregion
     // If it successfully returned an array of results with URL, we're done
     if (results.length > 0 && results[0].url) {
       for (const result of results) {
@@ -326,6 +430,14 @@ export async function generateGPTImageStream(
   }
 
   if (preliminaryResults?.length) {
+    // #region debug-point A:preliminary-branch-entry
+    reportDebugEvent('A', 'src/api/gptImage2.ts:generateGPTImageStream:preliminary-branch-entry', 'entered preliminary results branch', {
+      resultsLength: preliminaryResults.length,
+      lastId: preliminaryResults[preliminaryResults.length - 1]?.id || '',
+      lastStatus: preliminaryResults[preliminaryResults.length - 1]?.status || '',
+      lastUrl: preliminaryResults[preliminaryResults.length - 1]?.url || '',
+    })
+    // #endregion
     for (const result of preliminaryResults) {
       onProgress?.(result)
       if (result.status === 'failed') {
@@ -334,8 +446,21 @@ export async function generateGPTImageStream(
     }
 
     const last = preliminaryResults[preliminaryResults.length - 1]
+    const normalized = normalizeParsedResults(preliminaryResults)
+    if (normalized[0]?.status === 'succeeded' && normalized[0]?.url) {
+      onProgress?.(normalized[0])
+      return normalized
+    }
     if (last.id && (last.status === 'running' || last.status === 'pending') && !last.url) {
       const resultEndpoint = buildResultEndpoint(requestUrl)
+      // #region debug-point A:fallback-running-branch
+      reportDebugEvent('A', 'src/api/gptImage2.ts:generateGPTImageStream:fallback-running-branch', 'fallback parser entered async polling branch', {
+        taskId: last.id,
+        status: last.status,
+        requestUrl,
+        resultEndpoint,
+      })
+      // #endregion
       return await pollGPTImageResult(last.id, apiKey, resultEndpoint, onProgress, signal)
     }
   }
@@ -358,6 +483,14 @@ export async function generateGPTImageStream(
       console.log('Got task ID, starting polling:', taskId)
       
       const resultEndpoint = buildResultEndpoint(requestUrl)
+      // #region debug-point A:taskid-branch
+      reportDebugEvent('A', 'src/api/gptImage2.ts:generateGPTImageStream:taskid-branch', 'task id branch entered async polling', {
+        taskId,
+        requestUrl,
+        resultEndpoint,
+        jsonStatus: json.status || json.data?.status,
+      })
+      // #endregion
       
       return await pollGPTImageResult(taskId, apiKey, resultEndpoint, onProgress, signal)
     }
@@ -369,7 +502,13 @@ export async function generateGPTImageStream(
   }
 
   // If all parsing fails, throw original error
-  return parseResponse(res.body)
+  // #region debug-point A:final-fallback-return
+  reportDebugEvent('A', 'src/api/gptImage2.ts:generateGPTImageStream:final-fallback-return', 'fell through to final parseResponse return', {
+    requestUrl,
+    bodyPreview: res.body?.slice(0, 300) || '',
+  })
+  // #endregion
+  return normalizeParsedResults(parseResponse(res.body))
 }
 
 export async function pollGPTImageResult(
@@ -380,6 +519,12 @@ export async function pollGPTImageResult(
   signal?: AbortSignal
 ): Promise<GPTImageResult[]> {
   console.log(`[GPTImage] polling task ${taskId} at ${endpoint}`)
+  // #region debug-point B:poll-entry
+  reportDebugEvent('B', 'src/api/gptImage2.ts:pollGPTImageResult:entry', 'entered polling loop', {
+    taskId,
+    endpoint,
+  })
+  // #endregion
   const maxAttempts = 60 // 3 min at 3s intervals
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     if (signal?.aborted) throw new Error('AbortError')
@@ -424,6 +569,19 @@ export async function pollGPTImageResult(
     )
     
     console.log(`[GPTImage] poll #${attempt + 1} status=${data.status} progress=${data.progress} hasUrl=${!!extractedUrl}`)
+    // #region debug-point B:poll-response
+    reportDebugEvent('B', 'src/api/gptImage2.ts:pollGPTImageResult:poll-response', 'received polling response', {
+      attempt: attempt + 1,
+      taskId,
+      pollUrl,
+      method: fetchOptions.method,
+      status: data.status,
+      progress: data.progress,
+      hasUrl: !!extractedUrl,
+      resultsCount: Array.isArray(data.results) ? data.results.length : 0,
+      bodyPreview: res.body?.slice(0, 300) || '',
+    })
+    // #endregion
 
     const result: GPTImageResult = {
       id: data.id || taskId,
@@ -439,10 +597,25 @@ export async function pollGPTImageResult(
 
     if (result.status === 'succeeded') {
       if (extractedUrl) return [result]
+      // #region debug-point C:poll-succeeded-no-url
+      reportDebugEvent('C', 'src/api/gptImage2.ts:pollGPTImageResult:poll-succeeded-no-url', 'polling reached succeeded without url', {
+        taskId,
+        attempt: attempt + 1,
+        raw: JSON.stringify(data).slice(0, 300),
+      })
+      // #endregion
       throw new Error(`任务已完成，但未找到图片URL。\n返回数据: ${JSON.stringify(data).substring(0, 200)}`)
     }
     
     if (result.status === 'failed' || result.failureReason) {
+      // #region debug-point C:poll-failed
+      reportDebugEvent('C', 'src/api/gptImage2.ts:pollGPTImageResult:poll-failed', 'polling returned failed status', {
+        taskId,
+        attempt: attempt + 1,
+        status: result.status,
+        failureReason: result.failureReason || '',
+      })
+      // #endregion
       throw new Error(`生成失败: ${result.failureReason || '未知原因'}`)
     }
 
