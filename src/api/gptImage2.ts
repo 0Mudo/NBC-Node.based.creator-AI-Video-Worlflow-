@@ -231,6 +231,11 @@ export async function generateGPTImageStream(
   }
 
   // 2. GrsAI /v1/api/generate 接口（官方 gpt-image-2 规范）
+  // Auto-migrate legacy /api/jimeng/generate → /v1/api/generate
+  if (requestUrl.includes('/api/jimeng/')) {
+    console.warn('[GPTImage] legacy /api/jimeng/ endpoint detected, migrating to /v1/api/generate')
+    requestUrl = requestUrl.replace(/\/api\/jimeng\/generate\/?$/, '/v1/api/generate')
+  }
   const hasFullPath = requestUrl.includes('/v1/api/generate') || requestUrl.endsWith('/generate')
   if (hasFullPath) {
     // /v1/api/generate 是完整端点，不追加路径
