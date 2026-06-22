@@ -30,9 +30,13 @@ Status: OPEN
 - 新一轮运行时证据显示提交到 `https://grsai.dakka.com.cn/v1/api/generate` 时携带了 1 张 `https` 参考图，而不是 `data:`。
 - 结合服务端错误可确认：当前外链参考图对 GrsAI 服务端不可抓取，需改为本地转 base64 后再提交。
 - 已按用户要求回退“参考图优先转 base64 再提交”这单次修改，保留其余已验证修复。
+- 新问题证据：用户提供请求里 `aspectRatio` 为 `4096x4096`，服务端返回 `status=violation` 和 `Invalid size, please check the size`。
+- 官方文档 `grs.md` 显示 `1:1` 的合法示例尺寸为 `1024x1024`、`2048x2048`、`2880x2880`，并不存在 `4096x4096`。
 
 ## Fix
 - 新增 `normalizeParsedResults()`：对多事件响应优先返回最后一个带 URL 的成功事件，否则返回最后状态事件。
 - 在 `generateGPTImageStream()` 的 preliminary 分支中，若 SSE 已包含最终成功 URL，直接返回归一化结果，不再落到最终 fallback。
 - 最终 fallback 也改为返回归一化结果，避免上层取到数组首项 `running`。
 - 新增旧端点自动迁移：`/v1/draw/completions -> /v1/api/generate`。
+- 新增尺寸归一化：若传入像素尺寸不在官方支持列表内，则按相同比例匹配最近合法尺寸；`4096x4096` 会归一为 `2880x2880`。
+- 修正节点检查器中的错误 4K 选项：`4096x4096 -> 2880x2880`。

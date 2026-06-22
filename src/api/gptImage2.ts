@@ -101,6 +101,71 @@ function pickUrl(...candidates: unknown[]): string {
   return ''
 }
 
+const GPT_IMAGE_SUPPORTED_PIXEL_SIZES = [
+  '1024x1024',
+  '2048x2048',
+  '2880x2880',
+  '1774x887',
+  '2048x1152',
+  '3840x2160',
+  '887x1774',
+  '1152x2048',
+  '2160x3840',
+  '1536x1024',
+  '2048x1360',
+  '3504x2336',
+  '1024x1536',
+  '1360x2048',
+  '2336x3504',
+  '2048x880',
+  '3840x1648',
+  '880x2048',
+  '1648x3840',
+  '688x2048',
+  '1280x3840',
+  '2048x688',
+  '3840x1280',
+  '2048x1024',
+  '3840x1920',
+  '1024x2048',
+  '1920x3840',
+] as const
+
+function normalizeGPTImageAspectRatio(value?: string): string | undefined {
+  const raw = sanitizeUrl(value)
+  if (!raw) return undefined
+  if (!/^\d+x\d+$/i.test(raw)) return raw
+  if (GPT_IMAGE_SUPPORTED_PIXEL_SIZES.includes(raw as typeof GPT_IMAGE_SUPPORTED_PIXEL_SIZES[number])) {
+    return raw
+  }
+
+  const [width, height] = raw.toLowerCase().split('x').map(Number)
+  if (!width || !height) return raw
+
+  const targetRatio = width / height
+  const targetArea = width * height
+  const candidates = GPT_IMAGE_SUPPORTED_PIXEL_SIZES
+    .map((size) => {
+      const [w, h] = size.split('x').map(Number)
+      return {
+        size,
+        ratioDiff: Math.abs((w / h) - targetRatio),
+        areaDiff: Math.abs((w * h) - targetArea),
+      }
+    })
+    .sort((a, b) => {
+      if (a.ratioDiff !== b.ratioDiff) return a.ratioDiff - b.ratioDiff
+      return a.areaDiff - b.areaDiff
+    })
+
+  const best = candidates[0]
+  if (best && best.ratioDiff <= 0.01) {
+    return best.size
+  }
+
+  return raw
+}
+
 function normalizeParsedResults(results: GPTImageResult[]): GPTImageResult[] {
   if (!results.length) return results
   const withUrl = [...results].reverse().find((result) => !!result.url)
@@ -213,6 +278,7 @@ export async function generateGPTImageStream(
   }
 
   let requestUrl = sanitizeUrl(endpoint)
+  const normalizedAspectRatio = normalizeGPTImageAspectRatio(options.aspectRatio)
   const isOpenAIFormat = requestUrl.endsWith('/images/generations')
   // #region debug-point A:entry
   reportDebugEvent('A', 'src/api/gptImage2.ts:generateGPTImageStream:entry', 'enter generateGPTImageStream', {
@@ -220,7 +286,8 @@ export async function generateGPTImageStream(
     requestUrl,
     isOpenAIFormat,
     model: options.model || 'gpt-image-2',
-    aspectRatio: options.aspectRatio,
+    aspectRatio: normalizedAspectRatio,
+    rawAspectRatio: options.aspectRatio,
     imageCount: options.images?.length || 0,
     replyType: options.replyType || 'json',
   })
@@ -231,7 +298,7 @@ export async function generateGPTImageStream(
     const body: Record<string, unknown> = {
       model: options.model || 'gpt-image-2',
       prompt: options.prompt,
-      size: options.aspectRatio || '1024x1024',
+      size: normalizedAspectRatio || '1024x1024',
     }
     // 注意：官方兼容接口参考图参数为 image
     if (options.images?.length) body.image = options.images
@@ -297,7 +364,7 @@ export async function generateGPTImageStream(
     prompt: options.prompt,
   }
   
-  if (options.aspectRatio) body.aspectRatio = options.aspectRatio
+  if (normalizedAspectRatio) body.aspectRatio = normalizedAspectRatio
   if (options.images?.length) body.images = options.images
   body.replyType = options.replyType || 'json'
   // #region debug-point E:submit-request-summary
@@ -310,7 +377,8 @@ export async function generateGPTImageStream(
       value.startsWith('data:') ? `data:${value.slice(5, 20)}` :
       'other'
     ),
-    aspectRatio: options.aspectRatio,
+    aspectRatio: normalizedAspectRatio,
+    rawAspectRatio: options.aspectRatio,
     replyType: body.replyType,
   })
   // #endregion

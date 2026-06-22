@@ -472,7 +472,7 @@ export default function Inspector() {
                 <optgroup label="分辨率 (VIP)">
                   <option value="1024x1024">1k (1024x1024)</option>
                   <option value="2048x2048">2k (2048x2048)</option>
-                  <option value="4096x4096">4k (4096x4096)</option>
+                  <option value="2880x2880">4k (2880x2880)</option>
                 </optgroup>
               </select></div>
             <div><label className="text-[10px] text-text-secondary uppercase tracking-wider">图片质量 (Quality)</label>
